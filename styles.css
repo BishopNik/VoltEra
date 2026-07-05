@@ -88,7 +88,7 @@ html{overflow-x:hidden}
 
 /* Company identity, denser typography and explicit hero energy map */
 .brand{position:relative;min-width:104px;min-height:54px}
-.brand::before{content:"";display:block;width:104px;height:54px;border-radius:10px;background:#fff url('/assets/brand/ink-logo.png') center/92px auto no-repeat;box-shadow:0 8px 25px rgba(0,0,0,.16)}
+.brand::before{content:"";display:block;width:104px;height:54px;background:transparent url('/assets/brand/ink-logo-transparent.png') center/contain no-repeat;filter:drop-shadow(0 8px 18px rgba(0,0,0,.18))}
 .brand .brand-mark{display:none}.brand>span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .section-heading h2,.calc-copy h2,.tech-copy h2,.faq-intro h2,.consult-copy h2,.compare h2,.circle-intro h2{font-size:clamp(38px,4vw,58px)}
 .calm-manifesto .container{grid-template-columns:1.55fr 1fr}.calm-manifesto blockquote{font-size:clamp(30px,3.4vw,48px)}
