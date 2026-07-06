@@ -78,10 +78,15 @@ const reviews = $$('.review-card');
 let reviewIndex = 0;
 function showReview(index) {
   reviewIndex = (index + reviews.length) % reviews.length;
-  reviews.forEach((review, i) => review.classList.toggle('is-current', i === reviewIndex));
+  const desktop = window.matchMedia('(min-width: 801px)').matches;
+  reviews.forEach((review, i) => {
+    review.classList.toggle('is-current', i === reviewIndex);
+    review.classList.toggle('is-companion', desktop && i === (reviewIndex + 1) % reviews.length);
+  });
 }
-$('.review-prev').addEventListener('click', () => showReview(reviewIndex - 1));
-$('.review-next').addEventListener('click', () => showReview(reviewIndex + 1));
+$('.review-prev').addEventListener('click', () => showReview(reviewIndex - (window.innerWidth > 800 ? 2 : 1)));
+$('.review-next').addEventListener('click', () => showReview(reviewIndex + (window.innerWidth > 800 ? 2 : 1)));
+showReview(0);
 
 // Review publishing prototype. Content stays local until the moderation API is connected.
 const reviewForm = $('#review-form');
@@ -108,25 +113,24 @@ function createReview(data) {
   reviews.push(article);
   return article;
 }
-try {
-  JSON.parse(localStorage.getItem('voltera-reviews') || '[]').forEach(createReview);
-} catch (error) {
-  localStorage.removeItem('voltera-reviews');
-}
 $('.review-add').addEventListener('click', () => {
   reviewForm.hidden = false;
   reviewForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 $('.review-form-close').addEventListener('click', () => { reviewForm.hidden = true; });
-reviewForm.addEventListener('submit', event => {
+reviewForm.addEventListener('submit', async event => {
   event.preventDefault();
   if (!reviewForm.reportValidity()) return;
   const fields = new FormData(reviewForm);
   const data = { name: fields.get('reviewName'), city: fields.get('reviewCity'), rating: fields.get('reviewRating'), text: fields.get('reviewText') };
-  createReview(data);
-  const saved = JSON.parse(localStorage.getItem('voltera-reviews') || '[]');
-  saved.push(data);
-  localStorage.setItem('voltera-reviews', JSON.stringify(saved.slice(-10)));
+  const submit = reviewForm.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  submit.textContent = 'Публікуємо…';
+  const response = await fetch('/api/reviews', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) }).catch(() => null);
+  submit.disabled = false;
+  submit.textContent = 'Опублікувати відгук ↗';
+  if (!response?.ok) { submit.textContent = 'Помилка. Спробуйте ще раз'; return; }
+  createReview({...data, rating:Number(data.rating)});
   showReview(reviews.length - 1);
   reviewForm.reset();
   reviewForm.hidden = true;
@@ -158,6 +162,9 @@ $$('.project-open').forEach(button => button.addEventListener('click', () => {
 }));
 $('.project-dialog-close').addEventListener('click', () => projectDialog.close());
 projectDialog.addEventListener('click', event => { if (event.target === projectDialog) projectDialog.close(); });
+const projectGrid = $('.project-grid');
+$('.project-next').addEventListener('click', () => { projectGrid.append(projectGrid.firstElementChild); });
+$('.project-prev').addEventListener('click', () => { projectGrid.prepend(projectGrid.lastElementChild); });
 
 // Compact community board prototype
 $$('.topic-votes button').forEach(button => button.addEventListener('click', () => {
@@ -166,15 +173,17 @@ $$('.topic-votes button').forEach(button => button.addEventListener('click', () 
   const value = button.parentElement.querySelector('strong');
   value.textContent = Number(value.textContent) + 1;
 }));
-$('#topic-form').addEventListener('submit', event => {
+$('#topic-form').addEventListener('submit', async event => {
   event.preventDefault();
   const input = $('#topic-input');
   if (!input.value.trim()) return;
+  const response = await fetch('/api/questions', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({author:'Гість',city:'',title:input.value.trim(),body:''}) }).catch(() => null);
+  if (!response?.ok) return;
   const article = document.createElement('article');
   article.className = 'topic-card is-new';
   const vote = document.createElement('div');
   vote.className = 'topic-votes';
-  vote.innerHTML = '<button type="button" aria-label="Підтримати питання">↑</button><strong>1</strong>';
+  vote.innerHTML = '<button type="button" aria-label="Відмітити як корисне">♥</button><strong>0</strong><small>корисно</small>';
   const content = document.createElement('div');
   const state = document.createElement('span');
   state.className = 'topic-state';
@@ -182,7 +191,7 @@ $('#topic-form').addEventListener('submit', event => {
   const title = document.createElement('h3');
   title.textContent = input.value.trim();
   const copy = document.createElement('p');
-  copy.textContent = 'Питання передано інженеру VoltEra. Відповідь з’явиться тут після підключення модерації.';
+  copy.textContent = 'Питання передано інженеру ІНК. Відповідь з’явиться на сторінці Енергокола.';
   const footer = document.createElement('footer');
   footer.textContent = 'Нове питання · щойно';
   content.append(state, title, copy, footer);
@@ -191,10 +200,20 @@ $('#topic-form').addEventListener('submit', event => {
   input.value = '';
 });
 
-// Consultation form demo state — ready to swap for an API endpoint.
-$('#lead-form').addEventListener('submit', event => {
+// Consultation form → API/CRM.
+$('#lead-form').addEventListener('submit', async event => {
   event.preventDefault();
   if (!event.currentTarget.reportValidity()) return;
+  const form = event.currentTarget;
+  const fields = new FormData(form);
+  const payload = Object.fromEntries(fields.entries());
+  const submit = form.querySelector('.submit-button');
+  submit.disabled = true;
+  submit.innerHTML = 'Надсилаємо…';
+  const response = await fetch('/api/leads', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }).catch(() => null);
+  submit.disabled = false;
+  submit.innerHTML = 'Надіслати запит <span>↗</span>';
+  if (!response?.ok) { submit.innerHTML = 'Не вдалося. Повторити <span>↻</span>'; return; }
   event.currentTarget.classList.add('submitted');
 });
 
@@ -215,7 +234,7 @@ function renderStep(stepIndex) {
 function handleAnswer(answer, nextStep) {
   answers.push(answer);
   if (nextStep < 3) return renderStep(nextStep - 1);
-  selectorContent.innerHTML = `<p class="eyebrow">Результат / VOLTERA</p><h2>Вам пасує система Pulse.</h2><p style="color:var(--muted)">Гібридний інвертор 6 kW і батарея від 7.1 kWh. Архітектуру можна масштабувати та доповнити сонячними панелями.</p><a class="button button-primary" href="#consultation" id="selector-result">Отримати точний розрахунок <span>↗</span></a>`;
+  selectorContent.innerHTML = `<p class="eyebrow">Результат / ІНК</p><h2>Вам пасує система Pulse.</h2><p style="color:var(--muted)">Гібридний інвертор 6 kW і батарея 5 kWh. Архітектуру можна масштабувати та доповнити сонячними панелями.</p><a class="button button-primary" href="#consultation" id="selector-result">Отримати точний розрахунок <span>↗</span></a>`;
   $('#selector-result').addEventListener('click', () => dialog.close());
 }
 $$('.js-open-selector').forEach(button => button.addEventListener('click', () => dialog.showModal()));
@@ -223,7 +242,19 @@ $('.dialog-close').addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
 $$('.selector-options button', dialog).forEach(btn => btn.addEventListener('click', () => handleAnswer(btn.dataset.answer, 1)));
 
-// Keep one FAQ answer open at a time.
-$$('.accordion details').forEach(detail => detail.addEventListener('toggle', () => {
-  if (detail.open) $$('.accordion details').forEach(other => { if (other !== detail) other.open = false; });
-}));
+// FAQ answers open above the layout and never shift surrounding sections.
+const answerDialog = $('#answer-dialog');
+const faqAnswers = [
+  'Потужність визначаємо за сумарним навантаженням і пусковими струмами. Для базових потреб часто достатньо 4–6 кВт, але насос, кондиціонер чи електроплита змінюють розрахунок.',
+  'Залежить від ємності та навантаження. Батарея 5 кВт·год дає орієнтовно 8–10 годин для базових приладів із навантаженням близько 400 Вт.',
+  'Так. Гібридна архітектура дозволяє почати з інвертора та батареї, а панелі підключити пізніше без перебудови системи.',
+  'Так. Проєктуємо одно- й трифазні системи з пріоритетом кас, серверів, холодильного обладнання, освітлення та зв’язку.',
+  'Ціна залежить від потужності інвертора, ємності батареї, автоматики та монтажу. Точний кошторис формуємо після карти навантажень.',
+  'Так. Безпечне підключення потребує проєкту, захисту, правильного перерізу кабелів і налаштування автоматики.'
+];
+function openAnswer(title, copy) { $('h2', answerDialog).textContent = title; $('.answer-dialog-copy', answerDialog).textContent = copy; answerDialog.showModal(); }
+$$('.faq-question').forEach(button => button.addEventListener('click', () => openAnswer($('span', button).textContent, faqAnswers[Number(button.dataset.faq)])));
+const topicAnswerCopy = { q1:'Так, якщо модель батареї підтримує паралельне масштабування, напруга однакова та сумісний протокол BMS. Перед підключенням інженер вирівнює заряд модулів.', q3:'Частина ємності залишається як захисний резерв, ще частина втрачається на перетворенні. Для попереднього розрахунку закладайте 80–88% корисної енергії.' };
+$$('.topic-answers[data-question]').forEach(button => button.addEventListener('click', () => openAnswer(button.closest('.topic-card').querySelector('h3').textContent, topicAnswerCopy[button.dataset.question])));
+$('.answer-dialog-close').addEventListener('click', () => answerDialog.close());
+answerDialog.addEventListener('click', event => { if (event.target === answerDialog) answerDialog.close(); });

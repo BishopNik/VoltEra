@@ -1,0 +1,13 @@
+{
+  "name": "ink-energy-platform",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs"
+  },
+  "dependencies": {
+    "mongodb": "^6.17.0"
+  }
+}
