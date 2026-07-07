@@ -1,28 +1,189 @@
 {
   "leads": [
-    {"_id":"1082","name":"Андрій Коваль","phone":"+380673401822","email":"","city":"Київ","object":"Приватний будинок","need":"Deye / повна система","comment":"Потрібен резерв для будинку","status":"new","manager":"Олексій","createdAt":"2026-07-06T08:24:00.000Z","updatedAt":"2026-07-06T08:24:00.000Z","viewedAt":null},
-    {"_id":"1081","name":"Олена Мельник","phone":"+380931180290","email":"","city":"Львів","object":"Квартира","need":"Резервне живлення","comment":"Котел, холодильник, інтернет","status":"work","manager":"Марія","createdAt":"2026-07-06T07:18:00.000Z","updatedAt":"2026-07-06T07:18:00.000Z","viewedAt":"2026-07-06T07:30:00.000Z"}
+    {
+      "_id": "1082",
+      "name": "Андрій Коваль",
+      "phone": "+380673401822",
+      "email": "",
+      "city": "Київ",
+      "object": "Приватний будинок",
+      "need": "Deye / повна система",
+      "comment": "Потрібен резерв для будинку",
+      "status": "new",
+      "manager": "Олексій",
+      "createdAt": "2026-07-06T08:24:00.000Z",
+      "updatedAt": "2026-07-06T08:24:00.000Z",
+      "viewedAt": null
+    },
+    {
+      "_id": "1081",
+      "name": "Олена Мельник",
+      "phone": "+380931180290",
+      "email": "",
+      "city": "Львів",
+      "object": "Квартира",
+      "need": "Резервне живлення",
+      "comment": "Котел, холодильник, інтернет",
+      "status": "work",
+      "manager": "Марія",
+      "createdAt": "2026-07-06T07:18:00.000Z",
+      "updatedAt": "2026-07-06T07:18:00.000Z",
+      "viewedAt": "2026-07-06T07:30:00.000Z"
+    }
   ],
   "reviews": [
-    {"_id":"r1","name":"Олександр К.","city":"Київщина","rating":5,"text":"Після монтажу вперше не дізнались про відключення від сусідів.","reply":"Саме заради цього «не помітили» ми й проєктували запас для насоса.","status":"published","createdAt":"2026-06-21T10:00:00.000Z","updatedAt":"2026-06-21T10:00:00.000Z","viewedAt":"2026-06-21T10:00:00.000Z"},
-    {"_id":"r2","name":"Ірина П.","city":"Одеса","rating":4,"text":"Усе працює, але хотілося б детальнішу інструкцію до застосунку.","reply":"","status":"waiting","createdAt":"2026-07-06T06:40:00.000Z","updatedAt":"2026-07-06T06:40:00.000Z","viewedAt":null}
+    {
+      "_id": "r1",
+      "name": "Олександр К.",
+      "city": "Київщина",
+      "rating": 5,
+      "text": "Після монтажу вперше не дізнались про відключення від сусідів.",
+      "reply": "Саме заради цього «не помітили» ми й проєктували запас для насоса.",
+      "status": "published",
+      "createdAt": "2026-06-21T10:00:00.000Z",
+      "updatedAt": "2026-06-21T10:00:00.000Z",
+      "viewedAt": "2026-06-21T10:00:00.000Z"
+    },
+    {
+      "_id": "r2",
+      "name": "Ірина П.",
+      "city": "Одеса",
+      "rating": 4,
+      "text": "Усе працює, але хотілося б детальнішу інструкцію до застосунку.",
+      "reply": "",
+      "status": "waiting",
+      "createdAt": "2026-07-06T06:40:00.000Z",
+      "updatedAt": "2026-07-06T06:40:00.000Z",
+      "viewedAt": null
+    }
   ],
   "questions": [
-    {"_id":"q1","author":"Ігор","city":"Вінниця","title":"Чи можна до Deye спочатку підключити одну батарею, а за рік додати другу?","body":"","status":"answered","likes":24,"answers":[{"author":"ІНК","role":"engineer","text":"Так, якщо модель батареї підтримує паралельне масштабування, однакова напруга та сумісний протокол BMS.","createdAt":"2026-07-01T11:00:00.000Z"}],"createdAt":"2026-07-01T09:00:00.000Z","updatedAt":"2026-07-01T11:00:00.000Z","viewedAt":"2026-07-01T09:20:00.000Z"},
-    {"_id":"q2","author":"Наталя","city":"Київ","title":"Anenji чи Easun для квартири: що тихіше працює вночі?","body":"","status":"open","likes":17,"answers":[],"createdAt":"2026-07-05T16:20:00.000Z","updatedAt":"2026-07-05T16:20:00.000Z","viewedAt":null}
+    {
+      "_id": "q1",
+      "author": "Ігор",
+      "city": "Вінниця",
+      "title": "Чи можна до Deye спочатку підключити одну батарею, а за рік додати другу?",
+      "body": "",
+      "status": "answered",
+      "likes": 24,
+      "answers": [
+        {
+          "author": "ІНК",
+          "role": "engineer",
+          "text": "Так, якщо модель батареї підтримує паралельне масштабування, однакова напруга та сумісний протокол BMS.",
+          "createdAt": "2026-07-01T11:00:00.000Z"
+        }
+      ],
+      "createdAt": "2026-07-01T09:00:00.000Z",
+      "updatedAt": "2026-07-01T11:00:00.000Z",
+      "viewedAt": "2026-07-01T09:20:00.000Z"
+    },
+    {
+      "_id": "q2",
+      "author": "Наталя",
+      "city": "Київ",
+      "title": "Anenji чи Easun для квартири: що тихіше працює вночі?",
+      "body": "",
+      "status": "open",
+      "likes": 17,
+      "answers": [],
+      "createdAt": "2026-07-05T16:20:00.000Z",
+      "updatedAt": "2026-07-05T16:20:00.000Z",
+      "viewedAt": null
+    }
   ],
   "projects": [
-    {"_id":"p1","title":"Deye 8 kW + 20 kWh","city":"Київщина","type":"Приватний будинок","description":"Котел, свердловина, кухня й домашній офіс.","image":"/assets/projects/home-backup.jpg","status":"published","createdAt":"2026-06-10T10:00:00.000Z","updatedAt":"2026-06-10T10:00:00.000Z"},
-    {"_id":"p2","title":"СЕС 10.8 kW","city":"Львівщина","type":"Сонячна станція","description":"Гібридний контур із резервом.","image":"/assets/projects/solar-roof.jpg","status":"published","createdAt":"2026-06-18T10:00:00.000Z","updatedAt":"2026-06-18T10:00:00.000Z"},
-    {"_id":"p3","title":"3 фази + 105 kWh","city":"Львів","type":"Комерційний об'єкт","description":"21 батарейний модуль по 5 kWh.","image":"/assets/projects/business-backup.jpg","status":"draft","createdAt":"2026-07-02T10:00:00.000Z","updatedAt":"2026-07-02T10:00:00.000Z"}
+    {
+      "_id": "p1",
+      "title": "Deye 8 kW + 20 kWh",
+      "city": "Київщина",
+      "type": "Приватний будинок",
+      "description": "Котел, свердловина, кухня й домашній офіс.",
+      "image": "/assets/projects/home-backup.jpg",
+      "status": "published",
+      "createdAt": "2026-06-10T10:00:00.000Z",
+      "updatedAt": "2026-06-10T10:00:00.000Z"
+    },
+    {
+      "_id": "p2",
+      "title": "СЕС 10.8 kW",
+      "city": "Львівщина",
+      "type": "Сонячна станція",
+      "description": "Гібридний контур із резервом.",
+      "image": "/assets/projects/solar-roof.jpg",
+      "status": "published",
+      "createdAt": "2026-06-18T10:00:00.000Z",
+      "updatedAt": "2026-06-18T10:00:00.000Z"
+    },
+    {
+      "_id": "p3",
+      "title": "3 фази + 105 kWh",
+      "city": "Львів",
+      "type": "Комерційний об'єкт",
+      "description": "21 батарейний модуль по 5 kWh.",
+      "image": "/assets/projects/business-backup.jpg",
+      "status": "draft",
+      "createdAt": "2026-07-02T10:00:00.000Z",
+      "updatedAt": "2026-07-02T10:00:00.000Z"
+    }
   ],
   "articles": [
-    {"_id":"a1","title":"Як вибрати інвертор для дому й не переплатити","slug":"invertor-dlia-domu","excerpt":"Потужність, пускові струми, фази та чесний розрахунок автономності.","category":"Гід","status":"published","url":"/rishennia/invertor-dlia-domu.html","createdAt":"2026-06-12T10:00:00.000Z","updatedAt":"2026-07-04T10:00:00.000Z"},
-    {"_id":"a2","title":"5 приладів, які з'їдають автономність непомітно","slug":"5-pryladiv-iaki-zidaiut-avtonomnist","excerpt":"Рахуємо реальний вечір без мережі.","category":"Практика","status":"published","url":"/articles/5-pryladiv-iaki-zidaiut-avtonomnist.html","createdAt":"2026-07-06T10:00:00.000Z","updatedAt":"2026-07-06T10:00:00.000Z"}
+    {
+      "_id": "a1",
+      "title": "Як вибрати інвертор для дому й не переплатити",
+      "slug": "invertor-dlia-domu",
+      "excerpt": "Потужність, пускові струми, фази та чесний розрахунок автономності.",
+      "category": "Гід",
+      "status": "published",
+      "url": "/rishennia/invertor-dlia-domu.html",
+      "createdAt": "2026-06-12T10:00:00.000Z",
+      "updatedAt": "2026-07-04T10:00:00.000Z"
+    },
+    {
+      "_id": "a2",
+      "title": "5 приладів, які з'їдають автономність непомітно",
+      "slug": "5-pryladiv-iaki-zidaiut-avtonomnist",
+      "excerpt": "Рахуємо реальний вечір без мережі.",
+      "category": "Практика",
+      "status": "published",
+      "url": "/articles/5-pryladiv-iaki-zidaiut-avtonomnist.html",
+      "createdAt": "2026-07-06T10:00:00.000Z",
+      "updatedAt": "2026-07-06T10:00:00.000Z"
+    }
   ],
   "equipment": [
-    {"_id":"e1","brand":"DEYE","model":"SUN-8K-SG01LP1","power":"8 kW","phase":"1 фаза","voltage":"48 V","status":"active","createdAt":"2026-06-01T10:00:00.000Z","updatedAt":"2026-06-01T10:00:00.000Z"},
-    {"_id":"e2","brand":"ANENJI","model":"ANJ-6200W-48V","power":"6.2 kW","phase":"1 фаза","voltage":"48 V","status":"active","createdAt":"2026-06-01T10:00:00.000Z","updatedAt":"2026-06-01T10:00:00.000Z"},
-    {"_id":"e3","brand":"EASUN","model":"iSolar SMV IV 5.6K","power":"5.6 kW","phase":"1 фаза","voltage":"48 V","status":"review","createdAt":"2026-06-01T10:00:00.000Z","updatedAt":"2026-06-01T10:00:00.000Z"}
+    {
+      "_id": "e1",
+      "brand": "DEYE",
+      "model": "SUN-8K-SG01LP1",
+      "power": "8 kW",
+      "phase": "1 фаза",
+      "voltage": "48 V",
+      "status": "active",
+      "createdAt": "2026-06-01T10:00:00.000Z",
+      "updatedAt": "2026-06-01T10:00:00.000Z"
+    },
+    {
+      "_id": "e2",
+      "brand": "ANENJI",
+      "model": "ANJ-6200W-48V",
+      "power": "6.2 kW",
+      "phase": "1 фаза",
+      "voltage": "48 V",
+      "status": "active",
+      "createdAt": "2026-06-01T10:00:00.000Z",
+      "updatedAt": "2026-06-01T10:00:00.000Z"
+    },
+    {
+      "_id": "e3",
+      "brand": "EASUN",
+      "model": "iSolar SMV IV 5.6K",
+      "power": "5.6 kW",
+      "phase": "1 фаза",
+      "voltage": "48 V",
+      "status": "review",
+      "createdAt": "2026-06-01T10:00:00.000Z",
+      "updatedAt": "2026-06-01T10:00:00.000Z"
+    }
   ]
 }

@@ -102,7 +102,7 @@ function createReview(data) {
   quote.textContent = `«${data.text}»`;
   const reply = document.createElement('div');
   reply.className = 'team-reply';
-  reply.innerHTML = '<span>↳ VOLTERA БАЧИТЬ ВАШ ВІДГУК</span><p>Дякуємо. Команда прочитає відгук і відповість після модерації.</p>';
+  reply.innerHTML = '<span>↳ ІНК БАЧИТЬ ВАШ ВІДГУК</span><p>Дякуємо. Команда прочитає відгук і відповість після модерації.</p>';
   const footer = document.createElement('footer');
   const initials = data.name.split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
   footer.innerHTML = `<div class="avatar">${initials}</div><div><strong></strong><span></span></div><b>НОВИЙ ВІДГУК</b>`;

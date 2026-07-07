@@ -56,12 +56,13 @@ async function api(req,res,url){
   if(url.pathname==='/api/auth/login'&&req.method==='POST'){ const input=await body(req); const ok=crypto.timingSafeEqual(Buffer.from(String(input.user||'').padEnd(ADMIN_USER.length)),Buffer.from(ADMIN_USER.padEnd(String(input.user||'').length)))&&crypto.timingSafeEqual(Buffer.from(String(input.password||'').padEnd(ADMIN_PASSWORD.length)),Buffer.from(ADMIN_PASSWORD.padEnd(String(input.password||'').length))); if(!ok)return json(res,401,{error:'INVALID_CREDENTIALS'}); const token=crypto.randomBytes(32).toString('hex'); sessions.set(token,{user:{name:ADMIN_USER,role:'admin'},expires:Date.now()+28_800_000}); return json(res,200,{user:{name:ADMIN_USER,role:'admin'}},{'Set-Cookie':`ink_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800`}); }
   if(url.pathname==='/api/auth/me')return currentUser(req)?json(res,200,{user:currentUser(req)}):json(res,401,{error:'AUTH_REQUIRED'});
   if(url.pathname==='/api/auth/logout'&&req.method==='POST'){ const token=parseCookies(req).ink_session;if(token)sessions.delete(token);return json(res,200,{ok:true},{'Set-Cookie':'ink_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'}); }
-  if(url.pathname==='/api/dashboard'){ if(!requireAdmin(req,res))return; const result={}; for(const type of COLLECTIONS){const items=await store.list(type);result[type]={total:items.length,unread:items.filter(x=>!x.viewedAt).length};} return json(res,200,result); }
+  if(url.pathname==='/api/dashboard'){ if(!requireAdmin(req,res))return; const result={}; for(const type of COLLECTIONS){const items=await store.list(type);const hasUnread=['leads','reviews','questions'].includes(type);result[type]={total:items.length,unread:hasUnread?items.filter(x=>!x.viewedAt).length:0};} return json(res,200,result); }
   if(url.pathname==='/api/admin/mark-viewed'&&req.method==='POST'){ if(!requireAdmin(req,res))return; const input=await body(req); if(!COLLECTIONS.has(input.type))return json(res,400,{error:'INVALID_TYPE'}); await store.markViewed(input.type); return json(res,200,{ok:true}); }
   if(url.pathname==='/api/uploads'&&req.method==='POST'){ if(!requireAdmin(req,res))return; const input=await body(req,6_000_000); if(!/^data:image\/(png|jpeg|webp);base64,/.test(input.dataUrl||''))return json(res,400,{error:'INVALID_IMAGE'}); const ext=input.dataUrl.match(/^data:image\/(png|jpeg|webp)/)[1].replace('jpeg','jpg'); const filename=`${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${ext}`; await fs.mkdir(path.join(ROOT,'uploads'),{recursive:true}); await fs.writeFile(path.join(ROOT,'uploads',filename),Buffer.from(input.dataUrl.split(',')[1],'base64')); return json(res,201,{url:`/uploads/${filename}`}); }
   const match=url.pathname.match(/^\/api\/(leads|reviews|questions|projects|articles|equipment)(?:\/([^/]+))?$/); if(!match)return false;
   const [,type,id]=match; const isAdmin=Boolean(currentUser(req));
   if(req.method==='GET'){
+    if(type==='leads'&&!isAdmin)return json(res,401,{error:'AUTH_REQUIRED'});
     let items=await store.list(type);
     if(!isAdmin){ if(type==='reviews')items=items.filter(x=>x.status==='published'); if(['projects','articles','equipment'].includes(type))items=items.filter(x=>x.status==='published'||x.status==='active'); }
     return json(res,200,id?(items.find(x=>String(x._id)===id)||null):items);
@@ -72,7 +73,8 @@ async function api(req,res,url){
     if(type==='leads')Object.assign(input,{status:'new',manager:'',viewedAt:null});
     if(type==='reviews')Object.assign(input,{status:'waiting',reply:'',viewedAt:null,rating:Number(input.rating||5)});
     if(type==='questions')Object.assign(input,{status:'open',likes:0,answers:[],viewedAt:null});
-    if(!input.name&&type!=='questions'&&!input.title)return json(res,400,{error:'REQUIRED_FIELDS'});
+    const requiredOk = type==='leads' ? input.name : type==='reviews' ? input.name && input.text : type==='questions' ? input.title : type==='equipment' ? input.brand && input.model : input.title;
+    if(!requiredOk)return json(res,400,{error:'REQUIRED_FIELDS'});
     return json(res,201,await store.create(type,input));
   }
   if(['PATCH','DELETE'].includes(req.method)){ if(!requireAdmin(req,res))return; if(!id)return json(res,400,{error:'ID_REQUIRED'}); if(req.method==='DELETE')return json(res,(await store.remove(type,id))?200:404,{ok:true}); const input=sanitize(type,await body(req)); return json(res,200,await store.update(type,id,input)); }
