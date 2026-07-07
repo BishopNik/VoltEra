@@ -1,13 +1,30 @@
 import http from 'node:http';
-import { promises as fs } from 'node:fs';
+import { promises as fs, existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
+function loadEnvFile(){
+  const file=path.join(ROOT,'.env');
+  if(!existsSync(file))return;
+  for(const line of readFileSync(file,'utf8').split(/\r?\n/)){
+    const trimmed=line.trim();
+    if(!trimmed||trimmed.startsWith('#'))continue;
+    const index=trimmed.indexOf('=');
+    if(index<1)continue;
+    const key=trimmed.slice(0,index).trim();
+    let value=trimmed.slice(index+1).trim();
+    if((value.startsWith('"')&&value.endsWith('"'))||(value.startsWith("'")&&value.endsWith("'")))value=value.slice(1,-1);
+    if(process.env[key]===undefined)process.env[key]=value;
+  }
+}
+loadEnvFile();
+
 const PORT = Number(process.env.PORT || 8787);
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'InkAdmin2026!';
+const SECRET_KEY = process.env.SECRET_KEY || process.env.SESSION_SECRET || 'dev-only-change-me';
 const COLLECTIONS = new Set(['leads','reviews','questions','projects','articles','equipment']);
 const sessions = new Map();
 
@@ -47,15 +64,19 @@ const store = await createStore();
 
 function json(res,status,data,headers={}){ res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',...headers}); res.end(JSON.stringify(data)); }
 function parseCookies(req){ return Object.fromEntries((req.headers.cookie||'').split(';').filter(Boolean).map(part=>{const i=part.indexOf('=');return [part.slice(0,i).trim(),decodeURIComponent(part.slice(i+1))]})); }
-function currentUser(req){ const token=parseCookies(req).ink_session; const session=token&&sessions.get(token); if(!session||session.expires<Date.now()){if(token)sessions.delete(token);return null} return session.user; }
+function signToken(token){ return crypto.createHmac('sha256',SECRET_KEY).update(token).digest('base64url'); }
+function packSessionCookie(token){ return `${token}.${signToken(token)}`; }
+function unpackSessionCookie(value=''){ const dot=value.lastIndexOf('.'); if(dot<1)return null; const token=value.slice(0,dot); const signature=value.slice(dot+1); const expected=signToken(token); if(signature.length!==expected.length)return null; return crypto.timingSafeEqual(Buffer.from(signature),Buffer.from(expected))?token:null; }
+function sessionCookie(value,maxAge=28800){ const secure=process.env.NODE_ENV==='production'?'; Secure':''; return `ink_session=${value}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}${secure}`; }
+function currentUser(req){ const token=unpackSessionCookie(parseCookies(req).ink_session); const session=token&&sessions.get(token); if(!session||session.expires<Date.now()){if(token)sessions.delete(token);return null} return session.user; }
 function requireAdmin(req,res){ const user=currentUser(req); if(!user){json(res,401,{error:'AUTH_REQUIRED'});return null} return user; }
 async function body(req,limit=2_500_000){ let size=0,data=''; for await(const chunk of req){size+=chunk.length;if(size>limit)throw new Error('PAYLOAD_TOO_LARGE');data+=chunk} return data?JSON.parse(data):{}; }
 function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','status','manager','viewedAt'],reviews:['name','city','rating','text','reply','status','viewedAt'],questions:['author','city','title','body','status','likes','answers','viewedAt'],projects:['title','city','type','description','image','status'],articles:['title','slug','excerpt','body','category','status','url'],equipment:['brand','model','power','phase','voltage','status','image']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
 
 async function api(req,res,url){
-  if(url.pathname==='/api/auth/login'&&req.method==='POST'){ const input=await body(req); const ok=crypto.timingSafeEqual(Buffer.from(String(input.user||'').padEnd(ADMIN_USER.length)),Buffer.from(ADMIN_USER.padEnd(String(input.user||'').length)))&&crypto.timingSafeEqual(Buffer.from(String(input.password||'').padEnd(ADMIN_PASSWORD.length)),Buffer.from(ADMIN_PASSWORD.padEnd(String(input.password||'').length))); if(!ok)return json(res,401,{error:'INVALID_CREDENTIALS'}); const token=crypto.randomBytes(32).toString('hex'); sessions.set(token,{user:{name:ADMIN_USER,role:'admin'},expires:Date.now()+28_800_000}); return json(res,200,{user:{name:ADMIN_USER,role:'admin'}},{'Set-Cookie':`ink_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800`}); }
+  if(url.pathname==='/api/auth/login'&&req.method==='POST'){ const input=await body(req); const ok=crypto.timingSafeEqual(Buffer.from(String(input.user||'').padEnd(ADMIN_USER.length)),Buffer.from(ADMIN_USER.padEnd(String(input.user||'').length)))&&crypto.timingSafeEqual(Buffer.from(String(input.password||'').padEnd(ADMIN_PASSWORD.length)),Buffer.from(ADMIN_PASSWORD.padEnd(String(input.password||'').length))); if(!ok)return json(res,401,{error:'INVALID_CREDENTIALS'}); const token=crypto.randomBytes(32).toString('hex'); sessions.set(token,{user:{name:ADMIN_USER,role:'admin'},expires:Date.now()+28_800_000}); return json(res,200,{user:{name:ADMIN_USER,role:'admin'}},{'Set-Cookie':sessionCookie(packSessionCookie(token))}); }
   if(url.pathname==='/api/auth/me')return currentUser(req)?json(res,200,{user:currentUser(req)}):json(res,401,{error:'AUTH_REQUIRED'});
-  if(url.pathname==='/api/auth/logout'&&req.method==='POST'){ const token=parseCookies(req).ink_session;if(token)sessions.delete(token);return json(res,200,{ok:true},{'Set-Cookie':'ink_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'}); }
+  if(url.pathname==='/api/auth/logout'&&req.method==='POST'){ const token=unpackSessionCookie(parseCookies(req).ink_session);if(token)sessions.delete(token);return json(res,200,{ok:true},{'Set-Cookie':sessionCookie('',0)}); }
   if(url.pathname==='/api/dashboard'){ if(!requireAdmin(req,res))return; const result={}; for(const type of COLLECTIONS){const items=await store.list(type);const hasUnread=['leads','reviews','questions'].includes(type);result[type]={total:items.length,unread:hasUnread?items.filter(x=>!x.viewedAt).length:0};} return json(res,200,result); }
   if(url.pathname==='/api/admin/mark-viewed'&&req.method==='POST'){ if(!requireAdmin(req,res))return; const input=await body(req); if(!COLLECTIONS.has(input.type))return json(res,400,{error:'INVALID_TYPE'}); await store.markViewed(input.type); return json(res,200,{ok:true}); }
   if(url.pathname==='/api/uploads'&&req.method==='POST'){ if(!requireAdmin(req,res))return; const input=await body(req,6_000_000); if(!/^data:image\/(png|jpeg|webp);base64,/.test(input.dataUrl||''))return json(res,400,{error:'INVALID_IMAGE'}); const ext=input.dataUrl.match(/^data:image\/(png|jpeg|webp)/)[1].replace('jpeg','jpg'); const filename=`${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${ext}`; await fs.mkdir(path.join(ROOT,'uploads'),{recursive:true}); await fs.writeFile(path.join(ROOT,'uploads',filename),Buffer.from(input.dataUrl.split(',')[1],'base64')); return json(res,201,{url:`/uploads/${filename}`}); }

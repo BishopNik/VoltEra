@@ -9,9 +9,9 @@ npm install
 npm start
 ```
 
-Відкрити сайт: `http://127.0.0.1:8787/`
+Якщо використовується `.env.example` з `PORT=4000`, відкрити сайт: `http://127.0.0.1:4000/`
 
-Адмінка: `http://127.0.0.1:8787/admin.html`
+Адмінка: `http://127.0.0.1:4000/admin.html`
 
 Дефолтний dev-вхід:
 
@@ -22,17 +22,20 @@ npm start
 
 ## MongoDB
 
-Сервер уже готовий до MongoDB. Якщо `MONGODB_URI` не заданий, він працює через локальний fallback `data/db.json`, щоб тестувати без зовнішньої бази. Для MongoDB потрібен встановлений пакет `mongodb` із `package.json`.
+Сервер уже готовий до MongoDB і сам читає локальний файл `.env`. Якщо `MONGODB_URI` не заданий, він працює через локальний fallback `data/db.json`, щоб тестувати без зовнішньої бази. Для MongoDB потрібен встановлений пакет `mongodb` із `package.json`.
 
 Для production створи `.env` або змінні на хостингу:
 
 ```bash
-PORT=8787
+PORT=4000
+SECRET_KEY=long-random-string-for-signed-admin-session
 ADMIN_USER=admin
 ADMIN_PASSWORD=your-strong-password
 MONGODB_URI=mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/?retryWrites=true&w=majority
 MONGODB_DB=ink_energy
 ```
+
+`MONGODB_URI` містить логін і пароль користувача MongoDB. `ADMIN_PASSWORD` — пароль входу в адмінку. `SECRET_KEY` — секрет застосунку для підпису session-cookie адмінки.
 
 Не надсилай мені пароль у відкритому чаті, якщо не потрібно. Достатньо сказати, що URI готовий, або вставити його в `.env` локально.
 
