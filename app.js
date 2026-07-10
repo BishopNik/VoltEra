@@ -333,26 +333,44 @@ $('#lead-form').addEventListener('submit', async event => {
 const dialog = $('#selector-dialog');
 const selectorContent = $('.selector-content', dialog);
 const answers = [];
+const selectorStartMarkup = selectorContent.innerHTML;
 const steps = [
   { eyebrow: 'AI-підбір / 02', title: 'Що має працювати?', options: ['Базові прилади', 'Увесь об’єкт', 'Критичні лінії бізнесу'] },
   { eyebrow: 'AI-підбір / 03', title: 'Ваш пріоритет?', options: ['Максимум автономності', 'Оптимальний бюджет', 'Можливість додати сонце'] }
 ];
+function bindSelectorOptions(root = dialog) {
+  $$('.selector-options button', root).forEach(btn => btn.addEventListener('click', () => handleAnswer(btn.dataset.answer, 1), { once:true }));
+}
+function resetSelector() {
+  answers.length = 0;
+  selectorContent.innerHTML = selectorStartMarkup;
+  $('.selector-progress i', dialog).style.width = '33%';
+  bindSelectorOptions(selectorContent);
+  enhanceClickableHints(selectorContent);
+}
+function openSelector() {
+  resetSelector();
+  if (typeof dialog.showModal === 'function') dialog.showModal();
+  else dialog.setAttribute('open', '');
+}
 function renderStep(stepIndex) {
   const step = steps[stepIndex];
   $('.selector-progress i', dialog).style.width = `${(stepIndex + 2) * 33.34}%`;
   selectorContent.innerHTML = `<p class="eyebrow">${step.eyebrow}</p><h2>${step.title}</h2><div class="selector-options">${step.options.map(o => `<button type="button" data-answer="${o}">${o}<span>→</span></button>`).join('')}</div><p class="selector-hint">Підбираємо архітектуру, а не окрему коробку</p>`;
-  $$('.selector-options button', selectorContent).forEach(btn => btn.addEventListener('click', () => handleAnswer(btn.dataset.answer, stepIndex + 1)));
+  $$('.selector-options button', selectorContent).forEach(btn => btn.addEventListener('click', () => handleAnswer(btn.dataset.answer, stepIndex + 2), { once:true }));
+  enhanceClickableHints(selectorContent);
 }
 function handleAnswer(answer, nextStep) {
   answers.push(answer);
   if (nextStep < 3) return renderStep(nextStep - 1);
   selectorContent.innerHTML = `<p class="eyebrow">Результат / ІНК</p><h2>Вам пасує система Pulse.</h2><p style="color:var(--muted)">Гібридний інвертор 6 kW і батарея 5 kWh. Архітектуру можна масштабувати та доповнити сонячними панелями.</p><a class="button button-primary" href="#consultation" id="selector-result">Отримати точний розрахунок <span>↗</span></a>`;
   $('#selector-result').addEventListener('click', () => dialog.close());
+  enhanceClickableHints(selectorContent);
 }
-$$('.js-open-selector').forEach(button => button.addEventListener('click', () => dialog.showModal()));
+$$('.js-open-selector').forEach(button => button.addEventListener('click', openSelector));
 $('.dialog-close').addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
-$$('.selector-options button', dialog).forEach(btn => btn.addEventListener('click', () => handleAnswer(btn.dataset.answer, 1)));
+bindSelectorOptions(dialog);
 
 // FAQ answers open above the layout and never shift surrounding sections.
 const answerDialog = $('#answer-dialog');
