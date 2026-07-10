@@ -4,3 +4,52 @@
 .admin-nav b[hidden]{display:none}.admin-notice{background:#eef8ef;border-color:#cce8d1;color:#386047}.admin-notice span{background:var(--green)}
 .question-list{display:grid;gap:12px}.question-item{display:grid;grid-template-columns:1fr 230px;gap:18px;padding:22px;border:1px solid var(--line);border-radius:var(--radius);background:#fff}.question-item input,.question-item textarea,.question-item select{width:100%;margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font-size:10px}.question-title{font-weight:800}.question-body,.question-answer{resize:vertical}.question-item aside{display:grid;align-content:start;gap:10px}.question-item label{color:var(--muted);font-size:8px}.question-item small{color:var(--muted);font-size:9px}.danger-admin{color:#9e3d32}.danger-link{margin-left:6px;color:#9e3d32!important}.content-list>div{grid-template-columns:65px 1fr auto auto}.equipment-grid article>div{gap:8px;align-items:center}.equipment-grid article>div button{white-space:nowrap}.admin-dialog select,.admin-dialog input[type=file]{display:block;width:100%;margin-top:6px;padding:11px;border:1px solid var(--line);border-radius:8px;background:#fff}.admin-dialog small{display:block;margin-top:6px;color:var(--muted)}.admin-dialog textarea{min-height:86px}.top-actions #logout{background:#eef0ee;color:var(--ink)}
 @media(max-width:1000px){.question-item{grid-template-columns:1fr}.content-list>div{grid-template-columns:55px 1fr}.content-list>div>button{grid-column:2;justify-self:start}}
+
+/* Admin form readability pass for 13-inch screens */
+.settings-grid label,
+.admin-dialog label,
+.question-item label{font-size:12px;line-height:1.35;letter-spacing:.035em}
+.search-box input,
+.view-tools select,
+.settings-grid input,
+.admin-dialog input,
+.admin-dialog textarea,
+.admin-dialog select,
+.admin-dialog input[type=file],
+.question-item input,
+.question-item textarea,
+.question-item select,
+.review-editor textarea{min-height:48px;padding:13px 14px;font-size:15px;line-height:1.45;border-radius:10px}
+.admin-dialog textarea,
+.question-item textarea,
+.review-editor textarea{min-height:120px;resize:vertical}
+.primary-admin,
+.secondary-admin,
+.admin-projects button,
+.content-list button,
+.equipment-grid button,
+.logo-setting button,
+.integration-list button,
+.text-button{min-height:40px;padding:10px 14px;font-size:12px;line-height:1.25}
+.question-item small,
+.admin-dialog small,
+.settings-grid small{font-size:11px;line-height:1.45}
+@media(max-width:1200px){
+  .admin-main{padding-inline:24px}
+  th,td{font-size:11px}
+  .admin-dialog{width:min(620px,calc(100% - 28px))}
+}
+@media(max-width:700px){
+  .admin-main{padding-inline:14px}
+  .search-box input,
+  .view-tools select,
+  .settings-grid input,
+  .admin-dialog input,
+  .admin-dialog textarea,
+  .admin-dialog select,
+  .admin-dialog input[type=file],
+  .question-item input,
+  .question-item textarea,
+  .question-item select,
+  .review-editor textarea{min-height:52px;font-size:16px}
+}

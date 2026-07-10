@@ -119,7 +119,7 @@ html{overflow-x:hidden}
 .review-track{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;overflow:visible;border-radius:0}.review-card{display:none;grid-area:auto;padding:38px;opacity:1;transform:none;pointer-events:auto}.review-card.is-current,.review-card.is-companion{display:block}.review-card blockquote{font-size:clamp(22px,2.2vw,34px)}.review-controls button{width:52px;height:52px;font-size:18px}.review-controls button:hover,.project-head-actions button:hover{transform:translateY(-2px)}
 .topic-votes small{display:block;margin-top:5px;color:var(--muted);font:700 7px monospace;text-transform:uppercase}.topic-answers{display:inline-flex;margin:8px 0 13px;padding:9px 12px;border:1px solid var(--line);border-radius:99px;background:transparent;color:var(--acid);font-size:10px;cursor:pointer}.circle-all-link{display:inline-flex;margin-top:18px;padding-bottom:6px;border-bottom:1px solid currentColor;color:var(--acid);font-size:12px}
 .accordion{display:grid;gap:10px}.faq-question{display:flex;align-items:center;justify-content:space-between;width:100%;padding:24px 0;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);text-align:left;cursor:pointer}.faq-question span{font-size:18px;font-weight:720}.faq-question i{display:grid;place-items:center;width:34px;height:34px;border:1px solid var(--line);border-radius:50%;font-style:normal;color:var(--acid)}.faq-question:hover i{background:var(--acid);color:#07110f;border-color:var(--acid)}
-.answer-dialog{width:min(680px,calc(100% - 30px));border:1px solid var(--line);border-radius:28px;padding:46px;background:var(--panel);color:var(--ink);box-shadow:var(--shadow)}.answer-dialog::backdrop{background:#020807d6;backdrop-filter:blur(7px)}.answer-dialog h2{font-size:clamp(28px,4vw,44px);margin:18px 0}.answer-dialog-copy{color:var(--muted);line-height:1.75}.answer-dialog-close{position:absolute;right:18px;top:18px;width:40px;height:40px;border:1px solid var(--line);border-radius:50%;background:transparent;color:var(--ink);font-size:22px;cursor:pointer}
+.answer-dialog{position:relative;width:min(680px,calc(100% - 30px));border:1px solid var(--line);border-radius:28px;padding:64px 46px 46px;background:var(--panel);color:var(--ink);box-shadow:var(--shadow)}.answer-dialog::backdrop{background:#020807d6;backdrop-filter:blur(7px)}.answer-dialog h2{font-size:clamp(28px,4vw,44px);margin:18px 0}.answer-dialog-copy{color:var(--muted);line-height:1.75}.answer-dialog-close{position:absolute;right:18px;top:18px;z-index:5;display:grid;place-items:center;width:44px;height:44px;border:1px solid var(--line);border-radius:50%;background:var(--acid);color:#07110f;font-size:24px;line-height:1;cursor:pointer;box-shadow:0 12px 30px rgba(0,0,0,.28)}
 .contacts-grid{display:grid;grid-template-columns:.85fr 1.15fr;gap:28px;align-items:stretch}.contacts-copy,.contact-map{border:1px solid var(--line);border-radius:30px;background:var(--panel);padding:38px}.contacts-copy h2{font-size:clamp(38px,4vw,58px)}.contacts-copy address{font-style:normal;margin:28px 0}.contacts-copy address span,.contact-map span{display:block;color:var(--muted);font:700 9px monospace;text-transform:uppercase;letter-spacing:.09em}.contacts-copy address strong{display:block;margin-top:10px;font-size:20px;line-height:1.45}.contact-phones{display:grid;gap:9px;margin:0 0 28px}.contact-phones a{color:var(--acid);font-weight:800}.contact-map{padding:10px;overflow:hidden;min-height:430px}.contact-map iframe{width:100%;height:100%;min-height:380px;border:0;border-radius:22px;filter:saturate(.82) contrast(.95)}.contact-map span{position:absolute}.contact-map{position:relative}.contact-map span{left:30px;bottom:28px;padding:8px 10px;border-radius:99px;background:var(--panel)}
 @media(max-width:800px){.section{padding:82px 0}.review-track{grid-template-columns:1fr}.review-card.is-companion{display:none}.project-head-actions{justify-items:start}.project-head-actions>div{flex-wrap:wrap}.contacts-grid{grid-template-columns:1fr}.contact-map{min-height:360px}.deye-app img{max-height:640px}}
 
@@ -162,3 +162,56 @@ a,button{transition:transform .18s,border-color .18s,background .18s,color .18s,
 
 /* Keep the grid node icon as a lightning glyph and keep the floating CTA compact near the footer */
 .node-grid .node-icon,.node-battery .node-icon{font-size:0}.node-grid .node-icon svg,.node-battery .node-icon svg{width:24px;height:24px;display:block}.node-battery .node-icon{color:var(--mint)}.floating-consult{left:auto!important;right:24px!important;bottom:max(24px,env(safe-area-inset-bottom))!important;width:auto!important;max-width:214px!important;min-width:0!important;display:inline-flex!important;flex:0 0 auto;white-space:nowrap}.floating-consult span{display:block}.site-footer{padding-bottom:96px}@media(max-width:800px){.floating-consult{right:14px!important;bottom:max(14px,env(safe-area-inset-bottom))!important;max-width:62px!important;width:58px!important;height:58px!important;padding:0!important;justify-content:center;gap:0}.floating-consult span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.floating-consult i{width:42px;height:42px}.site-footer{padding-bottom:86px}}
+.selector-dialog,.project-dialog{position:relative}.dialog-close,.project-dialog-close{z-index:5;display:grid;place-items:center;line-height:1}.dialog-close{background:var(--acid);color:#07110f;border-color:transparent;box-shadow:0 12px 30px rgba(0,0,0,.28)}
+
+/* Form readability pass: easier to fill on 13-inch screens and mobile */
+.consult-form>label,
+.consult-form .field-row label,
+.field-row label,
+.review-form>label,
+.review-form .field-row label,
+#topic-form>label,
+.hours-label,
+.consult-form legend{font-size:12px!important;line-height:1.35;letter-spacing:.055em}
+.consult-form input,
+.consult-form select,
+.consult-form textarea,
+.review-form input,
+.review-form select,
+.review-form textarea{min-height:50px;font-size:16px;line-height:1.45}
+.consult-form input,
+.consult-form select{padding:16px 0}
+.consult-form textarea{min-height:128px;padding:16px 0;resize:vertical}
+.review-form input,
+.review-form select,
+.review-form textarea{padding:15px 16px;border-radius:12px}
+.review-form textarea{min-height:128px;resize:vertical}
+.choice-grid{gap:12px}
+.choice-grid span{min-height:48px;padding:15px 16px;font-size:13px;line-height:1.35}
+#topic-form>div{margin-top:12px}
+#topic-form input{min-height:52px;font-size:16px;line-height:1.45;padding:17px 0}
+#topic-form button{width:54px;font-size:23px}
+#topic-form small,
+.review-form>p,
+.form-privacy{font-size:11px;line-height:1.5}
+.review-form-close{width:44px;height:44px;font-size:20px}
+@media(max-width:1440px){
+  .consult-form{padding:clamp(30px,4vw,52px)}
+  .consult-form input,
+  .consult-form select,
+  .consult-form textarea,
+  .review-form input,
+  .review-form select,
+  .review-form textarea,
+  #topic-form input{font-size:16px}
+}
+@media(max-width:800px){
+  .field-row{grid-template-columns:1fr;gap:10px}
+  .consult-form input,
+  .consult-form select,
+  .consult-form textarea,
+  .review-form input,
+  .review-form select,
+  .review-form textarea{min-height:54px}
+  .choice-grid span{min-height:52px}
+}

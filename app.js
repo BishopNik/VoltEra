@@ -2,13 +2,26 @@ const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[char]));
 const pageLang = () => new URLSearchParams(location.search).get('lang') || localStorage.getItem('ink-lang') || 'uk';
+const communityHref = () => pageLang() === 'en' ? '/community.html?lang=en' : '/community.html';
 const apiList = async type => {
   if (pageLang() !== 'uk' && ['reviews', 'projects', 'articles', 'questions'].includes(type)) return null;
   const response = await fetch(`/api/${type}`).catch(() => null);
   return response?.ok ? response.json() : null;
 };
 
+function syncLocalizedLinks(root = document) {
+  $$('.circle-all-link, a[href="/community.html"], a[href^="/community.html#"], a[href^="/community.html?"]', root).forEach(link => {
+    const hash = link.hash || '';
+    link.setAttribute('href', `${communityHref()}${hash}`);
+  });
+}
+
 function enhanceClickableHints(root = document) {
+  const noHintSelector = '.dialog-close,.answer-dialog-close,.project-dialog-close,.gallery-dialog button[aria-label="Закрити"]';
+  $$(noHintSelector, root).forEach(element => {
+    delete element.dataset.hint;
+    element.removeAttribute('title');
+  });
   const explicitHints = [
     ['.theme-toggle', 'Перемкнути світлу / темну тему'],
     ['.menu-toggle', 'Відкрити меню сайту'],
@@ -34,10 +47,12 @@ function enhanceClickableHints(root = document) {
     ['.floating-consult', 'Швидко перейти до консультації']
   ];
   explicitHints.forEach(([selector, hint]) => $$(selector, root).forEach(element => {
+    if (element.matches(noHintSelector)) return;
     element.dataset.hint = hint;
     if (!element.title) element.title = hint;
   }));
   $$('a,button,[role="button"]', root).forEach(element => {
+    if (element.matches(noHintSelector)) return;
     if (element.dataset.hint) return;
     const label = element.getAttribute('aria-label') || element.title || element.textContent.trim().replace(/\s+/g, ' ');
     if (!label) return;
@@ -272,7 +287,7 @@ function renderTopicCard(question, isNew = false) {
   const answer = (question.answers || [])[0]?.text || '';
   const article = document.createElement('article');
   article.className = `topic-card${isNew ? ' is-new' : ''}`;
-  article.innerHTML = `<div class="topic-votes"><button type="button" aria-label="Відмітити як корисне">♥</button><strong>${Number(question.likes || 0)}</strong><small>корисно</small></div><div><span class="topic-state ${answered ? 'answered' : ''}">${answered ? 'ВІДПОВІВ ІНЖЕНЕР' : 'ОБГОВОРЕННЯ'}</span><h3>${escapeHtml(question.title)}</h3><p>${escapeHtml(answer || question.body || 'Питання збережено в базі. Інженер відповість у CRM.')}</p>${answered ? `<button class="topic-answers" type="button" data-answer="${escapeHtml(answer)}">Переглянути відповідь ↓</button>` : '<a class="topic-answers" href="/community.html">Відкрити обговорення →</a>'}<footer>${escapeHtml(question.author || 'Гість')} · ${escapeHtml(question.city || 'Україна')} <span>${(question.answers || []).length || 'очікує відповіді'}</span></footer></div>`;
+  article.innerHTML = `<div class="topic-votes"><button type="button" aria-label="Відмітити як корисне">♥</button><strong>${Number(question.likes || 0)}</strong><small>корисно</small></div><div><span class="topic-state ${answered ? 'answered' : ''}">${answered ? 'ВІДПОВІВ ІНЖЕНЕР' : 'ОБГОВОРЕННЯ'}</span><h3>${escapeHtml(question.title)}</h3><p>${escapeHtml(answer || question.body || 'Питання збережено в базі. Інженер відповість якнайшвидше.')}</p>${answered ? `<button class="topic-answers" type="button" data-answer="${escapeHtml(answer)}">Переглянути відповідь ↓</button>` : `<a class="topic-answers" href="${communityHref()}">Відкрити обговорення →</a>`}<footer>${escapeHtml(question.author || 'Гість')} · ${escapeHtml(question.city || 'Україна')} <span>${(question.answers || []).length || 'очікує відповіді'}</span></footer></div>`;
   bindTopicVotes(article);
   const answerButton = $('.topic-answers[data-answer]', article);
   if (answerButton) answerButton.addEventListener('click', () => openAnswer($('h3', article).textContent, answerButton.dataset.answer));
@@ -300,6 +315,8 @@ async function loadTopics() {
 }
 bindTopicVotes();
 loadTopics();
+syncLocalizedLinks();
+window.addEventListener('ink:languagechange', () => syncLocalizedLinks());
 $('#topic-form').addEventListener('submit', async event => {
   event.preventDefault();
   const input = $('#topic-input');
@@ -338,6 +355,56 @@ const steps = [
   { eyebrow: 'AI-підбір / 02', title: 'Що має працювати?', options: ['Базові прилади', 'Увесь об’єкт', 'Критичні лінії бізнесу'] },
   { eyebrow: 'AI-підбір / 03', title: 'Ваш пріоритет?', options: ['Максимум автономності', 'Оптимальний бюджет', 'Можливість додати сонце'] }
 ];
+const selectorResults = {
+  Base: {
+    title: 'Вам пасує система Base.',
+    badge: '4.2 kW · 2.5 kWh',
+    object: 'Квартира',
+    need: 'backup',
+    copy: 'Для квартири або компактного будинку: світло, Wi‑Fi, холодильник, котел і базова техніка без переплати за зайвий резерв.'
+  },
+  Pulse: {
+    title: 'Вам пасує система Pulse.',
+    badge: '6 kW · 5 kWh',
+    object: 'Приватний будинок',
+    need: 'full',
+    copy: 'Для приватного будинку, де мають працювати насос, котел, кухня, зв’язок і комфортні побутові сценарії під час відключень.'
+  },
+  Shift: {
+    title: 'Вам пасує система Shift.',
+    badge: '12 kW · 10 kWh',
+    object: 'Магазин / ресторан',
+    need: 'full',
+    copy: 'Для бізнесу: каса, холодильники, освітлення, мережеве обладнання та критичні лінії, які не можна зупиняти.'
+  },
+  Orbit: {
+    title: 'Вам пасує система Orbit.',
+    badge: '15 kW · 20 kWh',
+    object: 'Інше',
+    need: 'solar',
+    copy: 'Для максимальної автономності, нестабільної мережі або сценарію з сонячними панелями та запасом на масштабування.'
+  }
+};
+function getSelectorResult() {
+  const [place = '', load = '', priority = ''] = answers;
+  if (place === 'Бізнес' || load === 'Критичні лінії бізнесу') return selectorResults.Shift;
+  if (priority === 'Максимум автономності' || priority === 'Можливість додати сонце') return selectorResults.Orbit;
+  if (place === 'Квартира' && load === 'Базові прилади') return selectorResults.Base;
+  if (priority === 'Оптимальний бюджет' && load === 'Базові прилади') return selectorResults.Base;
+  return selectorResults.Pulse;
+}
+function prefillSelectorLead(result) {
+  const form = $('#lead-form');
+  if (!form) return;
+  const object = form.elements.object;
+  const need = form.querySelector(`input[name="need"][value="${result.need}"]`);
+  const comment = form.elements.comment;
+  if (object) object.value = result.object;
+  if (need) need.checked = true;
+  if (comment) {
+    comment.value = `AI-підбір рекомендував ${result.title.replace('Вам пасує система ', '').replace('.', '')} (${result.badge}). Відповіді: ${answers.join(' → ')}. Прошу зробити точний розрахунок під мій об'єкт.`;
+  }
+}
 function bindSelectorOptions(root = dialog) {
   $$('.selector-options button', root).forEach(btn => btn.addEventListener('click', () => handleAnswer(btn.dataset.answer, 1), { once:true }));
 }
@@ -363,8 +430,13 @@ function renderStep(stepIndex) {
 function handleAnswer(answer, nextStep) {
   answers.push(answer);
   if (nextStep < 3) return renderStep(nextStep - 1);
-  selectorContent.innerHTML = `<p class="eyebrow">Результат / ІНК</p><h2>Вам пасує система Pulse.</h2><p style="color:var(--muted)">Гібридний інвертор 6 kW і батарея 5 kWh. Архітектуру можна масштабувати та доповнити сонячними панелями.</p><a class="button button-primary" href="#consultation" id="selector-result">Отримати точний розрахунок <span>↗</span></a>`;
-  $('#selector-result').addEventListener('click', () => dialog.close());
+  const result = getSelectorResult();
+  selectorContent.innerHTML = `<p class="eyebrow">Результат / ІНК · ${escapeHtml(result.badge)}</p><h2>${escapeHtml(result.title)}</h2><p style="color:var(--muted)">${escapeHtml(result.copy)}</p><a class="button button-primary" href="#consultation" id="selector-result">Отримати точний розрахунок <span>↗</span></a>`;
+  $('#selector-result').addEventListener('click', () => {
+    prefillSelectorLead(result);
+    dialog.close();
+    $('#consultation')?.scrollIntoView({ behavior: 'smooth' });
+  });
   enhanceClickableHints(selectorContent);
 }
 $$('.js-open-selector').forEach(button => button.addEventListener('click', openSelector));
@@ -382,7 +454,14 @@ const faqAnswers = [
   'Ціна залежить від потужності інвертора, ємності батареї, автоматики та монтажу. Точний кошторис формуємо після карти навантажень.',
   'Так. Безпечне підключення потребує проєкту, захисту, правильного перерізу кабелів і налаштування автоматики.'
 ];
-function openAnswer(title, copy) { $('h2', answerDialog).textContent = title; $('.answer-dialog-copy', answerDialog).textContent = copy; answerDialog.showModal(); }
+function openAnswer(title, copy) {
+  const scroll = { x: window.scrollX, y: window.scrollY };
+  $('h2', answerDialog).textContent = title;
+  $('.answer-dialog-copy', answerDialog).textContent = copy;
+  if (typeof answerDialog.showModal === 'function') answerDialog.showModal();
+  else answerDialog.setAttribute('open', '');
+  requestAnimationFrame(() => window.scrollTo(scroll.x, scroll.y));
+}
 $$('.faq-question').forEach(button => button.addEventListener('click', () => openAnswer($('span', button).textContent, faqAnswers[Number(button.dataset.faq)])));
 const topicAnswerCopy = { q1:'Так, якщо модель батареї підтримує паралельне масштабування, напруга однакова та сумісний протокол BMS. Перед підключенням інженер вирівнює заряд модулів.', q3:'Частина ємності залишається як захисний резерв, ще частина втрачається на перетворенні. Для попереднього розрахунку закладайте 80–88% корисної енергії.' };
 $$('.topic-answers[data-question]').forEach(button => button.addEventListener('click', () => openAnswer(button.closest('.topic-card').querySelector('h3').textContent, topicAnswerCopy[button.dataset.question])));

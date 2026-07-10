@@ -455,7 +455,6 @@
 
   function setLanguage(lang, updateUrl = true) {
     lang = normalizeLang(lang);
-    const previous = document.documentElement.dataset.lang || getCurrentLang();
     localStorage.setItem('ink-lang', lang);
     if (updateUrl) {
       const url = new URL(location.href);
@@ -463,10 +462,6 @@
       else url.searchParams.set('lang', lang);
       const nextPath = `${url.pathname}${url.search}${url.hash}`;
       history.replaceState(null, '', nextPath);
-      if (previous !== lang) {
-        location.replace(nextPath);
-        return;
-      }
     }
     applyLanguage(lang);
   }

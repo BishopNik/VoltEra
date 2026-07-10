@@ -26,7 +26,6 @@ const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'InkAdmin2026!';
 const SECRET_KEY = process.env.SECRET_KEY || process.env.SESSION_SECRET || 'dev-only-change-me';
 const COLLECTIONS = new Set(['leads','reviews','questions','projects','articles','equipment']);
-const sessions = new Map();
 
 const mime = { '.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.svg':'image/svg+xml','.xml':'application/xml; charset=utf-8','.txt':'text/plain; charset=utf-8','.webmanifest':'application/manifest+json' };
 
@@ -66,18 +65,18 @@ const store = await createStore();
 function json(res,status,data,headers={}){ res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',...headers}); res.end(JSON.stringify(data)); }
 function parseCookies(req){ return Object.fromEntries((req.headers.cookie||'').split(';').filter(Boolean).map(part=>{const i=part.indexOf('=');return [part.slice(0,i).trim(),decodeURIComponent(part.slice(i+1))]})); }
 function signToken(token){ return crypto.createHmac('sha256',SECRET_KEY).update(token).digest('base64url'); }
-function packSessionCookie(token){ return `${token}.${signToken(token)}`; }
-function unpackSessionCookie(value=''){ const dot=value.lastIndexOf('.'); if(dot<1)return null; const token=value.slice(0,dot); const signature=value.slice(dot+1); const expected=signToken(token); if(signature.length!==expected.length)return null; return crypto.timingSafeEqual(Buffer.from(signature),Buffer.from(expected))?token:null; }
+function packSessionCookie(session){ const payload=Buffer.from(JSON.stringify(session)).toString('base64url'); return `${payload}.${signToken(payload)}`; }
+function unpackSessionCookie(value=''){ const dot=value.lastIndexOf('.'); if(dot<1)return null; const payload=value.slice(0,dot); const signature=value.slice(dot+1); const expected=signToken(payload); if(signature.length!==expected.length)return null; if(!crypto.timingSafeEqual(Buffer.from(signature),Buffer.from(expected)))return null; try{const session=JSON.parse(Buffer.from(payload,'base64url').toString('utf8')); return session.expires>Date.now()?session:null;}catch{return null;} }
 function sessionCookie(value,maxAge=28800){ const secure=process.env.NODE_ENV==='production'?'; Secure':''; return `ink_session=${value}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}${secure}`; }
-function currentUser(req){ const token=unpackSessionCookie(parseCookies(req).ink_session); const session=token&&sessions.get(token); if(!session||session.expires<Date.now()){if(token)sessions.delete(token);return null} return session.user; }
+function currentUser(req){ return unpackSessionCookie(parseCookies(req).ink_session)?.user || null; }
 function requireAdmin(req,res){ const user=currentUser(req); if(!user){json(res,401,{error:'AUTH_REQUIRED'});return null} return user; }
 async function body(req,limit=2_500_000){ let size=0,data=''; for await(const chunk of req){size+=chunk.length;if(size>limit)throw new Error('PAYLOAD_TOO_LARGE');data+=chunk} return data?JSON.parse(data):{}; }
 function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','status','manager','viewedAt'],reviews:['name','city','rating','text','reply','status','viewedAt'],questions:['author','city','title','body','status','likes','answers','viewedAt'],projects:['title','city','type','description','image','status'],articles:['title','slug','excerpt','body','category','status','url'],equipment:['brand','model','power','phase','voltage','status','image']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
 
 async function api(req,res,url){
-  if(url.pathname==='/api/auth/login'&&req.method==='POST'){ const input=await body(req); const ok=crypto.timingSafeEqual(Buffer.from(String(input.user||'').padEnd(ADMIN_USER.length)),Buffer.from(ADMIN_USER.padEnd(String(input.user||'').length)))&&crypto.timingSafeEqual(Buffer.from(String(input.password||'').padEnd(ADMIN_PASSWORD.length)),Buffer.from(ADMIN_PASSWORD.padEnd(String(input.password||'').length))); if(!ok)return json(res,401,{error:'INVALID_CREDENTIALS'}); const token=crypto.randomBytes(32).toString('hex'); sessions.set(token,{user:{name:ADMIN_USER,role:'admin'},expires:Date.now()+28_800_000}); return json(res,200,{user:{name:ADMIN_USER,role:'admin'}},{'Set-Cookie':sessionCookie(packSessionCookie(token))}); }
+  if(url.pathname==='/api/auth/login'&&req.method==='POST'){ const input=await body(req); const ok=crypto.timingSafeEqual(Buffer.from(String(input.user||'').padEnd(ADMIN_USER.length)),Buffer.from(ADMIN_USER.padEnd(String(input.user||'').length)))&&crypto.timingSafeEqual(Buffer.from(String(input.password||'').padEnd(ADMIN_PASSWORD.length)),Buffer.from(ADMIN_PASSWORD.padEnd(String(input.password||'').length))); if(!ok)return json(res,401,{error:'INVALID_CREDENTIALS'}); const user={name:ADMIN_USER,role:'admin'}; return json(res,200,{user},{'Set-Cookie':sessionCookie(packSessionCookie({user,expires:Date.now()+28_800_000}))}); }
   if(url.pathname==='/api/auth/me')return currentUser(req)?json(res,200,{user:currentUser(req)}):json(res,401,{error:'AUTH_REQUIRED'});
-  if(url.pathname==='/api/auth/logout'&&req.method==='POST'){ const token=unpackSessionCookie(parseCookies(req).ink_session);if(token)sessions.delete(token);return json(res,200,{ok:true},{'Set-Cookie':sessionCookie('',0)}); }
+  if(url.pathname==='/api/auth/logout'&&req.method==='POST'){ return json(res,200,{ok:true},{'Set-Cookie':sessionCookie('',0)}); }
   if(url.pathname==='/api/dashboard'){ if(!requireAdmin(req,res))return; const result={}; for(const type of COLLECTIONS){const items=await store.list(type);const hasUnread=['leads','reviews','questions'].includes(type);result[type]={total:items.length,unread:hasUnread?items.filter(x=>!x.viewedAt).length:0};} return json(res,200,result); }
   if(url.pathname==='/api/admin/mark-viewed'&&req.method==='POST'){ if(!requireAdmin(req,res))return; const input=await body(req); if(!COLLECTIONS.has(input.type))return json(res,400,{error:'INVALID_TYPE'}); await store.markViewed(input.type); return json(res,200,{ok:true}); }
   if(url.pathname==='/api/uploads'&&req.method==='POST'){ if(!requireAdmin(req,res))return; const input=await body(req,6_000_000); if(!/^data:image\/(png|jpeg|webp);base64,/.test(input.dataUrl||''))return json(res,400,{error:'INVALID_IMAGE'}); const ext=input.dataUrl.match(/^data:image\/(png|jpeg|webp)/)[1].replace('jpeg','jpg'); const filename=`${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${ext}`; await fs.mkdir(path.join(ROOT,'uploads'),{recursive:true}); await fs.writeFile(path.join(ROOT,'uploads',filename),Buffer.from(input.dataUrl.split(',')[1],'base64')); return json(res,201,{url:`/uploads/${filename}`}); }
@@ -111,5 +110,10 @@ async function serve(req,res,url){
   try{const stat=await fs.stat(requested);if(stat.isDirectory())pathname=path.join(pathname,'index.html');const file=stat.isDirectory()?path.join(requested,'index.html'):requested;const data=await fs.readFile(file);res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream','Cache-Control':file.endsWith('.html')?'no-cache':'public, max-age=3600'});res.end(data);}catch{json(res,404,{error:'NOT_FOUND'});}
 }
 
-const server=http.createServer(async(req,res)=>{ try{const url=new URL(req.url,`http://${req.headers.host||'localhost'}`);if(url.pathname.startsWith('/api/')){const handled=await api(req,res,url);if(handled===false)json(res,404,{error:'API_NOT_FOUND'});return;}await serve(req,res,url);}catch(error){console.error(error);json(res,error.message==='PAYLOAD_TOO_LARGE'?413:500,{error:error.message||'SERVER_ERROR'});} });
-server.listen(PORT,()=>console.log(`INK Energy: http://127.0.0.1:${PORT}`));
+export async function handleRequest(req,res){ try{const url=new URL(req.url,`http://${req.headers.host||'localhost'}`);if(url.pathname.startsWith('/api/')){const handled=await api(req,res,url);if(handled===false)json(res,404,{error:'API_NOT_FOUND'});return;}await serve(req,res,url);}catch(error){console.error(error);json(res,error.message==='PAYLOAD_TOO_LARGE'?413:500,{error:error.message||'SERVER_ERROR'});} }
+export default handleRequest;
+
+if(!process.env.VERCEL && process.argv[1]===fileURLToPath(import.meta.url)){
+  const server=http.createServer(handleRequest);
+  server.listen(PORT,()=>console.log(`INK Energy: http://127.0.0.1:${PORT}`));
+}
