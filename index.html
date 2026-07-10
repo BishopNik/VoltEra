@@ -10,6 +10,9 @@
   <meta name="theme-color" content="#07110f">
   <meta name="robots" content="index, follow, max-image-preview:large">
   <link rel="canonical" href="https://voltera.energy/">
+  <link rel="alternate" hreflang="uk-UA" href="https://voltera.energy/">
+  <link rel="alternate" hreflang="en" href="https://voltera.energy/?lang=en">
+  <link rel="alternate" hreflang="x-default" href="https://voltera.energy/">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="/site.webmanifest">
   <link rel="stylesheet" href="/styles.css">
@@ -54,7 +57,8 @@
         <a href="#inverters">Інвертори</a><a href="#projects">Об'єкти</a><a href="#journal">Журнал</a><a href="#reviews">Відгуки</a><a href="#energy-circle">Енергоколо</a>
       </nav>
       <div class="nav-actions">
-        <a class="phone" href="tel:+380676721852"><span>+38 067</span> 672 18 52</a>
+        <div class="phone-menu"><a class="phone" href="tel:+380676721852"><span>+38 067</span> 672 18 52</a><div class="phone-dropdown" aria-label="Усі телефони ІНК"><a href="tel:+380676721852">+38 067 672 18 52</a><a href="tel:+380676795803">+38 067 679 58 03</a><a href="tel:+380679844153">+38 067 984 41 53</a></div></div>
+        <div class="language-switcher" data-language-switcher aria-label="Вибір мови"></div>
         <button class="icon-button theme-toggle" type="button" aria-label="Змінити тему"><span aria-hidden="true">◐</span></button>
         <a class="button button-small" href="#consultation">Консультація</a>
         <button class="menu-toggle" type="button" aria-label="Відкрити меню" aria-expanded="false"><span></span><span></span></button>
@@ -88,12 +92,18 @@
           <div class="stage-topline"><span>ІНК / ENERGY MAP</span><span class="grid-status"><i></i> Система активна</span></div>
           <svg class="energy-lines" viewBox="0 0 620 580" aria-hidden="true">
             <defs><linearGradient id="flow" x1="0" x2="1"><stop stop-color="#d9ff43"/><stop offset="1" stop-color="#3ce6c7"/></linearGradient></defs>
-            <path class="flow-base" d="M95 90C180 90 210 250 310 250M525 90C440 90 410 250 310 250M310 250C245 325 185 365 115 400M310 250C375 325 435 365 505 400"/>
-            <path class="flow-live" d="M95 90C180 90 210 250 310 250M525 90C440 90 410 250 310 250M310 250C245 325 185 365 115 400M310 250C375 325 435 365 505 400"/>
-            <text x="160" y="155">DC / СОНЦЕ</text><text x="430" y="155">AC / МЕРЕЖА</text><text x="175" y="340">ЗАРЯД</text><text x="410" y="340">ЖИВЛЕННЯ</text>
+            <path class="flow-base flow-base-sun" d="M95 90C180 90 210 250 310 250"/>
+            <path class="flow-base flow-base-grid" d="M525 90C440 90 410 250 310 250"/>
+            <path class="flow-base flow-base-battery" d="M310 250C245 325 185 365 115 400"/>
+            <path class="flow-base flow-base-house" d="M310 250C375 325 435 365 505 400"/>
+            <path class="flow-live flow-sun" d="M95 90C180 90 210 250 310 250"/>
+            <path class="flow-live flow-grid" d="M525 90C440 90 410 250 310 250"/>
+            <path class="flow-live flow-battery" d="M310 250C245 325 185 365 115 400"/>
+            <path class="flow-live flow-house" d="M310 250C375 325 435 365 505 400"/>
+            <text x="160" y="155">DC / СОНЦЕ</text><text class="grid-flow-label" x="430" y="155">AC / МЕРЕЖА</text><text x="175" y="340">ЗАРЯД</text><text x="410" y="340">ЖИВЛЕННЯ</text>
           </svg>
           <div class="energy-node node-panels"><span class="node-icon panel-glyph">▦</span><small>СОНЯЧНІ ПАНЕЛІ</small><strong>3.8 kW</strong></div>
-          <div class="energy-node node-grid"><span class="node-icon">⌁</span><small>МЕРЕЖА</small><strong class="outage-label">НЕСТАБІЛЬНА</strong></div>
+          <div class="energy-node node-grid"><span class="node-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h4l-2 4h6l-5 7 1-5H6l1-6Z" fill="currentColor"/></svg></span><small>МЕРЕЖА</small><strong class="outage-label">НЕСТАБІЛЬНА</strong></div>
           <div class="core-inverter"><span>ГІБРИДНИЙ ІНВЕРТОР</span><strong>6.0</strong><small>kW / ENERGY HUB</small><i class="core-pulse"></i></div>
           <div class="energy-node node-battery"><span class="node-icon">▰</span><small>БАТАРЕЯ</small><strong>78% · 20 kWh</strong></div>
           <div class="energy-node node-consumer"><span class="node-icon">⌂</span><small>БУДИНОК / СПОЖИВАЧ</small><strong>0.64 kW</strong></div>
@@ -186,7 +196,7 @@
     </section>
 
     <section class="section technology" id="technology" aria-labelledby="tech-title">
-      <div class="container tech-grid"><figure class="deye-app reveal"><img src="/assets/technology/deye-cloud.webp" alt="Офіційний інтерфейс застосунку Deye Cloud з потоками енергії" loading="lazy" width="568" height="1180"><figcaption>Офіційний інтерфейс Deye Cloud · <a href="https://deye.com/" target="_blank" rel="noopener">джерело ↗</a></figcaption></figure><div class="tech-copy reveal"><p class="eyebrow">/ 06 — Технології</p><h2 id="tech-title">Ваша система<br><em>думає наперед.</em></h2><div class="tech-list"><article><span>01</span><div><h3>Deye Cloud</h3><p>Реальна карта потоків: сонце, мережа, батарея та споживання.</p></div></article><article><span>02</span><div><h3>LiFePO4 + BMS</h3><p>Безпечна хімія та розумний захист кожної комірки.</p></div></article><article><span>03</span><div><h3>Дистанційний сервіс</h3><p>Інженер бачить помилки й режими системи без виїзду на об'єкт.</p></div></article></div></div></div>
+      <div class="container tech-grid"><div class="app-compare reveal"><figure class="deye-app app-phone"><div class="phone-shot phone-shot-deye"><img src="/assets/technology/deye-cloud-iphone16.jpg" alt="Офіційний інтерфейс застосунку Deye Cloud з потоками енергії" loading="lazy" width="360" height="782"></div></figure><figure class="smartess-app app-phone" aria-label="Оригінальний інтерфейс застосунку SmartESS"><div class="phone-shot phone-shot-smartess"><img class="smartess-shot" src="/assets/technology/smartess-kafe-iphone16.jpeg" alt="Оригінальний інтерфейс SmartESS на iPhone 16 Pro Max" loading="lazy" width="360" height="782"></div></figure></div><div class="tech-copy reveal"><p class="eyebrow">/ 06 — Технології</p><h2 id="tech-title">Ваша система<br><em>думає наперед.</em></h2><div class="tech-list"><article><span>01</span><div><h3>Deye Cloud</h3><p>Реальна карта потоків: сонце, мережа, батарея та споживання.</p></div></article><article><span>02</span><div><h3>SmartESS</h3><p>Альтернативний моніторинг стану інвертора, батареї, мережі та навантаження.</p></div></article><article><span>03</span><div><h3>LiFePO4 + BMS</h3><p>Безпечна хімія та розумний захист кожної комірки.</p></div></article><article><span>04</span><div><h3>Дистанційний сервіс</h3><p>Інженер бачить помилки й режими системи без виїзду на об'єкт.</p></div></article></div></div></div>
     </section>
 
     <section class="section projects" id="projects" aria-labelledby="projects-title">
@@ -208,7 +218,7 @@
         <article class="review-card"><div class="stars" aria-label="5 з 5">★★★★★</div><blockquote>«Сподобалось, що не продавали найдорожче, а порахували наш реальний сценарій. Залишили запас під сонячні панелі на наступний сезон.»</blockquote><div class="team-reply"><span>↳ ВІДПОВІДЬ ІНК</span><p>Дмитре, чесний запас кращий за зайві кіловати. Схему майбутнього сонячного контуру вже зберегли у паспорті вашої системи.</p></div><footer><div class="avatar">ДЛ</div><div><strong>Дмитро Л.</strong><span>Будинок · Дніпро</span></div><b>HOME BASE / 2.5 kWh</b></footer></article>
         <article class="review-card"><div class="stars" aria-label="5 з 5">★★★★★</div><blockquote>«Інвертор запустили акуратно, пояснили застосунок і залишили контакти інженера. Через тиждень самі зателефонували перевірити систему.»</blockquote><div class="team-reply"><span>↳ ВІДПОВІДЬ ІНК</span><p>Ірино, дякуємо. Контрольний дзвінок — частина нашого запуску, бо монтаж завершується лише тоді, коли вам спокійно.</p></div><footer><div class="avatar">ІП</div><div><strong>Ірина П.</strong><span>Будинок · Львівщина</span></div><b>DEYE / 10 kWh</b></footer></article>
       </div>
-      <form class="review-form" id="review-form" hidden><div class="review-form-head"><div><p class="eyebrow">Новий відгук</p><h3>Розкажіть, як працює ваша система</h3></div><button type="button" class="review-form-close" aria-label="Закрити форму">×</button></div><div class="field-row"><label>Ім'я<input name="reviewName" placeholder="Ваше ім'я" required></label><label>Місто<input name="reviewCity" placeholder="Місто" required></label></div><label>Оцінка<select name="reviewRating"><option value="5">★★★★★ — 5</option><option value="4">★★★★ — 4</option><option value="3">★★★ — 3</option></select></label><label>Ваш відгук<textarea name="reviewText" rows="4" placeholder="Що змінилося після запуску системи?" required></textarea></label><button class="button button-primary" type="submit">Опублікувати відгук ↗</button><p>Нові відгуки зберігаються у цьому браузері. Після підключення бекенду команда зможе відповідати з адмін-панелі.</p></form>
+      <form class="review-form" id="review-form" hidden><div class="review-form-head"><div><p class="eyebrow">Новий відгук</p><h3>Розкажіть, як працює ваша система</h3></div><button type="button" class="review-form-close" aria-label="Закрити форму">×</button></div><div class="field-row"><label>Ім'я<input name="reviewName" placeholder="Ваше ім'я" required></label><label>Місто<input name="reviewCity" placeholder="Місто" required></label></div><label>Оцінка<select name="reviewRating"><option value="5">★★★★★ — 5</option><option value="4">★★★★ — 4</option><option value="3">★★★ — 3</option></select></label><label>Ваш відгук<textarea name="reviewText" rows="4" placeholder="Що змінилося після запуску системи?" required></textarea></label><button class="button button-primary" type="submit">Опублікувати відгук ↗</button><p>Відгук зберігається в базі та з'явиться на сайті після відповіді або модерації в адмінці.</p></form>
       </div>
     </section>
 
@@ -247,8 +257,8 @@
       </div>
     </section>
 
-    <section class="section contacts" id="contacts" aria-labelledby="contacts-title"><div class="container contacts-grid"><div class="contacts-copy reveal"><p class="eyebrow">/ 13 — Контакти</p><h2 id="contacts-title">Ми поруч.<br><em>І на зв'язку.</em></h2><address><span>Шоурум та сервіс</span><strong>Львівська область, с. Солонка<br>вул. Козацька, 6</strong></address><div class="contact-phones"><a href="tel:+380676721852">+38 067 672 18 52</a><a href="tel:+380676795803">+38 067 679 58 03</a><a href="tel:+380679844153">+38 067 984 41 53</a></div><a class="button button-primary" href="https://www.google.com/maps/search/?api=1&query=Львівська+область+Солонка+вул.+Козацька+6" target="_blank" rel="noopener">Прокласти маршрут ↗</a></div><div class="contact-map reveal"><iframe title="ІНК на карті — Солонка, вул. Козацька 6" src="https://www.google.com/maps?q=Львівська+область,+Солонка,+вул.+Козацька+6&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><span>49.70° N · 23.96° E</span></div></div></section>
-    <section class="contact-strip" aria-label="Регіон роботи"><div class="container"><p><span>●</span> Солонка · працюємо по всій Україні</p><div>Проєктування <i>→</i> Доставка <i>→</i> Монтаж <i>→</i> Сервіс</div></div></section>
+    <section class="section contacts" id="contacts" aria-labelledby="contacts-title"><div class="container contacts-grid"><div class="contacts-copy reveal"><p class="eyebrow">/ 13 — Контакти</p><h2 id="contacts-title">Ми поруч.<br><em>І на зв'язку.</em></h2><address><span>Шоурум та сервіс</span><strong>Львівська область, с. Солонка<br>вул. Козацька, 6</strong></address><div class="contact-phones"><a href="tel:+380676721852">+38 067 672 18 52</a><a href="tel:+380676795803">+38 067 679 58 03</a><a href="tel:+380679844153">+38 067 984 41 53</a></div><a class="button button-primary" href="https://www.google.com/maps/search/?api=1&amp;query=Львівська+область+Солонка+вул.+Козацька+6" target="_blank" rel="noopener">Прокласти маршрут ↗</a></div><div class="contact-map reveal"><iframe title="ІНК на карті — Солонка, вул. Козацька 6" src="https://www.google.com/maps?q=Львівська+область,+Солонка,+вул.+Козацька+6&amp;output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><span>49.70° N · 23.96° E</span></div></div></section>
+    <section class="contact-strip" aria-label="Регіон роботи"><div class="container"><p><span>●</span> Працюємо по всій Україні</p><div>Проєктування <i>→</i> Доставка <i>→</i> Монтаж <i>→</i> Сервіс</div></div></section>
   </main>
 
   <footer class="site-footer"><div class="container"><div class="footer-main"><div><a class="brand footer-brand" href="#top"><svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 3 41 13v20L24 43 7 33V13L24 3Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="m27 9-12 17h8l-2 13 12-18h-8l2-12Z" fill="currentColor"/></svg><span>ІНК</span></a><p>Енергетична незалежність,<br>спроєктована для життя.</p></div><div><strong>Рішення</strong><a href="/rishennia/invertor-dlia-domu.html">Інвертор для дому</a><a href="/rishennia/soniachni-paneli.html">Сонячні панелі</a><a href="/rishennia/rezervne-zhyvlennia-dlia-biznesu.html">Резерв для бізнесу</a><a href="#technology">Технології</a></div><div><strong>Підтримка</strong><a href="#calculator">Калькулятор</a><a href="#faq">Питання та відповіді</a><a href="#consultation">Консультація</a><a href="mailto:info@ink.energy">info@ink.energy</a></div><div><strong>Месенджери</strong><a href="#consultation">Telegram ↗</a><a href="#consultation">Viber ↗</a><a href="#consultation">WhatsApp ↗</a></div></div><div class="footer-bottom"><span>© 2026 ІНК. Усі права захищені.</span><a href="/privacy.html">Політика конфіденційності</a><span>Made with ⚡ in Ukraine</span></div></div></footer>
@@ -263,5 +273,6 @@
   <dialog class="selector-dialog" id="selector-dialog"><button class="dialog-close" type="button" aria-label="Закрити">×</button><div class="selector-progress"><i></i></div><div class="selector-content"><p class="eyebrow">AI-підбір / 01</p><h2>Де потрібна енергія?</h2><div class="selector-options"><button type="button" data-answer="Квартира">Квартира <span>→</span></button><button type="button" data-answer="Будинок">Приватний будинок <span>→</span></button><button type="button" data-answer="Бізнес">Бізнес <span>→</span></button></div><p class="selector-hint">3 питання · близько 90 секунд</p></div></dialog>
 
   <script src="/app.js" defer></script>
+  <script src="/i18n.js" defer></script>
 </body>
 </html>

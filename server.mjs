@@ -43,7 +43,8 @@ class FileStore {
 
 class MongoStore {
   constructor(client,db,ObjectId){ this.client=client; this.db=db; this.ObjectId=ObjectId; }
-  async init(){ for(const name of COLLECTIONS) await this.db.collection(name).createIndex({createdAt:-1}); }
+  async init(){ for(const name of COLLECTIONS) await this.db.collection(name).createIndex({createdAt:-1}); await this.seedDefaults(); }
+  async seedDefaults(){ try{ const seed=JSON.parse(await fs.readFile(path.join(ROOT,'data','db.json'),'utf8')); for(const name of COLLECTIONS){ const docs=Array.isArray(seed[name])?seed[name]:[]; for(const doc of docs){ await this.db.collection(name).updateOne({_id:String(doc._id)},{$setOnInsert:{...doc,_id:String(doc._id)}},{upsert:true}); } } }catch(error){ console.warn('Seed skipped:',error.message); } }
   id(id){ try{return new this.ObjectId(id)}catch{return id} }
   clean(doc){ if(!doc)return doc; return {...doc,_id:String(doc._id)}; }
   async list(type){ return (await this.db.collection(type).find({}).sort({createdAt:-1}).toArray()).map(x=>this.clean(x)); }

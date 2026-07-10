@@ -1,1 +1,34 @@
-<!doctype html><html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Галерея енергетичних систем | ІНК</title><meta name="description" content="Фото та паспорти встановлених інверторних, акумуляторних і сонячних систем ІНК."><link rel="stylesheet" href="/content-pages.css"></head><body><header class="page-header"><div class="page-container"><a class="page-logo" href="/"></a><nav class="page-nav"><a href="/#projects">Об'єкти</a><a href="/community.html">Енергоколо</a><a href="/#contacts">Контакти</a></nav><a class="page-button" href="/#consultation">Розрахунок</a></div></header><main><section class="page-hero"><div class="page-container"><p class="page-eyebrow">Об'єкти ІНК</p><h1>Географія <em>спокою.</em></h1><p class="page-lead">Гортайте об'єкти, відкривайте фото та дивіться конфігурації систем.</p></div></section><section class="page-container gallery-page"><div class="gallery-grid" id="gallery-grid"><article class="gallery-item" data-image="/assets/projects/home-backup.jpg"><img src="/assets/projects/home-backup.jpg" alt="Deye 8 kW і батарея 20 kWh"><div><span class="page-eyebrow">Київщина · будинок</span><h2>Deye 8 kW + 20 kWh</h2><p>Котел, свердловина, кухня та домашній офіс.</p></div></article><article class="gallery-item" data-image="/assets/projects/solar-roof.jpg"><img src="/assets/projects/solar-roof.jpg" alt="Сонячна станція 10.8 kW"><div><span class="page-eyebrow">Львівщина · сонце</span><h2>СЕС 10.8 kW</h2><p>Гібридний контур із резервом.</p></div></article><article class="gallery-item" data-image="/assets/projects/business-backup.jpg"><img src="/assets/projects/business-backup.jpg" alt="Трифазна система 105 kWh"><div><span class="page-eyebrow">Львів · бізнес</span><h2>3 фази + 105 kWh</h2><p>21 модуль по 5 kWh.</p></div></article></div></section></main><dialog class="gallery-dialog"><button type="button" aria-label="Закрити">×</button><img alt="Збільшене фото об'єкта"></dialog><footer class="page-footer"><div class="page-container">© 2026 ІНК · Галерея об'єктів</div></footer><script>const d=document.querySelector('.gallery-dialog');document.querySelectorAll('.gallery-item').forEach(x=>x.addEventListener('click',()=>{d.querySelector('img').src=x.dataset.image;d.querySelector('img').alt=x.querySelector('img').alt;d.showModal()}));d.querySelector('button').onclick=()=>d.close();d.onclick=e=>{if(e.target===d)d.close()};</script></body></html>
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Галерея енергетичних систем | ІНК</title>
+  <meta name="description" content="Фото та паспорти встановлених інверторних, акумуляторних і сонячних систем ІНК.">
+  <link rel="stylesheet" href="/content-pages.css">
+</head>
+<body>
+  <header class="page-header">
+    <div class="page-container">
+      <a class="page-logo" href="/" aria-label="ІНК — головна"></a>
+      <nav class="page-nav"><a href="/#projects">Об'єкти</a><a href="/community.html">Енергоколо</a><a href="/#contacts">Контакти</a></nav>
+      <a class="page-button" href="/#consultation">Розрахунок</a>
+    </div>
+  </header>
+  <main>
+    <section class="page-hero">
+      <div class="page-container">
+        <p class="page-eyebrow">Об'єкти ІНК</p>
+        <h1>Географія <em>спокою.</em></h1>
+        <p class="page-lead">Галерея підвантажується з бази: усе, що публікується, редагується або видаляється в адмінці, змінюється тут.</p>
+      </div>
+    </section>
+    <section class="page-container gallery-page">
+      <div class="gallery-grid" id="gallery-grid" aria-live="polite"></div>
+    </section>
+  </main>
+  <dialog class="gallery-dialog"><button type="button" aria-label="Закрити">×</button><img alt="Збільшене фото об'єкта"></dialog>
+  <footer class="page-footer"><div class="page-container">© 2026 ІНК · Галерея об'єктів</div></footer>
+  <script src="/gallery.js" defer></script>
+</body>
+</html>
