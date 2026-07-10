@@ -39,6 +39,7 @@ const statusLabels = {
   active: ['Активний', 'status-done'],
   review: ['На перевірці', 'status-work']
 };
+let currentAdmin = null;
 
 function escapeHtml(value = '') {
   return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
@@ -173,13 +174,21 @@ function renderReviews() {
   const list = $('#moderation-list');
   if (!list) return;
   const filter = $('#review-filter')?.value || 'all';
-  const items = state.reviews.filter(item => filter === 'all' || item.status === filter);
+  const items = state.reviews.filter(item => {
+    if (filter === 'verified') return item.verified === true;
+    if (filter === 'unverified') return item.verified !== true;
+    return filter === 'all' || item.status === filter;
+  });
   list.innerHTML = items.map(item => {
     const initials = (item.name || '?').split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
+    const audit = Array.isArray(item.audit) ? item.audit.slice(-4).reverse() : [];
+    const verificationText = item.verified
+      ? `Перевірено: ${escapeHtml(item.verifiedBy || 'адмін')} · ${formatDate(item.verifiedAt)}`
+      : 'Не перевірено · бейдж на сайті не показується';
     return `<article class="moderation-item" data-id="${item._id}">
       <div class="moderation-avatar">${escapeHtml(initials)}</div>
-      <div><span class="view-caption">${'★'.repeat(Number(item.rating || 5))} · ${escapeHtml(statusLabels[item.status]?.[0] || item.status)}</span><h3>${escapeHtml(item.name)}</h3><p>«${escapeHtml(item.text)}»</p><small>${escapeHtml(item.city || 'Місто не вказано')} · ${formatDate(item.createdAt)}</small></div>
-      <div class="review-editor"><textarea rows="3" placeholder="Відповідь компанії">${escapeHtml(item.reply || '')}</textarea><div><button class="secondary-admin review-hide" type="button">Приховати</button><button class="primary-admin review-publish" type="button">Зберегти відповідь</button></div></div>
+      <div><span class="view-caption">${'★'.repeat(Number(item.rating || 5))} · ${escapeHtml(statusLabels[item.status]?.[0] || item.status)}</span><h3>${escapeHtml(item.name)}</h3><p>«${escapeHtml(item.text)}»</p><small>${escapeHtml(item.city || 'Місто не вказано')} · ${formatDate(item.createdAt)}</small><small class="review-verified ${item.verified ? 'is-verified' : ''}">${verificationText}</small>${audit.length ? `<ul class="review-audit">${audit.map(entry => `<li><b>${escapeHtml(entry.user || 'admin')}</b> змінив ${escapeHtml(entry.field || 'поле')} · ${formatDate(entry.at)}</li>`).join('')}</ul>` : ''}</div>
+      <div class="review-editor"><textarea rows="3" placeholder="Відповідь компанії">${escapeHtml(item.reply || '')}</textarea><div><button class="secondary-admin review-hide" type="button">Приховати</button><button class="secondary-admin review-verify ${item.verified ? 'is-on' : ''}" type="button">${item.verified ? 'Зняти перевірку' : 'Перевірити'}</button><button class="primary-admin review-publish" type="button">Зберегти відповідь</button></div></div>
     </article>`;
   }).join('');
   $$('.review-publish', list).forEach(button => button.addEventListener('click', async () => {
@@ -192,6 +201,14 @@ function renderReviews() {
   $$('.review-hide', list).forEach(button => button.addEventListener('click', async () => {
     const card = button.closest('.moderation-item');
     await api(`/api/reviews/${card.dataset.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'hidden' }) });
+    await loadCollection('reviews');
+    await refreshDashboard();
+    renderReviews();
+  }));
+  $$('.review-verify', list).forEach(button => button.addEventListener('click', async () => {
+    const card = button.closest('.moderation-item');
+    const review = state.reviews.find(item => String(item._id) === card.dataset.id);
+    await api(`/api/reviews/${card.dataset.id}`, { method: 'PATCH', body: JSON.stringify({ verified: !review?.verified }) });
     await loadCollection('reviews');
     await refreshDashboard();
     renderReviews();
@@ -360,7 +377,14 @@ $('#logout')?.addEventListener('click', async () => {
 });
 
 api('/api/auth/me')
-  .then(loadAll)
+  .then(data => {
+    currentAdmin = data.user;
+    const userName = $('.admin-user strong');
+    const userRole = $('.admin-user small');
+    if (userName) userName.textContent = currentAdmin?.name || 'Admin';
+    if (userRole) userRole.textContent = 'Авторизовано · однакові права';
+    return loadAll();
+  })
   .catch(error => {
     if (error.message !== 'AUTH_REQUIRED') {
       $('.admin-notice')?.replaceChildren(document.createTextNode(`Помилка API: ${error.message}`));

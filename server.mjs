@@ -23,6 +23,7 @@ loadEnvFile();
 
 const PORT = Number(process.env.PORT || 8787);
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
+const ADMIN_USERS = (process.env.ADMIN_USERS || ADMIN_USER).split(',').map(user => user.trim()).filter(Boolean);
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'InkAdmin2026!';
 const SECRET_KEY = process.env.SECRET_KEY || process.env.SESSION_SECRET || 'dev-only-change-me';
 const COLLECTIONS = new Set(['leads','reviews','questions','projects','articles','equipment']);
@@ -31,7 +32,7 @@ const mime = { '.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-
 
 class FileStore {
   constructor(file){ this.file=file; this.data=null; this.queue=Promise.resolve(); }
-  async init(){ this.data=JSON.parse(await fs.readFile(this.file,'utf8')); }
+  async init(){ this.data=JSON.parse(await fs.readFile(this.file,'utf8')); let changed=false; for(const review of this.data.reviews||[]){ if(review.verified===undefined){ review.verified=false; review.verifiedBy=''; review.verifiedAt=null; review.audit=[]; changed=true; } if(!Array.isArray(review.audit)){ review.audit=[]; changed=true; } } if(changed)await this.persist(); }
   async persist(){ const tmp=`${this.file}.tmp`; await fs.writeFile(tmp,JSON.stringify(this.data,null,2)); await fs.rename(tmp,this.file); }
   async list(type){ return [...(this.data[type]||[])].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))); }
   async create(type,payload){ const now=new Date().toISOString(); const item={...payload,_id:crypto.randomUUID(),createdAt:now,updatedAt:now}; if(['leads','reviews','questions'].includes(type)&&item.viewedAt===undefined)item.viewedAt=null; this.data[type].push(item); await this.persist(); return item; }
@@ -42,7 +43,7 @@ class FileStore {
 
 class MongoStore {
   constructor(client,db,ObjectId){ this.client=client; this.db=db; this.ObjectId=ObjectId; }
-  async init(){ for(const name of COLLECTIONS) await this.db.collection(name).createIndex({createdAt:-1}); await this.seedDefaults(); }
+  async init(){ for(const name of COLLECTIONS) await this.db.collection(name).createIndex({createdAt:-1}); await this.seedDefaults(); await this.db.collection('reviews').updateMany({verified:{$exists:false}},{$set:{verified:false,verifiedBy:'',verifiedAt:null,audit:[]}}); await this.db.collection('reviews').updateMany({audit:{$exists:false}},{$set:{audit:[]}}); }
   async seedDefaults(){ try{ const seed=JSON.parse(await fs.readFile(path.join(ROOT,'data','db.json'),'utf8')); for(const name of COLLECTIONS){ const docs=Array.isArray(seed[name])?seed[name]:[]; for(const doc of docs){ await this.db.collection(name).updateOne({_id:String(doc._id)},{$setOnInsert:{...doc,_id:String(doc._id)}},{upsert:true}); } } }catch(error){ console.warn('Seed skipped:',error.message); } }
   id(id){ try{return new this.ObjectId(id)}catch{return id} }
   clean(doc){ if(!doc)return doc; return {...doc,_id:String(doc._id)}; }
@@ -71,10 +72,14 @@ function sessionCookie(value,maxAge=28800){ const secure=process.env.NODE_ENV===
 function currentUser(req){ return unpackSessionCookie(parseCookies(req).ink_session)?.user || null; }
 function requireAdmin(req,res){ const user=currentUser(req); if(!user){json(res,401,{error:'AUTH_REQUIRED'});return null} return user; }
 async function body(req,limit=2_500_000){ let size=0,data=''; for await(const chunk of req){size+=chunk.length;if(size>limit)throw new Error('PAYLOAD_TOO_LARGE');data+=chunk} return data?JSON.parse(data):{}; }
-function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','status','manager','viewedAt'],reviews:['name','city','rating','text','reply','status','viewedAt'],questions:['author','city','title','body','status','likes','answers','viewedAt'],projects:['title','city','type','description','image','status'],articles:['title','slug','excerpt','body','category','status','url'],equipment:['brand','model','power','phase','voltage','status','image']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
+function compareSafe(a='',b=''){ const left=Buffer.from(String(a)); const right=Buffer.from(String(b)); if(left.length!==right.length)return false; return crypto.timingSafeEqual(left,right); }
+function findAdminUser(inputUser=''){ return ADMIN_USERS.find(user=>compareSafe(inputUser,user)) || null; }
+function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','status','manager','viewedAt'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','body','status','likes','answers','viewedAt'],projects:['title','city','type','description','image','status'],articles:['title','slug','excerpt','body','category','status','url'],equipment:['brand','model','power','phase','voltage','status','image']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
+function publicReview(item){ const {audit,viewedAt,verifiedBy,verifiedAt,...safe}=item; return safe; }
+function reviewAudit(previous={},next={},user){ const fields=['status','reply','verified']; const changes=fields.filter(field=>String(previous[field]??'')!==String(next[field]??'')); if(!changes.length)return previous.audit || []; const now=new Date().toISOString(); const entries=changes.map(field=>({at:now,user:user.name,role:user.role,action:field==='verified'?'verify-review':'update-review',field,from:previous[field]??null,to:next[field]??null})); return [...(Array.isArray(previous.audit)?previous.audit:[]),...entries]; }
 
 async function api(req,res,url){
-  if(url.pathname==='/api/auth/login'&&req.method==='POST'){ const input=await body(req); const ok=crypto.timingSafeEqual(Buffer.from(String(input.user||'').padEnd(ADMIN_USER.length)),Buffer.from(ADMIN_USER.padEnd(String(input.user||'').length)))&&crypto.timingSafeEqual(Buffer.from(String(input.password||'').padEnd(ADMIN_PASSWORD.length)),Buffer.from(ADMIN_PASSWORD.padEnd(String(input.password||'').length))); if(!ok)return json(res,401,{error:'INVALID_CREDENTIALS'}); const user={name:ADMIN_USER,role:'admin'}; return json(res,200,{user},{'Set-Cookie':sessionCookie(packSessionCookie({user,expires:Date.now()+28_800_000}))}); }
+  if(url.pathname==='/api/auth/login'&&req.method==='POST'){ const input=await body(req); const adminName=findAdminUser(String(input.user||'')); const ok=adminName&&compareSafe(input.password||'',ADMIN_PASSWORD); if(!ok)return json(res,401,{error:'INVALID_CREDENTIALS'}); const user={name:adminName,role:'admin'}; return json(res,200,{user},{'Set-Cookie':sessionCookie(packSessionCookie({user,expires:Date.now()+28_800_000}))}); }
   if(url.pathname==='/api/auth/me')return currentUser(req)?json(res,200,{user:currentUser(req)}):json(res,401,{error:'AUTH_REQUIRED'});
   if(url.pathname==='/api/auth/logout'&&req.method==='POST'){ return json(res,200,{ok:true},{'Set-Cookie':sessionCookie('',0)}); }
   if(url.pathname==='/api/dashboard'){ if(!requireAdmin(req,res))return; const result={}; for(const type of COLLECTIONS){const items=await store.list(type);const hasUnread=['leads','reviews','questions'].includes(type);result[type]={total:items.length,unread:hasUnread?items.filter(x=>!x.viewedAt).length:0};} return json(res,200,result); }
@@ -85,20 +90,20 @@ async function api(req,res,url){
   if(req.method==='GET'){
     if(type==='leads'&&!isAdmin)return json(res,401,{error:'AUTH_REQUIRED'});
     let items=await store.list(type);
-    if(!isAdmin){ if(type==='reviews')items=items.filter(x=>x.status==='published'); if(['projects','articles','equipment'].includes(type))items=items.filter(x=>x.status==='published'||x.status==='active'); }
+    if(!isAdmin){ if(type==='reviews')items=items.filter(x=>x.status==='published').map(publicReview); if(['projects','articles','equipment'].includes(type))items=items.filter(x=>x.status==='published'||x.status==='active'); }
     return json(res,200,id?(items.find(x=>String(x._id)===id)||null):items);
   }
   if(req.method==='POST'){
     if(!['leads','reviews','questions'].includes(type)&&!requireAdmin(req,res))return;
     const input=sanitize(type,await body(req));
     if(type==='leads')Object.assign(input,{status:'new',manager:'',viewedAt:null});
-    if(type==='reviews')Object.assign(input,{status:'waiting',reply:'',viewedAt:null,rating:Number(input.rating||5)});
+    if(type==='reviews')Object.assign(input,{status:'waiting',reply:'',verified:false,verifiedAt:null,verifiedBy:'',audit:[],viewedAt:null,rating:Number(input.rating||5)});
     if(type==='questions')Object.assign(input,{status:'open',likes:0,answers:[],viewedAt:null});
     const requiredOk = type==='leads' ? input.name : type==='reviews' ? input.name && input.text : type==='questions' ? input.title : type==='equipment' ? input.brand && input.model : input.title;
     if(!requiredOk)return json(res,400,{error:'REQUIRED_FIELDS'});
     return json(res,201,await store.create(type,input));
   }
-  if(['PATCH','DELETE'].includes(req.method)){ if(!requireAdmin(req,res))return; if(!id)return json(res,400,{error:'ID_REQUIRED'}); if(req.method==='DELETE')return json(res,(await store.remove(type,id))?200:404,{ok:true}); const input=sanitize(type,await body(req)); return json(res,200,await store.update(type,id,input)); }
+  if(['PATCH','DELETE'].includes(req.method)){ const user=requireAdmin(req,res); if(!user)return; if(!id)return json(res,400,{error:'ID_REQUIRED'}); if(req.method==='DELETE')return json(res,(await store.remove(type,id))?200:404,{ok:true}); const previous=(await store.list(type)).find(item=>String(item._id)===id); if(!previous)return json(res,404,{error:'NOT_FOUND'}); const input=sanitize(type,await body(req)); if(type==='reviews'){ if(input.verified!==undefined){ input.verified=Boolean(input.verified); input.verifiedAt=input.verified?new Date().toISOString():null; input.verifiedBy=input.verified?user.name:''; } const next={...previous,...input}; input.audit=reviewAudit(previous,next,user); } return json(res,200,await store.update(type,id,input)); }
   return json(res,405,{error:'METHOD_NOT_ALLOWED'});
 }
 

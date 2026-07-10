@@ -30,12 +30,13 @@ npm start
 PORT=4000
 SECRET_KEY=long-random-string-for-signed-admin-session
 ADMIN_USER=admin
+ADMIN_USERS=admin,ivan,olena
 ADMIN_PASSWORD=your-strong-password
 MONGODB_URI=mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/?retryWrites=true&w=majority
 MONGODB_DB=ink_energy
 ```
 
-`MONGODB_URI` містить логін і пароль користувача MongoDB. `ADMIN_PASSWORD` — пароль входу в адмінку. `SECRET_KEY` — секрет застосунку для підпису session-cookie адмінки.
+`MONGODB_URI` містить логін і пароль користувача MongoDB. `ADMIN_PASSWORD` — пароль входу в адмінку. `SECRET_KEY` — секрет застосунку для підпису session-cookie адмінки. `ADMIN_USERS` — список логінів CRM через кому з однаковими правами; якщо не заданий, використовується `ADMIN_USER`.
 
 Не надсилай мені пароль у відкритому чаті, якщо не потрібно. Достатньо сказати, що URI готовий, або вставити його в `.env` локально.
 
@@ -50,6 +51,7 @@ MONGODB_DB=ink_energy
 - контакти з адресою в Солонці, телефонами й картою;
 - галерея об'єктів і окрема сторінка галереї;
 - відгуки по два в слайдері, видимі кнопки, додавання відгуку через API;
+- бейдж “перевірений відгук” показується тільки після CRM-перевірки (`verified=true`) з аудитом, хто змінив статус;
 - FAQ у dialog-вікні без зсуву структури;
 - Енергоколо з питаннями, окремою сторінкою й API;
 - стаття “5 приладів…” відкривається як стаття, а не калькулятор;

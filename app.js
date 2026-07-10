@@ -169,7 +169,8 @@ function createReview(data) {
   const rating = Math.max(1, Math.min(5, Number(data.rating || 5)));
   const initials = (data.name || 'ІНК').split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
   const reply = data.reply || 'Дякуємо. Команда прочитає відгук і відповість після модерації.';
-  article.innerHTML = `<div class="stars" aria-label="${rating} з 5">${'★'.repeat(rating)}${'☆'.repeat(5-rating)}</div><blockquote>«${escapeHtml(data.text || '')}»</blockquote><div class="team-reply"><span>↳ ВІДПОВІДЬ ІНК</span><p>${escapeHtml(reply)}</p></div><footer><div class="avatar">${escapeHtml(initials)}</div><div><strong>${escapeHtml(data.name || 'Клієнт ІНК')}</strong><span>${escapeHtml(data.city || 'Україна')}</span></div><b>${data.status === 'waiting' ? 'ЧЕКАЄ МОДЕРАЦІЇ' : 'ПЕРЕВІРЕНИЙ ВІДГУК'}</b></footer>`;
+  const badge = data.status === 'waiting' ? '<b>ЧЕКАЄ МОДЕРАЦІЇ</b>' : data.verified === true ? '<b>ПЕРЕВІРЕНИЙ ВІДГУК</b>' : '';
+  article.innerHTML = `<div class="stars" aria-label="${rating} з 5">${'★'.repeat(rating)}${'☆'.repeat(5-rating)}</div><blockquote>«${escapeHtml(data.text || '')}»</blockquote><div class="team-reply"><span>↳ ВІДПОВІДЬ ІНК</span><p>${escapeHtml(reply)}</p></div><footer><div class="avatar">${escapeHtml(initials)}</div><div><strong>${escapeHtml(data.name || 'Клієнт ІНК')}</strong><span>${escapeHtml(data.city || 'Україна')}</span></div>${badge}</footer>`;
   reviewTrack.append(article);
   reviews.push(article);
   return article;

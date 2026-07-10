@@ -34,6 +34,12 @@
 .question-item small,
 .admin-dialog small,
 .settings-grid small{font-size:11px;line-height:1.45}
+.review-verified{display:block;margin-top:8px;color:#a05d1c;font-weight:800}
+.review-verified.is-verified{color:var(--green)}
+.review-verify.is-on{background:#e7f4ec;color:#226246;border-color:#b8dcc6}
+.review-audit{list-style:none;margin:12px 0 0;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#f7f7f3;color:var(--muted)}
+.review-audit li{font-size:11px;line-height:1.5}
+.review-audit b{color:var(--ink)}
 @media(max-width:1200px){
   .admin-main{padding-inline:24px}
   th,td{font-size:11px}
