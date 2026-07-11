@@ -147,11 +147,11 @@
 
     <section class="section equipment-showcase" id="equipment" aria-labelledby="equipment-title">
       <div class="container">
-        <div class="section-heading reveal"><div><p class="eyebrow">/ 03 — Обладнання в роботі</p><h2 id="equipment-title">Каталог не для полиці.<br><em>Для реальних систем.</em></h2></div><p>Моделі з CRM автоматично з'являються тут, якщо мають активний статус. Чернетки й позиції на перевірці залишаються тільки в адмінці.</p></div>
+        <div class="section-heading reveal"><div><p class="eyebrow">/ 03 — Обладнання в роботі</p><h2 id="equipment-title">Каталог не для полиці.<br><em>Для реальних систем.</em></h2></div></div>
         <div class="equipment-public-grid" id="public-equipment">
-          <article><span>DEYE</span><h3>SUN-8K-SG01LP1</h3><p>8 kW · 1 фаза · 48 V</p><b>Активний</b></article>
-          <article><span>ANENJI</span><h3>ANJ-6200W-48V</h3><p>6.2 kW · 1 фаза · 48 V</p><b>Активний</b></article>
-          <article><span>EASUN</span><h3>iSolar SMV IV 5.6K</h3><p>5.6 kW · 1 фаза · 48 V</p><b>Активний</b></article>
+          <button class="equipment-card" type="button"><span>DEYE</span><h3>SUN-8K-SG01LP1</h3><p>8 kW · 1 фаза · 48 V</p><b>Активний</b></button>
+          <button class="equipment-card" type="button"><span>ANENJI</span><h3>ANJ-6200W-48V</h3><p>6.2 kW · 1 фаза · 48 V</p><b>Активний</b></button>
+          <button class="equipment-card" type="button"><span>EASUN</span><h3>iSolar SMV IV 5.6K</h3><p>5.6 kW · 1 фаза · 48 V</p><b>Активний</b></button>
         </div>
       </div>
     </section>
@@ -279,12 +279,21 @@
 
   <dialog class="project-dialog" id="project-dialog"><button class="project-dialog-close" type="button" aria-label="Закрити проєкт">×</button><img src="/assets/projects/home-backup.jpg" alt=""><div><p class="eyebrow">Паспорт об'єкта</p><h2>Будинок / Київщина</h2><p class="project-dialog-copy">Система Deye 8 kW з резервом 20 kWh. Критичні лінії: свердловина, котел, холодильник, кухня та два робочі місця.</p><dl><div><dt>Автономність</dt><dd>до 24 год</dd></div><div><dt>Перемикання</dt><dd>&lt; 10 мс</dd></div><div><dt>Монтаж</dt><dd>2 дні</dd></div></dl></div></dialog>
 
+  <dialog class="equipment-dialog" id="equipment-dialog"><button class="equipment-dialog-close" type="button" aria-label="Закрити обладнання">×</button><img src="/assets/projects/home-backup.jpg" alt=""><div><p class="eyebrow">Каталог обладнання</p><h2></h2><p class="equipment-dialog-copy"></p><dl><div><dt>Потужність</dt><dd data-equipment-field="power">—</dd></div><div><dt>Фази / напруга</dt><dd data-equipment-field="grid">—</dd></div><div><dt>Ціна</dt><dd data-equipment-field="price">За запитом</dd></div></dl><a class="button button-primary" href="#consultation">Обговорити цю модель ↗</a></div></dialog>
+
   <dialog class="answer-dialog" id="answer-dialog"><button class="answer-dialog-close" type="button" aria-label="Закрити відповідь">×</button><p class="eyebrow">Коротко про важливе</p><h2></h2><div class="answer-dialog-copy"></div></dialog>
 
   <dialog class="selector-dialog" id="selector-dialog"><button class="dialog-close" type="button" aria-label="Закрити">×</button><div class="selector-progress"><i></i></div><div class="selector-content"><p class="eyebrow">AI-підбір / 01</p><h2>Де потрібна енергія?</h2><div class="selector-options"><button type="button" data-answer="Квартира">Квартира <span>→</span></button><button type="button" data-answer="Будинок">Приватний будинок <span>→</span></button><button type="button" data-answer="Бізнес">Бізнес <span>→</span></button></div><p class="selector-hint">3 питання · близько 90 секунд</p></div></dialog>
 
   <script src="/app.js" defer></script>
   <script src="/i18n.js" defer></script>
-  <script defer src="/_vercel/insights/script.js"></script>
+  <script>
+    if (!['localhost', '127.0.0.1'].includes(location.hostname)) {
+      const analytics = document.createElement('script');
+      analytics.defer = true;
+      analytics.src = '/_vercel/insights/script.js';
+      document.head.appendChild(analytics);
+    }
+  </script>
 </body>
 </html>

@@ -23,7 +23,7 @@ loadEnvFile();
 
 const PORT = Number(process.env.PORT || 8787);
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
-const ADMIN_USERS = (process.env.ADMIN_USERS || ADMIN_USER).split(',').map(user => user.trim()).filter(Boolean);
+const ADMIN_USERS = (process.env.ADMIN_USERS || [ADMIN_USER, 'Kostia', 'Pasha'].join(',')).split(',').map(user => user.trim()).filter(Boolean);
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'InkAdmin2026!';
 const SECRET_KEY = process.env.SECRET_KEY || process.env.SESSION_SECRET || 'dev-only-change-me';
 const COLLECTIONS = new Set(['leads','reviews','questions','projects','articles','equipment']);
@@ -74,7 +74,7 @@ function requireAdmin(req,res){ const user=currentUser(req); if(!user){json(res,
 async function body(req,limit=2_500_000){ let size=0,data=''; for await(const chunk of req){size+=chunk.length;if(size>limit)throw new Error('PAYLOAD_TOO_LARGE');data+=chunk} return data?JSON.parse(data):{}; }
 function compareSafe(a='',b=''){ const left=Buffer.from(String(a)); const right=Buffer.from(String(b)); if(left.length!==right.length)return false; return crypto.timingSafeEqual(left,right); }
 function findAdminUser(inputUser=''){ return ADMIN_USERS.find(user=>compareSafe(inputUser,user)) || null; }
-function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','status','manager','viewedAt'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','body','status','likes','answers','viewedAt'],projects:['title','city','type','description','image','status'],articles:['title','slug','excerpt','body','category','status','url'],equipment:['brand','model','power','phase','voltage','status','image']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
+function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','status','manager','viewedAt'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','body','status','likes','answers','viewedAt'],projects:['title','city','type','description','image','status'],articles:['title','slug','excerpt','body','category','status','url'],equipment:['brand','model','power','phase','voltage','price','description','status','image']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
 function publicReview(item){ const {audit,viewedAt,verifiedBy,verifiedAt,...safe}=item; return safe; }
 function reviewAudit(previous={},next={},user){ const fields=['status','reply','verified']; const changes=fields.filter(field=>String(previous[field]??'')!==String(next[field]??'')); if(!changes.length)return previous.audit || []; const now=new Date().toISOString(); const entries=changes.map(field=>({at:now,user:user.name,role:user.role,action:field==='verified'?'verify-review':'update-review',field,from:previous[field]??null,to:next[field]??null})); return [...(Array.isArray(previous.audit)?previous.audit:[]),...entries]; }
 
@@ -90,7 +90,7 @@ async function api(req,res,url){
   if(req.method==='GET'){
     if(type==='leads'&&!isAdmin)return json(res,401,{error:'AUTH_REQUIRED'});
     let items=await store.list(type);
-    if(!isAdmin){ if(type==='reviews')items=items.filter(x=>x.status==='published').map(publicReview); if(['projects','articles','equipment'].includes(type))items=items.filter(x=>x.status==='published'||x.status==='active'); }
+    if(!isAdmin){ if(type==='reviews')items=items.filter(x=>x.status==='published').map(publicReview); if(['projects','articles'].includes(type))items=items.filter(x=>x.status==='published'||x.status==='active'); if(type==='equipment')items=items.filter(x=>x.status==='active'); }
     return json(res,200,id?(items.find(x=>String(x._id)===id)||null):items);
   }
   if(req.method==='POST'){

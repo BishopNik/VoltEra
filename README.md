@@ -15,7 +15,7 @@ npm start
 
 Дефолтний dev-вхід:
 
-- логін: `admin`
+- логін: `admin`, `Kostia` або `Pasha`
 - пароль: `InkAdmin2026!`
 
 Перед публікацією обов’язково змінити пароль через змінні середовища.
@@ -30,13 +30,13 @@ npm start
 PORT=4000
 SECRET_KEY=long-random-string-for-signed-admin-session
 ADMIN_USER=admin
-ADMIN_USERS=admin,ivan,olena
+ADMIN_USERS=admin,Kostia,Pasha
 ADMIN_PASSWORD=your-strong-password
 MONGODB_URI=mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/?retryWrites=true&w=majority
 MONGODB_DB=ink_energy
 ```
 
-`MONGODB_URI` містить логін і пароль користувача MongoDB. `ADMIN_PASSWORD` — пароль входу в адмінку. `SECRET_KEY` — секрет застосунку для підпису session-cookie адмінки. `ADMIN_USERS` — список логінів CRM через кому з однаковими правами; якщо не заданий, використовується `ADMIN_USER`.
+`MONGODB_URI` містить логін і пароль користувача MongoDB. `ADMIN_PASSWORD` — пароль входу в адмінку. `SECRET_KEY` — секрет застосунку для підпису session-cookie адмінки. `ADMIN_USERS` — список логінів CRM через кому з однаковими правами; якщо не заданий, сервер використовує `admin`, `Kostia` і `Pasha`.
 
 Не надсилай мені пароль у відкритому чаті, якщо не потрібно. Достатньо сказати, що URI готовий, або вставити його в `.env` локально.
 

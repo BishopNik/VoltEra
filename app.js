@@ -17,7 +17,7 @@ function syncLocalizedLinks(root = document) {
 }
 
 function enhanceClickableHints(root = document) {
-  const noHintSelector = '.dialog-close,.answer-dialog-close,.project-dialog-close,.gallery-dialog button[aria-label="Закрити"]';
+  const noHintSelector = '.dialog-close,.answer-dialog-close,.project-dialog-close,.equipment-dialog-close,.gallery-dialog button[aria-label="Закрити"]';
   $$(noHintSelector, root).forEach(element => {
     delete element.dataset.hint;
     element.removeAttribute('title');
@@ -70,10 +70,76 @@ function setupScrollHud(selector, axis = 'x') {
   nav.innerHTML = '<button type="button" aria-label="Гортати назад">←</button><button type="button" aria-label="Гортати вперед">→</button>';
   const [prev, next] = $$('button', nav);
   const step = () => axis === 'x' ? Math.round(target.clientWidth * .82) : Math.round(target.clientHeight * .72);
-  prev.addEventListener('click', () => target.scrollBy({ left: axis === 'x' ? -step() : 0, top: axis === 'y' ? -step() : 0, behavior: 'smooth' }));
-  next.addEventListener('click', () => target.scrollBy({ left: axis === 'x' ? step() : 0, top: axis === 'y' ? step() : 0, behavior: 'smooth' }));
+  prev.addEventListener('click', () => target.classList.contains('topic-list') ? scrollTopicCards(target, -1) : target.scrollBy({ left: axis === 'x' ? -step() : 0, top: axis === 'y' ? -step() : 0, behavior: 'smooth' }));
+  next.addEventListener('click', () => target.classList.contains('topic-list') ? scrollTopicCards(target, 1) : target.scrollBy({ left: axis === 'x' ? step() : 0, top: axis === 'y' ? step() : 0, behavior: 'smooth' }));
   target.insertAdjacentElement('afterend', nav);
   enhanceClickableHints(nav);
+}
+
+function topicCardScrollTop(target, card) {
+  const targetTop = target.getBoundingClientRect().top;
+  return Math.max(0, target.scrollTop + card.getBoundingClientRect().top - targetTop);
+}
+
+function closestTopicIndex(target, cards = $$('.topic-card', target)) {
+  return cards.reduce((best, card, index) => {
+    const distance = Math.abs(topicCardScrollTop(target, card) - target.scrollTop);
+    return distance < best.distance ? { index, distance } : best;
+  }, { index: 0, distance: Infinity }).index;
+}
+
+function scrollTopicCards(target, direction) {
+  const cards = $$('.topic-card', target);
+  if (!cards.length) return;
+  const current = closestTopicIndex(target, cards);
+  const next = Math.max(0, Math.min(cards.length - 1, current + direction));
+  target.scrollTo({ top: topicCardScrollTop(target, cards[next]), behavior: 'smooth' });
+}
+
+function setupQuestionWheelSnap(selector) {
+  const target = $(selector);
+  if (!target) return;
+  let locked = false;
+  const fit = () => requestAnimationFrame(() => fitQuestionViewport(target));
+  fit();
+  document.fonts?.ready?.then(fit).catch(() => {});
+  if ('ResizeObserver' in window) {
+    const observer = new ResizeObserver(fit);
+    observer.observe(target);
+  }
+  window.addEventListener('resize', fit, { passive: true });
+  target.addEventListener('wheel', event => {
+    if (locked) {
+      event.preventDefault();
+      return;
+    }
+    if (Math.abs(event.deltaY) < 8) return;
+    const cards = $$('.topic-card', target);
+    if (!cards.length) return;
+    const current = closestTopicIndex(target, cards);
+    const next = current + (event.deltaY > 0 ? 1 : -1);
+    if (next < 0 || next >= cards.length) return;
+    event.preventDefault();
+    locked = true;
+    target.scrollTo({ top: topicCardScrollTop(target, cards[next]), behavior: 'smooth' });
+    window.setTimeout(() => { locked = false; }, 420);
+  }, { passive: false });
+}
+
+function fitQuestionViewport(target = $('.topic-list')) {
+  if (!target) return;
+  const cards = $$('.topic-card', target);
+  if (cards.length < 2) {
+    target.style.height = '';
+    target.style.maxHeight = '';
+    return;
+  }
+  const first = cards[0].getBoundingClientRect();
+  const second = cards[1].getBoundingClientRect();
+  const gap = Math.max(0, second.top - first.bottom);
+  const twoCardsHeight = first.height + gap + second.height;
+  target.style.height = `${Math.ceil(twoCardsHeight)}px`;
+  target.style.maxHeight = `${Math.ceil(twoCardsHeight)}px`;
 }
 
 // Header, theme and mobile navigation
@@ -223,17 +289,56 @@ $$('.brand-compare').forEach(button => button.addEventListener('click', () => {
 const projectDialog = $('#project-dialog');
 const projectGrid = $('.project-grid');
 const projectData = new Map();
+let projectReturnY = 0;
+function projectFromButton(button) {
+  const card = button.closest('.project-card');
+  const image = button.querySelector('img');
+  const meta = card?.querySelector('.project-meta');
+  const title = meta?.querySelector('h3')?.textContent || image?.alt || 'Обʼєкт ІНК';
+  const copy = meta?.querySelector('p')?.textContent?.trim() || 'Паспорт системи редагується в CRM.';
+  const label = meta?.querySelector('span')?.textContent || 'Україна · обʼєкт';
+  const stats = label.split('·').map(item => item.trim()).filter(Boolean);
+  return {
+    image: image?.getAttribute('src') || '/assets/projects/home-backup.jpg',
+    title,
+    copy,
+    stats: [stats[0] || 'обʼєкт', stats[1] || 'Україна', stats[2] || 'опубліковано']
+  };
+}
+function openProject(button) {
+  if (!projectDialog || !button) return;
+  projectReturnY = window.scrollY;
+  const data = projectData.get(button.dataset.project) || projectFromButton(button);
+  $('img', projectDialog).src = data.image;
+  $('img', projectDialog).alt = button.querySelector('img')?.alt || data.title;
+  $('h2', projectDialog).textContent = data.title;
+  $('.project-dialog-copy', projectDialog).textContent = data.copy;
+  $$('#project-dialog dd').forEach((item, index) => { item.textContent = data.stats[index] || '—'; });
+  projectDialog.setAttribute('open', '');
+  projectDialog.setAttribute('aria-modal', 'true');
+  projectDialog.classList.add('is-open');
+  requestAnimationFrame(() => window.scrollTo({ top: projectReturnY, left: window.scrollX, behavior: 'auto' }));
+}
+function closeProjectDialog() {
+  if (!projectDialog) return;
+  projectDialog.classList.remove('is-open');
+  projectDialog.removeAttribute('aria-modal');
+  projectDialog.removeAttribute('open');
+  requestAnimationFrame(() => window.scrollTo({ top: projectReturnY, left: window.scrollX, behavior: 'auto' }));
+}
 function bindProjectButtons() {
-  $$('.project-open').forEach(button => button.addEventListener('click', () => {
-    const data = projectData.get(button.dataset.project);
-    if (!data) return;
-    $('img', projectDialog).src = data.image;
-    $('img', projectDialog).alt = button.querySelector('img').alt;
-    $('h2', projectDialog).textContent = data.title;
-    $('.project-dialog-copy', projectDialog).textContent = data.copy;
-    $$('#project-dialog dd').forEach((item, index) => { item.textContent = data.stats[index] || '—'; });
-    projectDialog.showModal();
-  }));
+  $$('.project-open').forEach(button => {
+    button.type = 'button';
+    button.setAttribute('role', 'button');
+    button.tabIndex = 0;
+    if (button.dataset.boundProjectOpen) return;
+    button.dataset.boundProjectOpen = 'true';
+    button.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      openProject(button);
+    });
+  });
 }
 function renderProjectCard(project, index) {
   const id = String(project._id || index);
@@ -251,25 +356,117 @@ async function loadProjects() {
   enhanceClickableHints(projectGrid);
 }
 bindProjectButtons();
-$('.project-dialog-close').addEventListener('click', () => projectDialog.close());
-projectDialog.addEventListener('click', event => { if (event.target === projectDialog) projectDialog.close(); });
+$('.project-dialog-close').addEventListener('click', closeProjectDialog);
+projectDialog.addEventListener('click', event => { if (event.target === projectDialog) closeProjectDialog(); });
+projectDialog.addEventListener('close', () => {
+  projectDialog.classList.remove('is-open');
+  projectDialog.removeAttribute('aria-modal');
+  requestAnimationFrame(() => window.scrollTo({ top: projectReturnY, left: window.scrollX, behavior: 'auto' }));
+});
+projectGrid?.addEventListener('click', event => {
+  const button = event.target.closest('.project-open');
+  if (!button || !projectGrid.contains(button)) return;
+  openProject(button);
+});
+projectGrid?.addEventListener('keydown', event => {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  const button = event.target.closest('.project-open');
+  if (!button || !projectGrid.contains(button)) return;
+  event.preventDefault();
+  openProject(button);
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && projectDialog?.classList.contains('is-open')) closeProjectDialog();
+});
 $('.project-next').addEventListener('click', () => { if (projectGrid.firstElementChild) projectGrid.append(projectGrid.firstElementChild); });
 $('.project-prev').addEventListener('click', () => { if (projectGrid.lastElementChild) projectGrid.prepend(projectGrid.lastElementChild); });
 loadProjects();
 
 // Equipment from CRM
 const publicEquipment = $('#public-equipment');
+const equipmentDialog = $('#equipment-dialog');
+const equipmentItems = new Map();
+let equipmentReturnY = 0;
+let equipmentRestoreScroll = true;
 function renderPublicEquipment(item) {
   const status = item.status === 'active' ? 'Активний' : 'На перевірці';
-  return `<article class="reveal visible"><span>${escapeHtml(item.brand || 'ІНК')}</span><h3>${escapeHtml(item.model || 'Модель')}</h3><p>${escapeHtml(item.power || '—')} · ${escapeHtml(item.phase || '—')} · ${escapeHtml(item.voltage || '—')}</p><b>${escapeHtml(status)}</b></article>`;
+  return `<button class="equipment-card reveal visible" type="button" data-equipment="${escapeHtml(String(item._id || item.model || ''))}" aria-label="Відкрити опис ${escapeHtml(item.brand || '')} ${escapeHtml(item.model || '')}"><span>${escapeHtml(item.brand || 'ІНК')}</span><h3>${escapeHtml(item.model || 'Модель')}</h3><p>${escapeHtml(item.power || '—')} · ${escapeHtml(item.phase || '—')} · ${escapeHtml(item.voltage || '—')}</p><b>${escapeHtml(status)} · детальніше ↗</b></button>`;
 }
+function openEquipment(item) {
+  if (!equipmentDialog || !item) return;
+  equipmentReturnY = window.scrollY;
+  equipmentRestoreScroll = true;
+  const image = item.image || '/assets/projects/home-backup.jpg';
+  $('img', equipmentDialog).src = image;
+  $('img', equipmentDialog).alt = `${item.brand || ''} ${item.model || ''}`.trim();
+  $('h2', equipmentDialog).textContent = `${item.brand || 'ІНК'} ${item.model || ''}`.trim();
+  $('.equipment-dialog-copy', equipmentDialog).textContent = item.description || 'Модель використовується в проєктних системах ІНК. Точну сумісність, комплектацію й ціну інженер підтвердить після карти навантажень.';
+  $('[data-equipment-field="power"]', equipmentDialog).textContent = item.power || '—';
+  $('[data-equipment-field="grid"]', equipmentDialog).textContent = [item.phase, item.voltage].filter(Boolean).join(' · ') || '—';
+  $('[data-equipment-field="price"]', equipmentDialog).textContent = item.price || 'За запитом';
+  const consultLink = $('.equipment-dialog .button', equipmentDialog);
+  if (consultLink) consultLink.onclick = () => {
+    equipmentRestoreScroll = false;
+    const comment = $('#lead-form textarea[name="comment"]');
+    if (comment) comment.value = `Цікавить модель ${item.brand || ''} ${item.model || ''}. Потрібна консультація по сумісності, ціні та монтажу.`.replace(/\s+/g, ' ').trim();
+    equipmentDialog.close();
+  };
+  if (typeof equipmentDialog.showModal === 'function') equipmentDialog.showModal();
+  else equipmentDialog.setAttribute('open', '');
+  requestAnimationFrame(() => window.scrollTo({ top: equipmentReturnY, left: window.scrollX, behavior: 'auto' }));
+}
+function bindEquipmentCards(items = []) {
+  equipmentItems.clear();
+  items.forEach(item => equipmentItems.set(String(item._id || item.model || ''), item));
+  $$('.equipment-public-grid .equipment-card, .equipment-public-grid article').forEach((card, index) => {
+    const item = items[index];
+    if (!card.dataset.equipment) card.dataset.equipment = String(item?._id || item?.model || card.querySelector('h3')?.textContent || index);
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
+  });
+}
+function equipmentFromCard(card) {
+  return equipmentItems.get(card.dataset.equipment) || {
+    brand: card.querySelector('span')?.textContent,
+    model: card.querySelector('h3')?.textContent,
+    power: card.querySelector('p')?.textContent,
+    price: 'За запитом'
+  };
+}
+publicEquipment?.addEventListener('click', event => {
+  const card = event.target.closest('.equipment-public-grid .equipment-card, .equipment-public-grid article');
+  if (!card || !publicEquipment.contains(card)) return;
+  openEquipment(equipmentFromCard(card));
+});
+publicEquipment?.addEventListener('keydown', event => {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  const card = event.target.closest('.equipment-public-grid .equipment-card, .equipment-public-grid article');
+  if (!card || !publicEquipment.contains(card)) return;
+  event.preventDefault();
+  openEquipment(equipmentFromCard(card));
+});
 async function loadPublicEquipment() {
   if (!publicEquipment) return;
   const data = await apiList('equipment');
-  if (!Array.isArray(data) || !data.length) return;
+  if (!Array.isArray(data) || !data.length) {
+    bindEquipmentCards();
+    return;
+  }
   publicEquipment.innerHTML = data.slice(0, 9).map(renderPublicEquipment).join('');
+  bindEquipmentCards(data.slice(0, 9));
   enhanceClickableHints(publicEquipment);
 }
+function closeEquipmentDialog() {
+  if (!equipmentDialog) return;
+  if (typeof equipmentDialog.close === 'function') equipmentDialog.close();
+  else equipmentDialog.removeAttribute('open');
+}
+$('.equipment-dialog-close')?.addEventListener('click', closeEquipmentDialog);
+equipmentDialog?.addEventListener('click', event => { if (event.target === equipmentDialog) equipmentDialog.close(); });
+equipmentDialog?.addEventListener('close', () => {
+  if (!equipmentRestoreScroll) return;
+  requestAnimationFrame(() => window.scrollTo({ top: equipmentReturnY, left: window.scrollX, behavior: 'auto' }));
+});
 loadPublicEquipment();
 
 // Journal from API
@@ -299,6 +496,27 @@ function bindTopicVotes(root = document) {
     value.textContent = Number(value.textContent) + 1;
   }));
 }
+
+function toggleTopicAnswer(card, title, copy) {
+  if (!card || !copy) return;
+  const current = $('.topic-inline-answer', card);
+  if (current) {
+    current.remove();
+    fitQuestionViewport();
+    return;
+  }
+  $$('.topic-inline-answer', topicList).forEach(answer => answer.remove());
+  const panel = document.createElement('div');
+  panel.className = 'topic-inline-answer';
+  panel.innerHTML = `<button type="button" aria-label="Закрити відповідь">×</button><span>Відповідь інженера</span><h4>${escapeHtml(title)}</h4><p>${escapeHtml(copy)}</p>`;
+  $('.topic-answers', card)?.insertAdjacentElement('afterend', panel);
+  $('button', panel).addEventListener('click', () => {
+    panel.remove();
+    fitQuestionViewport();
+  });
+  fitQuestionViewport();
+}
+
 function renderTopicCard(question, isNew = false) {
   const answered = question.status === 'answered' || (question.answers || []).length > 0;
   const answer = (question.answers || [])[0]?.text || '';
@@ -307,7 +525,7 @@ function renderTopicCard(question, isNew = false) {
   article.innerHTML = `<div class="topic-votes"><button type="button" aria-label="Відмітити як корисне">♥</button><strong>${Number(question.likes || 0)}</strong><small>корисно</small></div><div><span class="topic-state ${answered ? 'answered' : ''}">${answered ? 'ВІДПОВІВ ІНЖЕНЕР' : 'ОБГОВОРЕННЯ'}</span><h3>${escapeHtml(question.title)}</h3><p>${escapeHtml(answer || question.body || 'Питання збережено в базі. Інженер відповість якнайшвидше.')}</p>${answered ? `<button class="topic-answers" type="button" data-answer="${escapeHtml(answer)}">Переглянути відповідь ↓</button>` : `<a class="topic-answers" href="${communityHref()}">Відкрити обговорення →</a>`}<footer>${escapeHtml(question.author || 'Гість')} · ${escapeHtml(question.city || 'Україна')} <span>${(question.answers || []).length || 'очікує відповіді'}</span></footer></div>`;
   bindTopicVotes(article);
   const answerButton = $('.topic-answers[data-answer]', article);
-  if (answerButton) answerButton.addEventListener('click', () => openAnswer($('h3', article).textContent, answerButton.dataset.answer));
+  if (answerButton) answerButton.addEventListener('click', () => toggleTopicAnswer(article, $('h3', article).textContent, answerButton.dataset.answer));
   return article;
 }
 function renderFaqFromQuestions(questions) {
@@ -328,6 +546,7 @@ async function loadTopics() {
   renderFaqFromQuestions(data);
   topicList.innerHTML = '';
   data.slice(0, 8).forEach(question => topicList.append(renderTopicCard(question)));
+  requestAnimationFrame(() => fitQuestionViewport(topicList));
   enhanceClickableHints(topicList);
 }
 bindTopicVotes();
@@ -342,6 +561,7 @@ $('#topic-form').addEventListener('submit', async event => {
   if (!response?.ok) return;
   const question = await response.json();
   topicList.prepend(renderTopicCard(question, true));
+  requestAnimationFrame(() => fitQuestionViewport(topicList));
   enhanceClickableHints(topicList.firstElementChild || topicList);
   input.value = '';
 });
@@ -463,6 +683,7 @@ bindSelectorOptions(dialog);
 
 // FAQ answers open above the layout and never shift surrounding sections.
 const answerDialog = $('#answer-dialog');
+let answerReturnY = 0;
 const faqAnswers = [
   'Потужність визначаємо за сумарним навантаженням і пусковими струмами. Для базових потреб часто достатньо 4–6 кВт, але насос, кондиціонер чи електроплита змінюють розрахунок.',
   'Залежить від ємності та навантаження. Батарея 5 кВт·год дає орієнтовно 8–10 годин для базових приладів із навантаженням близько 400 Вт.',
@@ -471,19 +692,28 @@ const faqAnswers = [
   'Ціна залежить від потужності інвертора, ємності батареї, автоматики та монтажу. Точний кошторис формуємо після карти навантажень.',
   'Так. Безпечне підключення потребує проєкту, захисту, правильного перерізу кабелів і налаштування автоматики.'
 ];
+function restoreAnswerScroll() {
+  window.scrollTo({ top: answerReturnY, left: window.scrollX, behavior: 'auto' });
+}
 function openAnswer(title, copy) {
-  const scroll = { x: window.scrollX, y: window.scrollY };
+  answerReturnY = window.scrollY;
   $('h2', answerDialog).textContent = title;
   $('.answer-dialog-copy', answerDialog).textContent = copy;
   if (typeof answerDialog.showModal === 'function') answerDialog.showModal();
   else answerDialog.setAttribute('open', '');
-  requestAnimationFrame(() => window.scrollTo(scroll.x, scroll.y));
+  requestAnimationFrame(restoreAnswerScroll);
+  window.setTimeout(restoreAnswerScroll, 40);
+  window.setTimeout(restoreAnswerScroll, 140);
 }
 $$('.faq-question').forEach(button => button.addEventListener('click', () => openAnswer($('span', button).textContent, faqAnswers[Number(button.dataset.faq)])));
 const topicAnswerCopy = { q1:'Так, якщо модель батареї підтримує паралельне масштабування, напруга однакова та сумісний протокол BMS. Перед підключенням інженер вирівнює заряд модулів.', q3:'Частина ємності залишається як захисний резерв, ще частина втрачається на перетворенні. Для попереднього розрахунку закладайте 80–88% корисної енергії.' };
-$$('.topic-answers[data-question]').forEach(button => button.addEventListener('click', () => openAnswer(button.closest('.topic-card').querySelector('h3').textContent, topicAnswerCopy[button.dataset.question])));
+$$('.topic-answers[data-question]').forEach(button => button.addEventListener('click', () => {
+  const card = button.closest('.topic-card');
+  toggleTopicAnswer(card, card.querySelector('h3').textContent, topicAnswerCopy[button.dataset.question]);
+}));
 $('.answer-dialog-close').addEventListener('click', () => answerDialog.close());
 answerDialog.addEventListener('click', event => { if (event.target === answerDialog) answerDialog.close(); });
+answerDialog.addEventListener('close', () => requestAnimationFrame(restoreAnswerScroll));
 
 setupScrollHud('.article-grid', 'x');
 setupScrollHud('.topic-list', 'y');

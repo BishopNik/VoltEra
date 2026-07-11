@@ -316,7 +316,7 @@ const configs = {
   leads: { title: 'заявку', fields: [['name', 'Ім’я', 'text', true], ['phone', 'Телефон', 'tel', true], ['email', 'Email', 'email'], ['city', 'Місто', 'text'], ['object', 'Об’єкт', 'text'], ['need', 'Запит', 'text'], ['comment', 'Коментар', 'textarea']] },
   projects: { title: "об'єкт", fields: [['title', 'Назва', 'text', true], ['city', 'Локація', 'text'], ['type', 'Тип об’єкта', 'text'], ['description', 'Опис', 'textarea'], ['imageFile', 'Фото об’єкта', 'file'], ['status', 'Статус', 'select', false, ['published', 'draft']]] },
   articles: { title: 'статтю', fields: [['title', 'Назва', 'text', true], ['slug', 'Slug', 'text'], ['url', 'URL', 'text'], ['category', 'Категорія', 'text'], ['excerpt', 'SEO-опис', 'textarea'], ['body', 'Текст / нотатки', 'textarea'], ['status', 'Статус', 'select', false, ['published', 'draft']]] },
-  equipment: { title: 'модель обладнання', fields: [['brand', 'Бренд', 'text', true], ['model', 'Модель', 'text', true], ['power', 'Потужність', 'text'], ['phase', 'Фази', 'text'], ['voltage', 'Напруга', 'text'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] }
+  equipment: { title: 'модель обладнання', fields: [['brand', 'Бренд', 'text', true], ['model', 'Модель', 'text', true], ['power', 'Потужність', 'text'], ['phase', 'Фази', 'text'], ['voltage', 'Напруга', 'text'], ['price', 'Ціна / діапазон', 'text'], ['description', 'Опис для сайту', 'textarea'], ['imageFile', 'Фото моделі', 'file'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] }
 };
 
 function fieldTemplate([name, label, type, required, options = []], item = {}) {
