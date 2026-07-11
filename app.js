@@ -238,8 +238,9 @@ function bindProjectButtons() {
 function renderProjectCard(project, index) {
   const id = String(project._id || index);
   const large = index === 0 ? ' project-large' : '';
-  projectData.set(id, { image:project.image || '/assets/projects/home-backup.jpg', title:`${project.title} / ${project.city || 'Україна'}`, copy:project.description || 'Паспорт системи редагується в адмінці.', stats:[project.type || 'об’єкт', project.city || 'Україна', project.status || 'published'] });
-  return `<article class="project-card${large} reveal visible"><button type="button" class="project-open" data-project="${escapeHtml(id)}" aria-label="Відкрити об'єкт ${escapeHtml(project.title)}"><img src="${escapeHtml(project.image || '/assets/projects/home-backup.jpg')}" alt="${escapeHtml(project.title)}" loading="lazy"><span class="project-arrow">↗</span></button><div class="project-meta"><div><span>${escapeHtml(project.city || 'Україна')} · ${escapeHtml(project.type || 'об’єкт')}</span><h3>${escapeHtml(project.title)}</h3></div><p>${escapeHtml(project.description || '')}</p></div></article>`;
+  const status = project.status === 'published' ? 'Опубліковано' : 'Активний';
+  projectData.set(id, { image:project.image || '/assets/projects/home-backup.jpg', title:`${project.title} / ${project.city || 'Україна'}`, copy:project.description || 'Паспорт системи редагується в адмінці.', stats:[project.type || 'об’єкт', project.city || 'Україна', status] });
+  return `<article class="project-card${large} reveal visible"><button type="button" class="project-open" data-project="${escapeHtml(id)}" aria-label="Відкрити об'єкт ${escapeHtml(project.title)}"><img src="${escapeHtml(project.image || '/assets/projects/home-backup.jpg')}" alt="${escapeHtml(project.title)}" loading="lazy"><span class="project-arrow">↗</span></button><div class="project-meta"><div><span>${escapeHtml(project.city || 'Україна')} · ${escapeHtml(project.type || 'об’єкт')} · ${status}</span><h3>${escapeHtml(project.title)}</h3></div><p>${escapeHtml(project.description || '')}</p></div></article>`;
 }
 async function loadProjects() {
   const data = await apiList('projects');
@@ -255,6 +256,21 @@ projectDialog.addEventListener('click', event => { if (event.target === projectD
 $('.project-next').addEventListener('click', () => { if (projectGrid.firstElementChild) projectGrid.append(projectGrid.firstElementChild); });
 $('.project-prev').addEventListener('click', () => { if (projectGrid.lastElementChild) projectGrid.prepend(projectGrid.lastElementChild); });
 loadProjects();
+
+// Equipment from CRM
+const publicEquipment = $('#public-equipment');
+function renderPublicEquipment(item) {
+  const status = item.status === 'active' ? 'Активний' : 'На перевірці';
+  return `<article class="reveal visible"><span>${escapeHtml(item.brand || 'ІНК')}</span><h3>${escapeHtml(item.model || 'Модель')}</h3><p>${escapeHtml(item.power || '—')} · ${escapeHtml(item.phase || '—')} · ${escapeHtml(item.voltage || '—')}</p><b>${escapeHtml(status)}</b></article>`;
+}
+async function loadPublicEquipment() {
+  if (!publicEquipment) return;
+  const data = await apiList('equipment');
+  if (!Array.isArray(data) || !data.length) return;
+  publicEquipment.innerHTML = data.slice(0, 9).map(renderPublicEquipment).join('');
+  enhanceClickableHints(publicEquipment);
+}
+loadPublicEquipment();
 
 // Journal from API
 const articleGrid = $('.article-grid');

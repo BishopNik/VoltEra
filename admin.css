@@ -40,10 +40,39 @@
 .review-audit{list-style:none;margin:12px 0 0;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#f7f7f3;color:var(--muted)}
 .review-audit li{font-size:11px;line-height:1.5}
 .review-audit b{color:var(--ink)}
+.admin-help{margin:-4px 0 18px;padding:16px 18px;border:1px solid #d8e4dc;border-radius:14px;background:#f7fbf8;color:#42534b;font-size:14px;line-height:1.55}
+.admin-help strong{color:var(--ink)}
+.inline-status{display:block;margin:14px 0;color:var(--muted);font-size:12px}
+.inline-status select{display:block;width:100%;margin-top:7px;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-size:14px}
+.project-crm-actions{display:flex;gap:8px;flex-wrap:wrap}
+.settings-note{margin:16px 0 0;color:var(--muted);font-size:13px;line-height:1.6}
+
+/* CRM readability and safer modal controls */
+body{font-size:15px;line-height:1.5}
+.admin-nav{font-size:14px}
+.admin-topbar p,.card-head span,.view-caption{font-size:10px}
+.admin-topbar h1{font-size:31px}
+.card-head h2,.view-tools h2,.admin-view>h2,.settings-grid h2{font-size:25px}
+th,td{font-size:12px}
+td span,.tasks-card li span,.admin-user small{font-size:11px}
+.status{font-size:11px;padding:7px 10px}
+.primary-admin,.secondary-admin,.admin-projects button,.content-list button,.equipment-grid button,.logo-setting button,.integration-list button,.text-button{font-size:13px}
+.moderation-item{grid-template-columns:64px minmax(0,1fr) minmax(320px,390px);gap:22px}
+.moderation-avatar{width:52px;height:52px;font-size:13px}
+.moderation-item h3{font-size:18px}
+.moderation-item p{font-size:14px;line-height:1.65}
+.moderation-item small{font-size:12px}
+.review-editor textarea{font-size:16px;min-height:148px}
+.review-editor div{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.review-verified{font-size:13px}
+.dialog-x{right:16px;top:16px;width:48px;height:48px;border:0;border-radius:50%;background:var(--orange);color:#fff;font-size:28px;font-weight:900;box-shadow:0 12px 30px rgba(0,0,0,.2);cursor:pointer}
+.admin-dialog{position:relative;padding-top:56px}
 @media(max-width:1200px){
   .admin-main{padding-inline:24px}
   th,td{font-size:11px}
   .admin-dialog{width:min(620px,calc(100% - 28px))}
+  .moderation-item{grid-template-columns:56px 1fr}
+  .review-editor{grid-column:2}
 }
 @media(max-width:700px){
   .admin-main{padding-inline:14px}
@@ -58,4 +87,6 @@
   .question-item textarea,
   .question-item select,
   .review-editor textarea{min-height:52px;font-size:16px}
+  .moderation-item{grid-template-columns:1fr}
+  .review-editor{grid-column:auto}
 }
