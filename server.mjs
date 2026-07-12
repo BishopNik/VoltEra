@@ -27,10 +27,6 @@ const ADMIN_USERS = (process.env.ADMIN_USERS || [ADMIN_USER, 'Kostia', 'Pasha'].
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'InkAdmin2026!';
 const SECRET_KEY = process.env.SECRET_KEY || process.env.SESSION_SECRET || 'dev-only-change-me';
 const CONTACT_API_URL = String(process.env.CONTACT_API_URL || '').trim();
-const CONTACT_API_TOKEN = String(process.env.CONTACT_API_TOKEN || '').trim();
-const CONTACT_API_CHAT_ID = String(process.env.CONTACT_API_CHAT_ID || '').trim();
-const TELEGRAM_BOT_TOKEN = String(process.env.TELEGRAM_BOT_TOKEN || '').trim();
-const TELEGRAM_CHAT_ID = String(process.env.TELEGRAM_CHAT_ID || CONTACT_API_CHAT_ID || '').trim();
 const COLLECTIONS = new Set(['leads','reviews','questions','faqs','projects','articles','equipment']);
 
 const mime = { '.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.svg':'image/svg+xml','.xml':'application/xml; charset=utf-8','.txt':'text/plain; charset=utf-8','.webmanifest':'application/manifest+json' };
@@ -92,26 +88,47 @@ function notificationText(type,item){
   }[type]||['Новий запис',type];
   return lines.filter(Boolean).map(value=>String(value).trim()).filter(Boolean).join('\n');
 }
+function contactApiPayload(type,item,message){
+  const label={leads:'Нова заявка',reviews:'Новий відгук',questions:'Нове питання'}[type]||'Нове повідомлення';
+  const name=String(item.name||item.author||'Відвідувач сайту').trim().slice(0,100);
+  const phone=String(item.phone||'').trim().slice(0,50);
+  const email=String(item.email||'').trim().slice(0,160);
+  const contact=String(phone||email||item.city||label).trim().slice(0,160);
+  return {name,contact,service:label,email,phone,message:String(message||label).slice(0,2000),language:'uk'};
+}
 async function sendContactNotification(type,item){
   if(!['leads','reviews','questions'].includes(type))return;
-  const directTelegram=TELEGRAM_BOT_TOKEN&&TELEGRAM_CHAT_ID;
-  if(!CONTACT_API_URL&&!directTelegram)return;
+  if(!CONTACT_API_URL)return;
   const message=notificationText(type,item);
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),5000);
   try{
-    const target=CONTACT_API_URL||`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-    const payload=CONTACT_API_URL?{event:`ink.${type}.created`,title:message.split('\n')[0],message,text:message,chatId:CONTACT_API_CHAT_ID||TELEGRAM_CHAT_ID||undefined,payload:item,createdAt:new Date().toISOString()}:{chat_id:TELEGRAM_CHAT_ID,text:message,disable_web_page_preview:true};
-    const response=await fetch(target,{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json',...(CONTACT_API_URL&&CONTACT_API_TOKEN?{Authorization:`Bearer ${CONTACT_API_TOKEN}`}:{})},body:JSON.stringify(payload)});
-    if(!response.ok)console.error(`Notification delivery failed: ${response.status}`);
+    const payload=contactApiPayload(type,item,message);
+    const response=await fetch(CONTACT_API_URL,{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!response.ok){ const detail=(await response.text()).slice(0,300); console.error(`Notification delivery failed: ${response.status}${detail?` ${detail}`:''}`); }
   }catch(error){console.error('Notification delivery failed:',error.message)}finally{clearTimeout(timeout)}
+}
+
+async function getContactApiStatus(){
+  if(!CONTACT_API_URL)return {configured:false,available:false,route:''};
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),3000);
+  try{
+    const endpoint=new URL(CONTACT_API_URL);
+    const response=await fetch(new URL('/api/instructions',endpoint),{signal:controller.signal,headers:{Accept:'application/json'}});
+    if(!response.ok)return {configured:true,available:false,route:endpoint.pathname};
+    const info=await response.json();
+    const available=Array.isArray(info.projects)&&info.projects.some(project=>project.project==='voltares'||project.endpoint===CONTACT_API_URL);
+    return {configured:true,available,route:endpoint.pathname};
+  }catch{return {configured:true,available:false,route:''}}
+  finally{clearTimeout(timeout)}
 }
 
 async function api(req,res,url){
   if(url.pathname==='/api/auth/login'&&req.method==='POST'){ const input=await body(req); const adminName=findAdminUser(String(input.user||'')); const ok=adminName&&compareSafe(input.password||'',ADMIN_PASSWORD); if(!ok)return json(res,401,{error:'INVALID_CREDENTIALS'}); const user={name:adminName,role:'admin'}; return json(res,200,{user},{'Set-Cookie':sessionCookie(packSessionCookie({user,expires:Date.now()+28_800_000}))}); }
   if(url.pathname==='/api/auth/me')return currentUser(req)?json(res,200,{user:currentUser(req)}):json(res,401,{error:'AUTH_REQUIRED'});
   if(url.pathname==='/api/auth/logout'&&req.method==='POST'){ return json(res,200,{ok:true},{'Set-Cookie':sessionCookie('',0)}); }
-  if(url.pathname==='/api/integrations/status'){ if(!requireAdmin(req,res))return; return json(res,200,{contactApi:Boolean(CONTACT_API_URL),telegram:Boolean(TELEGRAM_BOT_TOKEN&&TELEGRAM_CHAT_ID),notifications:Boolean(CONTACT_API_URL||(TELEGRAM_BOT_TOKEN&&TELEGRAM_CHAT_ID))}); }
+  if(url.pathname==='/api/integrations/status'){ if(!requireAdmin(req,res))return; const contact=await getContactApiStatus(); return json(res,200,{contactApi:contact.available,contactApiConfigured:contact.configured,notifications:contact.available,route:contact.route}); }
   if(url.pathname==='/api/dashboard'){ if(!requireAdmin(req,res))return; const result={}; for(const type of COLLECTIONS){const items=await store.list(type);const hasUnread=['leads','reviews','questions'].includes(type);result[type]={total:items.length,unread:hasUnread?items.filter(x=>!x.viewedAt).length:0};} return json(res,200,result); }
   if(url.pathname==='/api/admin/mark-viewed'&&req.method==='POST'){ if(!requireAdmin(req,res))return; const input=await body(req); if(!COLLECTIONS.has(input.type))return json(res,400,{error:'INVALID_TYPE'}); await store.markViewed(input.type); return json(res,200,{ok:true}); }
   if(url.pathname==='/api/uploads'&&req.method==='POST'){ if(!requireAdmin(req,res))return; const input=await body(req,6_000_000); if(!/^data:image\/(png|jpeg|webp);base64,/.test(input.dataUrl||''))return json(res,400,{error:'INVALID_IMAGE'}); if(process.env.VERCEL)return json(res,201,{url:input.dataUrl}); const ext=input.dataUrl.match(/^data:image\/(png|jpeg|webp)/)[1].replace('jpeg','jpg'); const filename=`${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${ext}`; await fs.mkdir(path.join(ROOT,'uploads'),{recursive:true}); await fs.writeFile(path.join(ROOT,'uploads',filename),Buffer.from(input.dataUrl.split(',')[1],'base64')); return json(res,201,{url:`/uploads/${filename}`}); }

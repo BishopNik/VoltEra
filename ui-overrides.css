@@ -3,7 +3,16 @@
 .faq .accordion{max-height:none;overflow:visible;padding-right:0}
 .button.is-sending,.submit-button.is-sending,.equipment-order-submit.is-sending{position:relative;color:transparent!important;pointer-events:none}.button.is-sending:after,.submit-button.is-sending:after,.equipment-order-submit.is-sending:after{content:"";position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-10px;border:2px solid #07110f;border-right-color:transparent;border-radius:50%;animation:ui-spin .65s linear infinite}
 .equipment-dialog-gallery{display:flex;gap:8px;overflow-x:auto;margin:10px 0 18px}.equipment-dialog-gallery button{flex:0 0 64px;height:54px;padding:0;border:2px solid transparent;border-radius:9px;overflow:hidden;background:transparent}.equipment-dialog-gallery button.is-active{border-color:var(--acid)}.equipment-dialog-gallery img{width:100%;height:100%;object-fit:cover}
+/* Denser rhythm: sections remain distinct without oversized empty bands. */
+.section{padding-top:84px;padding-bottom:84px}.section-heading{margin-bottom:44px}
+@media(max-width:1500px) and (min-width:801px){.section{padding-top:70px;padding-bottom:70px}.section-heading{margin-bottom:36px}}
+@media(max-width:800px){.section{padding-top:60px;padding-bottom:60px}.section-heading{margin-bottom:32px}}
 /* Stable single-line header: the public content container stays narrow, the navigation does not. */
 .site-header .nav-wrap{width:min(calc(100% - 32px),1460px);display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:clamp(16px,2vw,34px)}
-.site-header .brand{align-self:center;margin:0}.site-header .desktop-nav{min-width:0;margin:0;justify-content:center;align-items:center;gap:clamp(13px,1.45vw,25px);white-space:nowrap}.site-header .nav-actions{flex:none;gap:10px;white-space:nowrap}.site-header .desktop-nav a[href="#equipment"]{padding:8px 12px}
+.site-header .brand{align-self:center;margin:0}.site-header .desktop-nav{min-width:0;margin:0;justify-content:center;align-items:center;gap:clamp(13px,1.45vw,25px);white-space:nowrap}.site-header .nav-actions{flex:none;gap:10px;white-space:nowrap}
+.site-header .desktop-nav a{display:inline-flex;align-items:center;padding:8px 11px;border:1px solid transparent;border-radius:999px;background:transparent;transition:color .2s,border-color .2s,background-color .2s}
+.site-header .desktop-nav a.is-active{border-color:color-mix(in srgb,var(--acid) 48%,var(--line));background:color-mix(in srgb,var(--acid) 9%,transparent);color:var(--ink)}
+.site-header .desktop-nav a[href="#equipment"]{padding:8px 11px;border-color:transparent;background:transparent;color:color-mix(in srgb,#f08a24 68%,var(--ink));font-weight:900}
+.site-header .desktop-nav a[href="#equipment"]:before{content:none}
+.site-header .desktop-nav a[href="#equipment"].is-active{border-color:color-mix(in srgb,var(--acid) 48%,var(--line));background:color-mix(in srgb,var(--acid) 9%,transparent)}
 @media(max-width:1380px) and (min-width:1101px){.site-header .nav-wrap{width:calc(100% - 24px);gap:14px}.site-header .brand{min-width:90px}.site-header .brand:before{width:90px}.site-header .desktop-nav{gap:12px}.site-header .desktop-nav a{font-size:11px}.site-header .nav-actions{gap:7px}.site-header .button-small{padding:11px 14px}.site-header .phone-menu{display:none}}

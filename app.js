@@ -865,4 +865,34 @@ answerDialog.addEventListener('close', () => requestAnimationFrame(restoreAnswer
 
 setupScrollHud('.article-grid', 'x');
 setupScrollHud('.topic-list', 'y');
+
+// Keep the header state tied to the section currently passing through the reading line.
+const sectionNavLinks = $$('.site-header .desktop-nav a[href^="#"]');
+const sectionNavTargets = sectionNavLinks
+  .map(link => ({ link, section: document.querySelector(link.hash) }))
+  .filter(item => item.section);
+let sectionNavFrame = 0;
+function updateSectionNavigation() {
+  sectionNavFrame = 0;
+  const readingLine = window.innerHeight * .34;
+  const active = sectionNavTargets.find(item => {
+    const rect = item.section.getBoundingClientRect();
+    return rect.top <= readingLine && rect.bottom > readingLine;
+  }) || null;
+  sectionNavLinks.forEach(link => {
+    const selected = Boolean(active && link === active.link);
+    link.classList.toggle('is-active', selected);
+    if (selected) link.setAttribute('aria-current', 'location');
+    else link.removeAttribute('aria-current');
+  });
+}
+function requestSectionNavigationUpdate() {
+  if (!sectionNavFrame) sectionNavFrame = requestAnimationFrame(updateSectionNavigation);
+}
+sectionNavLinks.forEach(link => link.addEventListener('click', () => {
+  sectionNavLinks.forEach(item => item.classList.toggle('is-active', item === link));
+}));
+window.addEventListener('scroll', requestSectionNavigationUpdate, { passive: true });
+window.addEventListener('resize', requestSectionNavigationUpdate);
+updateSectionNavigation();
 enhanceClickableHints();

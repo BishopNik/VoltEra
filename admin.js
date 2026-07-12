@@ -69,8 +69,10 @@ async function api(path, options = {}) {
     location.href = '/admin-login.html';
     throw new Error('AUTH_REQUIRED');
   }
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || 'API_ERROR');
+  const raw = await response.text();
+  let data = {};
+  try { data = raw ? JSON.parse(raw) : {}; } catch { data = {}; }
+  if (!response.ok) throw new Error(data.error || `HTTP_${response.status}`);
   return data;
 }
 
@@ -128,7 +130,7 @@ async function loadIntegrationStatus() {
   if (!status) return;
   try {
     const data = await api('/api/integrations/status');
-    status.textContent = data.contactApi ? 'Підключено через Contact API' : data.telegram ? 'Telegram підключено напряму' : 'Потрібні Telegram або Contact API змінні';
+    status.textContent = data.contactApi ? 'Contact API підключено' : data.contactApiConfigured ? 'Маршрут voltares ще не опубліковано' : 'Потрібна змінна CONTACT_API_URL';
     status.classList.toggle('connected', Boolean(data.notifications));
   } catch {
     status.textContent = 'Статус недоступний';
