@@ -2,12 +2,15 @@ const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[char]));
 const pageLang = () => new URLSearchParams(location.search).get('lang') || localStorage.getItem('ink-lang') || 'uk';
+const uiText = (uk, en) => pageLang() === 'en' ? en : uk;
 const communityHref = () => pageLang() === 'en' ? '/community.html?lang=en' : '/community.html';
 const apiList = async type => {
-  if (pageLang() !== 'uk' && ['reviews', 'projects', 'articles', 'questions'].includes(type)) return null;
+  if (pageLang() !== 'uk' && ['reviews', 'projects', 'articles', 'questions', 'faqs'].includes(type)) return null;
   const response = await fetch(`/api/${type}`).catch(() => null);
   return response?.ok ? response.json() : null;
 };
+const loadingMarkup = label => `<div class="section-loader"><i></i><span>${escapeHtml(label)}</span></div>`;
+const emptyMarkup = (title, text) => `<div class="section-empty"><div><strong>${escapeHtml(title)}</strong>${escapeHtml(text)}</div></div>`;
 
 function syncLocalizedLinks(root = document) {
   $$('.circle-all-link, a[href="/community.html"], a[href^="/community.html#"], a[href^="/community.html?"]', root).forEach(link => {
@@ -17,7 +20,7 @@ function syncLocalizedLinks(root = document) {
 }
 
 function enhanceClickableHints(root = document) {
-  const noHintSelector = '.dialog-close,.answer-dialog-close,.project-dialog-close,.equipment-dialog-close,.gallery-dialog button[aria-label="Закрити"]';
+  const noHintSelector = '.dialog-close,.answer-dialog-close,.project-dialog-close,.equipment-dialog-close,.equipment-more-toggle,.gallery-dialog button[aria-label="Закрити"],.site-header .desktop-nav a,.site-header .button-small';
   $$(noHintSelector, root).forEach(element => {
     delete element.dataset.hint;
     element.removeAttribute('title');
@@ -134,12 +137,15 @@ function fitQuestionViewport(target = $('.topic-list')) {
     target.style.maxHeight = '';
     return;
   }
-  const first = cards[0].getBoundingClientRect();
-  const second = cards[1].getBoundingClientRect();
-  const gap = Math.max(0, second.top - first.bottom);
-  const twoCardsHeight = first.height + gap + second.height;
-  target.style.height = `${Math.ceil(twoCardsHeight)}px`;
-  target.style.maxHeight = `${Math.ceil(twoCardsHeight)}px`;
+  const styles = getComputedStyle(target);
+  const gap = Number.parseFloat(styles.rowGap || styles.gap) || 0;
+  const heights = cards.map(card => card.getBoundingClientRect().height);
+  const tallestPair = heights.slice(0, -1).reduce((largest, height, index) => (
+    Math.max(largest, height + gap + heights[index + 1])
+  ), 0);
+  const viewportHeight = Math.ceil(tallestPair + 2);
+  target.style.height = `${viewportHeight}px`;
+  target.style.maxHeight = `${viewportHeight}px`;
 }
 
 // Header, theme and mobile navigation
@@ -242,8 +248,9 @@ function createReview(data) {
   return article;
 }
 async function loadReviews() {
+  reviewTrack.innerHTML = loadingMarkup('Завантажуємо відгуки…');
   const data = await apiList('reviews');
-  if (!Array.isArray(data) || !data.length) return showReview(0);
+  if (!Array.isArray(data) || !data.length) { reviewTrack.innerHTML = emptyMarkup('Відгуків поки немає', 'Будьте першим, хто поділиться досвідом.'); return; }
   reviewTrack.innerHTML = '';
   reviews.splice(0, reviews.length);
   data.forEach(createReview);
@@ -264,9 +271,11 @@ reviewForm.addEventListener('submit', async event => {
   const data = { name: fields.get('reviewName'), city: fields.get('reviewCity'), rating: fields.get('reviewRating'), text: fields.get('reviewText') };
   const submit = reviewForm.querySelector('button[type="submit"]');
   submit.disabled = true;
+  submit.classList.add('is-sending');
   submit.textContent = 'Публікуємо…';
   const response = await fetch('/api/reviews', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) }).catch(() => null);
   submit.disabled = false;
+  submit.classList.remove('is-sending');
   submit.textContent = 'Опублікувати відгук ↗';
   if (!response?.ok) { submit.textContent = 'Помилка. Спробуйте ще раз'; return; }
   createReview({...data, rating:Number(data.rating), status:'waiting'});
@@ -348,8 +357,9 @@ function renderProjectCard(project, index) {
   return `<article class="project-card${large} reveal visible"><button type="button" class="project-open" data-project="${escapeHtml(id)}" aria-label="Відкрити об'єкт ${escapeHtml(project.title)}"><img src="${escapeHtml(project.image || '/assets/projects/home-backup.jpg')}" alt="${escapeHtml(project.title)}" loading="lazy"><span class="project-arrow">↗</span></button><div class="project-meta"><div><span>${escapeHtml(project.city || 'Україна')} · ${escapeHtml(project.type || 'об’єкт')} · ${status}</span><h3>${escapeHtml(project.title)}</h3></div><p>${escapeHtml(project.description || '')}</p></div></article>`;
 }
 async function loadProjects() {
+  projectGrid.innerHTML = loadingMarkup('Завантажуємо об’єкти…');
   const data = await apiList('projects');
-  if (!Array.isArray(data) || !data.length) return bindProjectButtons();
+  if (!Array.isArray(data) || !data.length) { projectGrid.innerHTML = emptyMarkup('Розділ заповнюється', 'Нові об’єкти з’являться після публікації в CRM.'); return; }
   projectData.clear();
   projectGrid.innerHTML = data.slice(0, 6).map(renderProjectCard).join('');
   bindProjectButtons();
@@ -385,36 +395,124 @@ loadProjects();
 // Equipment from CRM
 const publicEquipment = $('#public-equipment');
 const equipmentDialog = $('#equipment-dialog');
+const equipmentSearch = $('#equipment-search');
 const equipmentItems = new Map();
 let equipmentReturnY = 0;
 let equipmentRestoreScroll = true;
+let activeEquipmentItem = null;
+let activeEquipmentBrand = 'all';
+function applyEquipmentFilters() {
+  const query = (equipmentSearch?.value || '').trim().toLocaleLowerCase();
+  const cards = $$('.equipment-card', publicEquipment);
+  const availableBrands = new Set(cards.map(card => (card.querySelector('span')?.textContent || '').trim().toLocaleLowerCase()));
+  $$('.equipment-filter button').forEach(button => {
+    const brand = button.dataset.brandFilter || 'all';
+    button.hidden = brand !== 'all' && !availableBrands.has(brand);
+  });
+  if (activeEquipmentBrand !== 'all' && !availableBrands.has(activeEquipmentBrand)) {
+    activeEquipmentBrand = 'all';
+    $$('.equipment-filter button').forEach(button => button.classList.toggle('is-active', button.dataset.brandFilter === 'all'));
+  }
+  cards.forEach(card => {
+    const brand = (card.querySelector('span')?.textContent || '').trim().toLocaleLowerCase();
+    const haystack = card.textContent.toLocaleLowerCase();
+    card.hidden = (activeEquipmentBrand !== 'all' && brand !== activeEquipmentBrand) || (query && !haystack.includes(query));
+  });
+}
+equipmentSearch?.addEventListener('input', applyEquipmentFilters);
+$$('.equipment-filter button').forEach(button => button.addEventListener('click', () => {
+  activeEquipmentBrand = button.dataset.brandFilter || 'all';
+  $$('.equipment-filter button').forEach(item => item.classList.toggle('is-active', item === button));
+  applyEquipmentFilters();
+}));
 function renderPublicEquipment(item) {
   const status = item.status === 'active' ? 'Активний' : 'На перевірці';
-  return `<button class="equipment-card reveal visible" type="button" data-equipment="${escapeHtml(String(item._id || item.model || ''))}" aria-label="Відкрити опис ${escapeHtml(item.brand || '')} ${escapeHtml(item.model || '')}"><span>${escapeHtml(item.brand || 'ІНК')}</span><h3>${escapeHtml(item.model || 'Модель')}</h3><p>${escapeHtml(item.power || '—')} · ${escapeHtml(item.phase || '—')} · ${escapeHtml(item.voltage || '—')}</p><b>${escapeHtml(status)} · детальніше ↗</b></button>`;
+  return `<button class="equipment-card reveal visible" type="button" data-equipment="${escapeHtml(String(item._id || item.model || ''))}" aria-label="Відкрити опис ${escapeHtml(item.brand || '')} ${escapeHtml(item.model || '')}"><span>${escapeHtml(item.brand || 'ІНК')}</span><h3>${escapeHtml(item.model || 'Модель')}</h3><p>${escapeHtml(item.power || '—')} · ${escapeHtml(item.phase || '—')} · ${escapeHtml(item.voltage || '—')}</p><b><i>${escapeHtml(status)}</i><em>Детальніше ↗</em></b></button>`;
 }
 function openEquipment(item) {
   if (!equipmentDialog || !item) return;
+  activeEquipmentItem = item;
   equipmentReturnY = window.scrollY;
   equipmentRestoreScroll = true;
-  const image = item.image || '/assets/projects/home-backup.jpg';
-  $('img', equipmentDialog).src = image;
-  $('img', equipmentDialog).alt = `${item.brand || ''} ${item.model || ''}`.trim();
+  const images = Array.isArray(item.images) && item.images.length ? item.images : [item.image || '/assets/projects/home-backup.jpg'];
+  const image = images[0];
+  const mainImage = $('img', equipmentDialog);
+  mainImage.src = image;
+  mainImage.alt = `${item.brand || ''} ${item.model || ''}`.trim();
+  let gallery = $('.equipment-dialog-gallery', equipmentDialog);
+  if (!gallery) {
+    gallery = document.createElement('div');
+    gallery.className = 'equipment-dialog-gallery';
+    $('.eyebrow', equipmentDialog).insertAdjacentElement('beforebegin', gallery);
+  }
+  gallery.innerHTML = images.length > 1 ? images.map((src, index) => `<button type="button" class="${index === 0 ? 'is-active' : ''}" data-equipment-image="${escapeHtml(src)}" aria-label="Фото ${index + 1}"><img src="${escapeHtml(src)}" alt=""></button>`).join('') : '';
+  $$('[data-equipment-image]', gallery).forEach(button => button.addEventListener('click', () => {
+    mainImage.src = button.dataset.equipmentImage;
+    $$('button', gallery).forEach(item => item.classList.toggle('is-active', item === button));
+  }));
   $('h2', equipmentDialog).textContent = `${item.brand || 'ІНК'} ${item.model || ''}`.trim();
   $('.equipment-dialog-copy', equipmentDialog).textContent = item.description || 'Модель використовується в проєктних системах ІНК. Точну сумісність, комплектацію й ціну інженер підтвердить після карти навантажень.';
   $('[data-equipment-field="power"]', equipmentDialog).textContent = item.power || '—';
   $('[data-equipment-field="grid"]', equipmentDialog).textContent = [item.phase, item.voltage].filter(Boolean).join(' · ') || '—';
   $('[data-equipment-field="price"]', equipmentDialog).textContent = item.price || 'За запитом';
-  const consultLink = $('.equipment-dialog .button', equipmentDialog);
-  if (consultLink) consultLink.onclick = () => {
-    equipmentRestoreScroll = false;
-    const comment = $('#lead-form textarea[name="comment"]');
-    if (comment) comment.value = `Цікавить модель ${item.brand || ''} ${item.model || ''}. Потрібна консультація по сумісності, ціні та монтажу.`.replace(/\s+/g, ' ').trim();
-    equipmentDialog.close();
-  };
+  const orderForm = $('.equipment-order-form', equipmentDialog);
+  const orderStatus = $('.equipment-order-status', equipmentDialog);
+  const extraFields = $('.equipment-extra-fields', equipmentDialog);
+  const moreToggle = $('.equipment-more-toggle', equipmentDialog);
+  if (orderForm) {
+    orderForm.reset();
+    orderForm.classList.remove('is-sent');
+  }
+  if (extraFields) extraFields.hidden = true;
+  if (moreToggle) {
+    moreToggle.setAttribute('aria-expanded', 'false');
+    $('span', moreToggle).textContent = '↓';
+  }
+  if (orderStatus) orderStatus.textContent = '';
   if (typeof equipmentDialog.showModal === 'function') equipmentDialog.showModal();
   else equipmentDialog.setAttribute('open', '');
   requestAnimationFrame(() => window.scrollTo({ top: equipmentReturnY, left: window.scrollX, behavior: 'auto' }));
 }
+
+$('.equipment-more-toggle')?.addEventListener('click', event => {
+  const button = event.currentTarget;
+  const fields = $('.equipment-extra-fields', equipmentDialog);
+  const expanded = button.getAttribute('aria-expanded') === 'true';
+  button.setAttribute('aria-expanded', String(!expanded));
+  fields.hidden = expanded;
+  $('span', button).textContent = expanded ? '↓' : '↑';
+});
+
+$('.equipment-order-form')?.addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  if (!form.reportValidity() || !activeEquipmentItem) return;
+  const fields = Object.fromEntries(new FormData(form).entries());
+  const model = `${activeEquipmentItem.brand || ''} ${activeEquipmentItem.model || ''}`.replace(/\s+/g, ' ').trim();
+  const payload = {
+    name: fields.name,
+    phone: fields.phone,
+    email: fields.email || '',
+    city: fields.city || '',
+    object: 'Обладнання',
+    need: `Запит по моделі: ${model}`,
+    comment: [`Клієнт надіслав запит із картки моделі ${model}.`, fields.note ? `Нотатка клієнта: ${fields.note}` : '', 'Джерело: картка обладнання.'].filter(Boolean).join(' ')
+  };
+  const submit = $('.equipment-order-submit', form);
+  submit.disabled = true;
+  submit.classList.add('is-sending');
+  const status = $('.equipment-order-status', form);
+  status.textContent = uiText('Надсилаємо…', 'Sending…');
+  const response = await fetch('/api/leads', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }).catch(() => null);
+  submit.disabled = false;
+  submit.classList.remove('is-sending');
+  if (!response?.ok) {
+    status.textContent = uiText('Не вдалося надіслати. Перевірте ім’я та телефон і повторіть.', 'Could not send. Check your name and phone number and try again.');
+    return;
+  }
+  form.classList.add('is-sent');
+  status.textContent = uiText('Запит прийнято. Інженер зв’яжеться з вами найближчим часом.', 'Enquiry received. An engineer will contact you shortly.');
+});
 function bindEquipmentCards(items = []) {
   equipmentItems.clear();
   items.forEach(item => equipmentItems.set(String(item._id || item.model || ''), item));
@@ -447,13 +545,14 @@ publicEquipment?.addEventListener('keydown', event => {
 });
 async function loadPublicEquipment() {
   if (!publicEquipment) return;
+  publicEquipment.innerHTML = loadingMarkup('Завантажуємо обладнання…');
   const data = await apiList('equipment');
   if (!Array.isArray(data) || !data.length) {
-    bindEquipmentCards();
-    return;
+    publicEquipment.innerHTML = emptyMarkup('Каталог заповнюється', 'Активні моделі з’являться тут після публікації в CRM.'); return;
   }
   publicEquipment.innerHTML = data.slice(0, 9).map(renderPublicEquipment).join('');
   bindEquipmentCards(data.slice(0, 9));
+  applyEquipmentFilters();
   enhanceClickableHints(publicEquipment);
 }
 function closeEquipmentDialog() {
@@ -478,16 +577,24 @@ function renderArticleCard(article, index) {
   return `<a class="article-card${lead} reveal visible" href="${escapeHtml(url)}"><span>${escapeHtml(article.category || 'ЖУРНАЛ')} · ${index === 0 ? '9' : '5'} ХВ</span>${index === 0 ? '<div class="article-visual"><b>10</b><i>ms</i><small>час, якого ви<br>не помітите</small></div>' : `<div class="article-number">${number}</div>`}<h3>${escapeHtml(article.title)}</h3><p>${escapeHtml(article.excerpt || '')}</p><strong>Читати статтю ↗</strong></a>`;
 }
 async function loadArticles() {
+  articleGrid.innerHTML = loadingMarkup('Завантажуємо журнал…');
   const data = await apiList('articles');
   if (Array.isArray(data) && data.length) {
     articleGrid.innerHTML = data.slice(0, 12).map(renderArticleCard).join('');
     enhanceClickableHints(articleGrid);
-  }
+  } else articleGrid.innerHTML = emptyMarkup('Журнал заповнюється', 'Нові матеріали вже готуються до публікації.');
 }
 loadArticles();
 
 // Compact community board from API
 const topicList = $('.topic-list');
+let topicFitFrame = 0;
+function scheduleTopicViewportFit() {
+  cancelAnimationFrame(topicFitFrame);
+  topicFitFrame = requestAnimationFrame(() => fitQuestionViewport(topicList));
+}
+window.addEventListener('resize', scheduleTopicViewportFit, { passive: true });
+document.fonts?.ready?.then(scheduleTopicViewportFit).catch(() => {});
 function bindTopicVotes(root = document) {
   $$('.topic-votes button', root).forEach(button => button.addEventListener('click', () => {
     if (button.classList.contains('voted')) return;
@@ -528,46 +635,78 @@ function renderTopicCard(question, isNew = false) {
   if (answerButton) answerButton.addEventListener('click', () => toggleTopicAnswer(article, $('h3', article).textContent, answerButton.dataset.answer));
   return article;
 }
-function renderFaqFromQuestions(questions) {
+let faqPage = 1;
+let faqItems = [];
+function renderFaqPage() {
   const accordion = $('.accordion');
-  const answered = questions.filter(question => question.status === 'answered' || (question.answers || []).length).slice(0, 6);
-  if (!answered.length) return;
-  accordion.innerHTML = answered.map((question, index) => `<button class="faq-question" type="button" data-api-faq="${index}"><span>${escapeHtml(question.title)}</span><i>↓</i></button>`).join('');
+  const pagination = $('.faq-pagination');
+  const pages = Math.max(1, Math.ceil(faqItems.length / 5));
+  faqPage = Math.min(Math.max(1, faqPage), pages);
+  const faqs = faqItems.slice((faqPage - 1) * 5, faqPage * 5);
+  accordion.innerHTML = faqs.map((item, index) => `<button class="faq-question" type="button" data-api-faq="${index}"><span>${escapeHtml(item.question)}</span><i>↓</i></button>`).join('');
+  const pageButtons = Array.from({length:pages},(_,index)=>index+1).map(page => `<button type="button" data-faq-page="${page}" class="${page===faqPage?'is-current':''}" aria-label="Сторінка ${page}">${page}</button>`).join('');
+  pagination.innerHTML = `<button type="button" data-faq-nav="first" ${faqPage===1?'disabled':''} aria-label="Перша сторінка">«</button><button type="button" data-faq-nav="prev" ${faqPage===1?'disabled':''} aria-label="Попередня сторінка">‹</button>${pageButtons}<button type="button" data-faq-nav="next" ${faqPage===pages?'disabled':''} aria-label="Наступна сторінка">›</button><button type="button" data-faq-nav="last" ${faqPage===pages?'disabled':''} aria-label="Остання сторінка">»</button>`;
+  const faqSchema = $('#faq-schema');
+  if (faqSchema) faqSchema.textContent = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqItems.map(item => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: { '@type': 'Answer', text: item.answer }
+    }))
+  });
   $$('.faq-question', accordion).forEach((button, index) => {
-    const question = answered[index];
-    const answer = question.answers?.[0]?.text || question.body || 'Відповідь готується інженером ІНК.';
-    button.addEventListener('click', () => openAnswer(question.title, answer));
+    const item = faqs[index];
+    button.addEventListener('click', () => openAnswer(item.question, item.answer));
   });
   enhanceClickableHints(accordion);
+  $$('[data-faq-page]', pagination).forEach(button => button.addEventListener('click', () => { faqPage = Number(button.dataset.faqPage); renderFaqPage(); }));
+  $$('[data-faq-nav]', pagination).forEach(button => button.addEventListener('click', () => { faqPage = button.dataset.faqNav === 'first' ? 1 : button.dataset.faqNav === 'last' ? pages : faqPage + (button.dataset.faqNav === 'prev' ? -1 : 1); renderFaqPage(); }));
+}
+async function loadFaqs() {
+  const accordion = $('.accordion');
+  accordion.innerHTML = loadingMarkup('Завантажуємо питання…');
+  const data = await apiList('faqs');
+  faqItems = Array.isArray(data) ? data.filter(item => item.status === 'active').sort((a, b) => Number(a.order || 0) - Number(b.order || 0)) : [];
+  if (!faqItems.length) { accordion.innerHTML = emptyMarkup('Питань поки немає', 'Поставте своє питання в Енергоколі.'); $('.faq-pagination').innerHTML = ''; return; }
+  faqPage = 1; renderFaqPage();
 }
 async function loadTopics() {
+  topicList.innerHTML = loadingMarkup('Завантажуємо питання…');
   const data = await apiList('questions');
-  if (!Array.isArray(data) || !data.length) return bindTopicVotes();
-  renderFaqFromQuestions(data);
+  if (!Array.isArray(data) || !data.length) { topicList.innerHTML = emptyMarkup('Питань поки немає', 'Поставте перше питання — інженер відповість якнайшвидше.'); return; }
   topicList.innerHTML = '';
   data.slice(0, 8).forEach(question => topicList.append(renderTopicCard(question)));
-  requestAnimationFrame(() => fitQuestionViewport(topicList));
+  scheduleTopicViewportFit();
   enhanceClickableHints(topicList);
 }
 bindTopicVotes();
 loadTopics();
+loadFaqs();
 syncLocalizedLinks();
 window.addEventListener('ink:languagechange', () => syncLocalizedLinks());
 $('#topic-form').addEventListener('submit', async event => {
   event.preventDefault();
   const input = $('#topic-input');
   if (!input.value.trim()) return;
+  const submit = event.currentTarget.querySelector('button[type="submit"]');
+  submit?.classList.add('is-sending');
+  if (submit) submit.disabled = true;
   const response = await fetch('/api/questions', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({author:'Гість',city:'',title:input.value.trim(),body:''}) }).catch(() => null);
+  submit?.classList.remove('is-sending');
+  if (submit) submit.disabled = false;
   if (!response?.ok) return;
   const question = await response.json();
   topicList.prepend(renderTopicCard(question, true));
-  requestAnimationFrame(() => fitQuestionViewport(topicList));
+  scheduleTopicViewportFit();
   enhanceClickableHints(topicList.firstElementChild || topicList);
   input.value = '';
 });
 
 // Consultation form → API/CRM.
-$('#lead-form').addEventListener('submit', async event => {
+const consultationForm = $('#lead-form');
+consultationForm.addEventListener('submit', async event => {
   event.preventDefault();
   if (!event.currentTarget.reportValidity()) return;
   const form = event.currentTarget;
@@ -575,13 +714,22 @@ $('#lead-form').addEventListener('submit', async event => {
   const payload = Object.fromEntries(fields.entries());
   const submit = form.querySelector('.submit-button');
   submit.disabled = true;
-  submit.innerHTML = 'Надсилаємо…';
+  submit.classList.add('is-sending');
+  submit.innerHTML = uiText('Надсилаємо…', 'Sending…');
   const response = await fetch('/api/leads', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }).catch(() => null);
   submit.disabled = false;
-  submit.innerHTML = 'Надіслати запит <span>↗</span>';
-  if (!response?.ok) { submit.innerHTML = 'Не вдалося. Повторити <span>↻</span>'; return; }
+  submit.classList.remove('is-sending');
+  submit.innerHTML = uiText('Надіслати запит <span>↗</span>', 'Send request <span>↗</span>');
+  if (!response?.ok) { submit.innerHTML = uiText('Не вдалося. Повторити <span>↻</span>', 'Could not send. Retry <span>↻</span>'); return; }
   event.currentTarget.classList.add('submitted');
 });
+consultationForm.addEventListener('reset', () => {
+  consultationForm.classList.remove('submitted');
+  const submit = consultationForm.querySelector('.submit-button');
+  submit.disabled = false;
+  submit.innerHTML = uiText('Надіслати запит <span>↗</span>', 'Send request <span>↗</span>');
+});
+$('.form-success-reset', consultationForm)?.addEventListener('click', () => consultationForm.reset());
 
 // Three-step system selector
 const dialog = $('#selector-dialog');
@@ -717,5 +865,4 @@ answerDialog.addEventListener('close', () => requestAnimationFrame(restoreAnswer
 
 setupScrollHud('.article-grid', 'x');
 setupScrollHud('.topic-list', 'y');
-setupScrollHud('.accordion', 'y');
 enhanceClickableHints();

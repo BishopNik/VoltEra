@@ -26,7 +26,7 @@ button{color:inherit}
 .button{display:inline-flex;align-items:center;justify-content:center;gap:20px;padding:15px 22px;border:1px solid transparent;border-radius:99px;font-size:13px;font-weight:750;letter-spacing:.01em;cursor:pointer;transition:transform .2s,background .2s,border .2s}.button:hover{transform:translateY(-2px)}
 .button-small{padding:12px 18px;background:var(--ink);color:var(--bg)}.button-primary{background:var(--acid);color:#07110f}.button-ghost,.button-outline{background:transparent;border-color:var(--line)}.button-ghost:hover,.button-outline:hover{border-color:var(--acid)}
 .mobile-nav{display:none}
-.hero{position:relative;min-height:950px;padding:150px 0 40px;overflow:hidden;background:radial-gradient(circle at 75% 20%,rgba(44,116,77,.2),transparent 36%),linear-gradient(180deg,var(--bg),var(--bg-2))}
+.hero{position:relative;min-height:900px;padding:105px 0 40px;overflow:hidden;background:radial-gradient(circle at 75% 20%,rgba(44,116,77,.2),transparent 36%),linear-gradient(180deg,var(--bg),var(--bg-2))}
 .hero:before{content:"";position:absolute;inset:0;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:80px 80px;opacity:.18;mask-image:linear-gradient(to bottom,black,transparent 85%)}
 .hero-orbit{position:absolute;border:1px solid rgba(217,255,67,.14);border-radius:50%;pointer-events:none}.orbit-one{width:720px;height:720px;right:-180px;top:-230px}.orbit-two{width:480px;height:480px;right:-50px;top:-110px}
 .hero-grid{position:relative;display:grid;grid-template-columns:.92fr 1.08fr;align-items:center;gap:65px}
@@ -175,7 +175,9 @@ a,button{transition:transform .18s,border-color .18s,background .18s,color .18s,
 .equipment-public-grid span{display:inline-flex;padding:7px 10px;border:1px solid var(--line);border-radius:999px;color:var(--acid);font:800 10px monospace;letter-spacing:.08em}
 .equipment-public-grid h3{margin:48px 0 12px;font-size:clamp(24px,2.4vw,34px);line-height:1.05;letter-spacing:-.04em}
 .equipment-public-grid p{color:var(--muted);font-size:13px}
-.equipment-public-grid b{position:absolute;left:30px;bottom:26px;color:var(--ink);font-size:12px}
+.equipment-public-grid :is(article,.equipment-card)>b{position:absolute;left:30px;right:30px;bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:18px;padding-top:14px;border-top:1px solid var(--line);color:var(--ink);font-size:12px}
+.equipment-public-grid :is(article,.equipment-card)>b i,.equipment-public-grid :is(article,.equipment-card)>b em{font-style:normal;white-space:nowrap}
+.equipment-public-grid :is(article,.equipment-card)>b em{color:var(--acid);font-weight:800}
 @media(max-width:800px){.equipment-public-grid{grid-template-columns:1fr}.equipment-public-grid :is(article,.equipment-card){min-height:220px}}
 .equipment-dialog{position:relative;width:min(980px,calc(100% - 30px));max-height:90vh;padding:0;border:1px solid var(--line);border-radius:28px;background:var(--panel);color:var(--ink);overflow:auto;box-shadow:var(--shadow)}
 .equipment-dialog::backdrop{background:#020807e8;backdrop-filter:blur(8px)}
@@ -368,3 +370,56 @@ a,button{transition:transform .18s,border-color .18s,background .18s,color .18s,
   box-shadow:0 14px 34px rgba(0,0,0,.18),inset 0 0 0 1px color-mix(in srgb,var(--acid) 18%,transparent);
   outline:none;
 }
+
+/* Independent equipment enquiry and clearer consultation controls. */
+.equipment-order-form[hidden]{display:none!important}
+.equipment-order-form{margin-top:24px;padding-top:22px;border-top:1px solid var(--line)}
+.equipment-order-form label{display:block;color:var(--muted);font-size:11px;font-weight:750;text-transform:uppercase;letter-spacing:.06em}
+.equipment-order-form input{display:block;width:100%;min-height:48px;margin-top:7px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--panel) 86%,transparent);color:var(--ink);font-size:15px;outline:none}
+.equipment-order-form input:focus{border-color:var(--acid);box-shadow:0 0 0 3px color-mix(in srgb,var(--acid) 14%,transparent)}
+.equipment-order-form>p,.form-required-note{margin:12px 0;color:var(--muted);font-size:11px;line-height:1.5}
+.equipment-order-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.equipment-order-actions button{min-height:48px;padding:12px 16px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--ink);font-weight:850;cursor:pointer}
+.equipment-order-actions button:last-child{border-color:var(--acid);background:var(--acid);color:#07110f}
+.equipment-order-actions button:disabled{opacity:.55;cursor:wait}
+.equipment-order-status{min-height:22px;margin-top:13px;color:var(--acid);font-size:13px;font-weight:750;line-height:1.45}
+.equipment-order-form.is-sent>.field-row,.equipment-order-form.is-sent>p,.equipment-order-form.is-sent>.equipment-order-actions{display:none}
+.consult-form-actions{display:grid;grid-template-columns:minmax(140px,.42fr) minmax(220px,1fr);gap:10px;margin-top:10px}
+.consult-form-actions .button{width:100%;margin:0}
+.form-success{gap:12px}
+.form-success .button{justify-self:center;margin-top:12px}
+@media(max-width:800px){
+  .equipment-order-form .field-row,.equipment-order-actions,.consult-form-actions{grid-template-columns:1fr}
+}
+
+/* Make the inverter catalogue a clear fast path. */
+.desktop-nav a[href="#equipment"]{position:relative;display:inline-flex;align-items:center;gap:7px;padding:9px 13px;border:1px solid color-mix(in srgb,var(--acid) 38%,var(--line));border-radius:999px;color:var(--ink);background:color-mix(in srgb,var(--acid) 8%,transparent)}
+.desktop-nav a[href="#equipment"]:before{content:"";width:6px;height:6px;border-radius:50%;background:var(--acid);box-shadow:0 0 12px var(--acid)}
+.equipment-showcase{position:relative;background:radial-gradient(circle at 14% 12%,color-mix(in srgb,var(--acid) 8%,transparent),transparent 32%),var(--section-b)}
+.equipment-showcase .section-heading{margin-bottom:30px}
+.equipment-finder{display:grid;grid-template-columns:minmax(260px,1fr) minmax(280px,.9fr) auto;gap:22px;align-items:end;margin-bottom:24px;padding:24px 26px;border:1px solid color-mix(in srgb,var(--acid) 42%,var(--line));border-radius:24px;background:linear-gradient(120deg,color-mix(in srgb,var(--acid) 11%,var(--panel)),var(--panel));box-shadow:0 18px 55px rgba(0,0,0,.1)}
+.equipment-finder>div:first-child span{display:block;margin-bottom:7px;color:var(--acid);font:800 10px monospace;letter-spacing:.09em}
+.equipment-finder>div:first-child strong{display:block;max-width:470px;font-size:20px;line-height:1.25}
+.equipment-finder label>span{display:block;margin-bottom:8px;color:var(--muted);font:750 9px monospace;text-transform:uppercase;letter-spacing:.08em}
+.equipment-finder input{width:100%;min-height:48px;padding:0 16px;border:1px solid var(--line);border-radius:14px;background:var(--bg);color:var(--ink);font-size:15px;outline:none}
+.equipment-finder input:focus{border-color:var(--acid);box-shadow:0 0 0 4px color-mix(in srgb,var(--acid) 13%,transparent)}
+.equipment-filter{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.equipment-filter button{min-height:42px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--muted);font-size:12px;font-weight:800;cursor:pointer}
+.equipment-filter button:hover,.equipment-filter button.is-active{border-color:var(--acid);background:var(--acid);color:#07110f}
+
+/* One clear product enquiry action; optional details stay collapsed. */
+.equipment-order-form{margin-top:24px;padding-top:22px;border-top:1px solid var(--line)}
+.equipment-order-form textarea{display:block;width:100%;margin-top:7px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--panel) 86%,transparent);color:var(--ink);font:inherit;line-height:1.5;resize:vertical;outline:none}
+.equipment-order-form textarea:focus{border-color:var(--acid);box-shadow:0 0 0 3px color-mix(in srgb,var(--acid) 14%,transparent)}
+.equipment-more-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;margin-top:12px;padding:12px 0;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--acid);font-size:13px;font-weight:800;text-align:left;cursor:pointer}
+.equipment-more-toggle span{font-size:18px}
+.equipment-extra-fields{margin-top:16px}
+.equipment-extra-fields>label{display:block;margin-bottom:14px}
+.equipment-extra-fields>.field-row{margin-top:14px}
+.equipment-extra-fields[hidden]{display:none!important}
+.equipment-order-submit{width:100%;min-height:52px;margin-top:16px;padding:13px 18px;border:0;border-radius:999px;background:var(--acid);color:#07110f;font-size:14px;font-weight:900;cursor:pointer;box-shadow:0 14px 34px color-mix(in srgb,var(--acid) 18%,transparent)}
+.equipment-order-submit:hover{transform:translateY(-2px)}
+.equipment-order-submit:disabled{opacity:.55;cursor:wait}
+.equipment-order-form.is-sent .equipment-order-main{display:none}
+@media(max-width:1100px){.equipment-finder{grid-template-columns:1fr 1fr}.equipment-filter{grid-column:1/-1;justify-content:flex-start}}
+@media(max-width:800px){.equipment-finder{grid-template-columns:1fr;padding:20px}.equipment-filter{grid-column:auto}.equipment-filter button{flex:1}.equipment-finder>div:first-child strong{font-size:18px}}

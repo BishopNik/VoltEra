@@ -40,7 +40,7 @@ let questions = [], page = 0;
 const perPage = 5;
 function render() {
   const slice = questions.slice(page * perPage, (page + 1) * perPage);
-  list.innerHTML = '';
+  list.innerHTML = questions.length ? '' : `<div class="section-empty"><div><strong>${isEn ? 'No questions yet' : 'Питань поки немає'}</strong>${isEn ? 'Ask the first question — an engineer will answer.' : 'Поставте перше питання — інженер відповість.'}</div></div>`;
   slice.forEach(q => {
     const article = document.createElement('article');
     article.className = 'community-question';
@@ -61,8 +61,9 @@ function render() {
   document.querySelector('#next-page').disabled = (page + 1) * perPage >= questions.length;
 }
 async function load() {
-  const r = await fetch('/api/questions');
-  questions = r.ok ? await r.json() : [];
+  list.innerHTML = `<div class="section-loader"><i></i><span>${isEn ? 'Loading questions…' : 'Завантажуємо питання…'}</span></div>`;
+  const r = await fetch('/api/questions').catch(() => null);
+  questions = r?.ok ? await r.json() : [];
   render();
 }
 load();
@@ -72,9 +73,11 @@ document.querySelector('#ask').addEventListener('submit', async e => {
   e.preventDefault();
   const form = e.currentTarget;
   const payload = Object.fromEntries(new FormData(form));
-  const r = await fetch('/api/questions', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+  const submit = form.querySelector('button[type="submit"]'); submit.disabled = true; submit.classList.add('is-sending');
+  const r = await fetch('/api/questions', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }).catch(() => null);
+  submit.disabled = false; submit.classList.remove('is-sending');
   const status = form.querySelector('[role=status]');
-  if (r.ok) {
+  if (r?.ok) {
     status.textContent = text.added;
     form.reset();
     await load();

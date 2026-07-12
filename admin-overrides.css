@@ -1,0 +1,12 @@
+.admin-dialog[data-type="faqs"]{width:min(500px,calc(100% - 30px));padding:24px 26px}
+.admin-dialog[data-type="faqs"] h2{margin:10px 0 14px;font-size:22px}
+.admin-dialog[data-type="faqs"] label{margin:9px 0;font-size:8px}
+.admin-dialog[data-type="faqs"] input,.admin-dialog[data-type="faqs"] select,.admin-dialog[data-type="faqs"] textarea{min-height:42px;margin-top:5px;padding:9px 11px;font-size:14px}
+.admin-dialog[data-type="faqs"] textarea{min-height:96px}
+.admin-dialog[data-type="faqs"] .dialog-actions{margin-top:13px}
+.tasks-card li button{cursor:pointer}
+.tasks-card .empty-task{display:block;color:var(--muted);font-size:11px;line-height:1.5}
+.admin-loading{position:fixed;z-index:1000;inset:0;display:grid;place-items:center;background:rgba(243,242,236,.88);backdrop-filter:blur(8px);transition:opacity .25s,visibility .25s}.admin-loading>div{min-width:280px;padding:28px;border:1px solid var(--line);border-radius:20px;background:#fff;box-shadow:0 25px 70px rgba(10,24,20,.16);text-align:center}.admin-loading span{display:block;width:100%;height:5px;margin-bottom:20px;border-radius:9px;background:linear-gradient(90deg,var(--orange) 0 35%,#f7d6ae 45% 60%,var(--orange) 70% 100%);background-size:220% 100%;animation:admin-load 1.15s linear infinite}.admin-loading strong,.admin-loading small{display:block}.admin-loading small{margin-top:7px;color:var(--muted)}body:not(.is-loading) .admin-loading{opacity:0;visibility:hidden;pointer-events:none}@keyframes admin-load{to{background-position:-220% 0}}
+.empty-state{grid-column:1/-1;padding:32px 20px;border:1px dashed var(--line);border-radius:16px;color:var(--muted);text-align:center;font-size:14px;line-height:1.55}.empty-state strong{display:block;margin-bottom:5px;color:var(--ink);font-size:17px}
+button.is-busy{position:relative;color:transparent!important;pointer-events:none}button.is-busy:after{content:"";position:absolute;left:50%;top:50%;width:17px;height:17px;margin:-10px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;color:#fff;animation:admin-spin .65s linear infinite}@keyframes admin-spin{to{transform:rotate(360deg)}}
+.lead-actions{display:flex;gap:7px}.lead-actions button{min-height:34px;padding:7px 10px}.faq-order-controls{display:flex;gap:7px}.faq-order-controls button{width:44px;height:42px;padding:0;font-size:20px}.operation-note{display:block;margin-top:8px;color:var(--green);font-size:12px;font-weight:800}.review-editor div{grid-template-columns:repeat(3,1fr)}

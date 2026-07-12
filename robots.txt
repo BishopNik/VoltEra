@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /admin.html
+Disallow: /admin-login.html
+Disallow: /api/
 
-Sitemap: https://voltera.energy/sitemap.xml
+Sitemap: https://volt-era.vercel.app/sitemap.xml

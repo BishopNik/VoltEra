@@ -1,0 +1,20 @@
+# ІНК Energy
+
+ІНК проєктує, монтує та обслуговує системи резервного й автономного живлення для дому та бізнесу у Львівській області та по Україні.
+
+## Основні напрями
+- Інвертори Deye, Anenji та Easun
+- LiFePO4 акумулятори та BMS
+- Резервне живлення для дому й бізнесу
+- Гібридні сонячні електростанції
+- Розрахунок автономності, монтаж, запуск і дистанційний сервіс
+
+## Ключові сторінки
+- https://volt-era.vercel.app/
+- https://volt-era.vercel.app/rishennia/invertor-dlia-domu.html
+- https://volt-era.vercel.app/rishennia/rezervne-zhyvlennia-dlia-biznesu.html
+- https://volt-era.vercel.app/rishennia/soniachni-paneli.html
+- https://volt-era.vercel.app/gallery.html
+- https://volt-era.vercel.app/community.html
+
+Контакти: +380676721852, info@ink.energy. Адреса: Львівська область, Солонка, вул. Козацька, 6.

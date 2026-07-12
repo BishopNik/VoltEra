@@ -11,13 +11,14 @@ function bindGallery() {
 }
 
 async function loadGallery() {
+  grid.innerHTML = '<div class="section-loader"><i></i><span>Завантажуємо галерею…</span></div>';
   const response = await fetch('/api/projects').catch(() => null);
   const projects = response?.ok ? await response.json() : [];
   grid.innerHTML = projects.length ? projects.map(project => `
     <article class="gallery-item" data-image="${escapeHtml(project.image || '/assets/projects/home-backup.jpg')}">
       <img src="${escapeHtml(project.image || '/assets/projects/home-backup.jpg')}" alt="${escapeHtml(project.title)}">
       <div><span class="page-eyebrow">${escapeHtml(project.city || 'Україна')} · ${escapeHtml(project.type || 'об’єкт')}</span><h2>${escapeHtml(project.title)}</h2><p>${escapeHtml(project.description || '')}</p></div>
-    </article>`).join('') : '<p class="page-lead">Поки немає опублікованих об’єктів. Додайте їх в адмінці.</p>';
+    </article>`).join('') : '<div class="section-empty"><div><strong>Галерея заповнюється</strong>Нові об’єкти з’являться після публікації.</div></div>';
   bindGallery();
 }
 

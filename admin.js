@@ -5,6 +5,7 @@ const state = {
   leads: [],
   reviews: [],
   questions: [],
+  faqs: [],
   projects: [],
   articles: [],
   equipment: [],
@@ -16,13 +17,14 @@ const titles = {
   leads: 'Заявки',
   reviews: 'Відгуки',
   questions: 'Питання',
+  faqs: 'Короткі FAQ',
   projects: "Об'єкти",
   articles: 'Статті',
   equipment: 'Обладнання',
   settings: 'Налаштування'
 };
 
-const collections = ['leads', 'reviews', 'questions', 'projects', 'articles', 'equipment'];
+const collections = ['leads', 'reviews', 'questions', 'faqs', 'projects', 'articles', 'equipment'];
 const unreadViews = new Set(['leads', 'reviews', 'questions']);
 const statusOrder = ['new', 'work', 'calc', 'done'];
 const statusLabels = {
@@ -76,6 +78,8 @@ async function refreshDashboard() {
   state.dashboard = await api('/api/dashboard');
   renderBadges();
   renderStats();
+  renderActivity();
+  renderAttention();
   renderDashboardLeads();
 }
 
@@ -85,14 +89,50 @@ async function loadCollection(type) {
 }
 
 async function loadAll() {
-  await Promise.all(collections.map(loadCollection));
+  const results = await Promise.allSettled(collections.map(loadCollection));
+  const failed = results.map((result, index) => result.status === 'rejected' ? collections[index] : null).filter(Boolean);
   await refreshDashboard();
   renderLeads();
   renderReviews();
   renderQuestions();
+  renderFaqs();
   renderProjects();
   renderArticles();
   renderEquipment();
+  await loadIntegrationStatus();
+  if (failed.length) showApiNotice(`Не завантажено: ${failed.join(', ')}. Перезапустіть локальний сервер або розгорніть актуальну версію API.`);
+  document.body.classList.remove('is-loading');
+}
+
+function setBusy(button, busy, doneText = '') {
+  if (!button) return;
+  if (busy) button.dataset.label = button.textContent;
+  button.classList.toggle('is-busy', busy);
+  button.disabled = busy;
+  if (!busy && doneText) {
+    button.textContent = doneText;
+    setTimeout(() => { button.textContent = button.dataset.label || button.textContent; }, 1400);
+  }
+}
+
+function emptyState(title, text) { return `<div class="empty-state"><strong>${escapeHtml(title)}</strong>${escapeHtml(text)}</div>`; }
+
+function showApiNotice(message) {
+  const notice = $('.admin-notice');
+  if (!notice) return;
+  notice.innerHTML = `<span>API</span> ${escapeHtml(message)}`;
+}
+
+async function loadIntegrationStatus() {
+  const status = $('#contact-api-status');
+  if (!status) return;
+  try {
+    const data = await api('/api/integrations/status');
+    status.textContent = data.contactApi ? 'Підключено через Contact API' : data.telegram ? 'Telegram підключено напряму' : 'Потрібні Telegram або Contact API змінні';
+    status.classList.toggle('connected', Boolean(data.notifications));
+  } catch {
+    status.textContent = 'Статус недоступний';
+  }
 }
 
 function renderBadges() {
@@ -116,9 +156,59 @@ function renderStats() {
     <article class="accent-stat"><span>Контент</span><strong>${state.projects.length + state.articles.length}</strong><small>об'єкти + статті</small><i>SEO</i></article>`;
 }
 
+function dayKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function renderActivity() {
+  const chart = $('#activity-chart');
+  const total = $('#activity-total');
+  const labels = $('#activity-labels');
+  if (!chart || !total || !labels) return;
+  const days = Array.from({ length: 14 }, (_, offset) => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() - (13 - offset));
+    return { date, count: 0 };
+  });
+  const byDay = new Map(days.map(item => [dayKey(item.date), item]));
+  state.leads.forEach(lead => {
+    const created = new Date(lead.createdAt);
+    const item = Number.isNaN(created.getTime()) ? null : byDay.get(dayKey(created));
+    if (item) item.count += 1;
+  });
+  const max = Math.max(1, ...days.map(item => item.count));
+  const sum = days.reduce((value, item) => value + item.count, 0);
+  total.innerHTML = `${sum} <small>заявок</small>`;
+  chart.innerHTML = days.map(item => `<i style="height:${Math.max(item.count ? 12 : 2, Math.round(item.count / max * 100))}%" title="${item.date.toLocaleDateString('uk-UA')}: ${item.count}"></i>`).join('');
+  const label = index => days[index].date.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
+  labels.innerHTML = `<span>${label(0)}</span><span>${label(6)}</span><span>${label(13)}</span>`;
+}
+
+function renderAttention() {
+  const list = $('#attention-list');
+  const count = $('#attention-count');
+  if (!list || !count) return;
+  const tasks = [];
+  state.leads.filter(item => item.status === 'new').slice(0, 2).forEach(item => tasks.push({ view: 'leads', cls: 'urgent', title: `Передзвонити: ${item.name || 'клієнт'}`, note: `${item.phone || 'без телефону'} · ${formatDate(item.createdAt)}` }));
+  const waitingReview = state.reviews.find(item => item.status === 'waiting');
+  if (waitingReview) tasks.push({ view: 'reviews', cls: '', title: 'Відповісти на відгук', note: `${waitingReview.name || 'Клієнт'} · ${waitingReview.rating || 5} зірок` });
+  const openQuestion = state.questions.find(item => item.status === 'open' || !item.answers?.length);
+  if (openQuestion) tasks.push({ view: 'questions', cls: 'warn', title: 'Відповісти в Енергоколі', note: openQuestion.title || 'Нове питання' });
+  const draftFaq = state.faqs.find(item => item.status !== 'active');
+  if (draftFaq) tasks.push({ view: 'faqs', cls: '', title: 'Перевірити FAQ', note: draftFaq.question || 'Чернетка FAQ' });
+  count.textContent = tasks.length;
+  list.innerHTML = tasks.length ? tasks.slice(0, 5).map(task => `<li><i class="${task.cls}"></i><div><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(task.note)}</span></div><button type="button" data-open-attention="${task.view}" aria-label="Відкрити розділ">→</button></li>`).join('') : '<li class="empty-task">Немає записів, що потребують уваги.</li>';
+  $$('[data-open-attention]', list).forEach(button => button.addEventListener('click', () => openView(button.dataset.openAttention)));
+}
+
 function renderDashboardLeads() {
   const tbody = $('#dashboard-leads');
   if (!tbody) return;
+  if (!state.leads.length) { tbody.innerHTML = '<tr><td colspan="6">Розділ порожній — нові заявки з’являться тут автоматично.</td></tr>'; return; }
   tbody.innerHTML = state.leads.slice(0, 5).map(lead => `
     <tr>
       <td><strong>${escapeHtml(lead.name)}</strong><span>${escapeHtml(lead.phone || lead.email || 'контакт не вказано')}</span></td>
@@ -150,14 +240,16 @@ function renderLeads() {
     const haystack = [lead.name, lead.phone, lead.email, lead.city, lead.need, lead.object].join(' ').toLowerCase();
     return (!query || haystack.includes(query)) && (status === 'all' || lead.status === status);
   });
+  if (!items.length) { tbody.innerHTML = '<tr><td colspan="7">Розділ порожній або немає збігів за фільтром.</td></tr>'; return; }
   tbody.innerHTML = items.map(lead => `
     <tr data-id="${lead._id}">
       <td>#${escapeHtml(lead._id).slice(0, 8)}<span>${formatDate(lead.createdAt)}</span></td>
       <td><strong>${escapeHtml(lead.name)}</strong><span>${escapeHtml(lead.phone || lead.email || '—')}</span></td>
       <td>${escapeHtml(lead.object || '—')} · ${escapeHtml(lead.city || '—')}</td>
       <td>${escapeHtml(lead.need || lead.comment || '—')}</td>
-      <td>${escapeHtml(lead.manager || '—')}</td>
+      <td><strong>${escapeHtml(lead.manager || 'ще ніхто')}</strong><span>Перевірив: ${escapeHtml(lead.checkedBy || 'ще не перевірено')}</span></td>
       <td>${statusBadge(lead.status || 'new', true)}</td>
+      <td><div class="lead-actions"><button class="secondary-admin lead-edit" type="button">Змінити</button><button class="secondary-admin danger-admin lead-delete" type="button">Видалити</button></div></td>
     </tr>`).join('');
   $$('.status-cycle', tbody).forEach(button => button.addEventListener('click', async () => {
     const row = button.closest('tr');
@@ -167,6 +259,16 @@ function renderLeads() {
     await loadCollection('leads');
     await refreshDashboard();
     renderLeads();
+  }));
+  $$('.lead-edit', tbody).forEach(button => button.addEventListener('click', () => {
+    const lead = state.leads.find(item => String(item._id) === button.closest('tr').dataset.id);
+    openContentDialog('leads', lead);
+  }));
+  $$('.lead-delete', tbody).forEach(button => button.addEventListener('click', async () => {
+    if (!confirm('Видалити заявку з CRM?')) return;
+    setBusy(button, true);
+    await api(`/api/leads/${button.closest('tr').dataset.id}`, { method: 'DELETE' });
+    await loadCollection('leads'); await refreshDashboard(); renderLeads();
   }));
 }
 
@@ -179,6 +281,7 @@ function renderReviews() {
     if (filter === 'unverified') return item.verified !== true;
     return filter === 'all' || item.status === filter;
   });
+  if (!items.length) { list.innerHTML = emptyState('Розділ порожній', 'Нові відгуки з’являться тут після відправлення клієнтом.'); return; }
   list.innerHTML = items.map(item => {
     const initials = (item.name || '?').split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
     const audit = Array.isArray(item.audit) ? item.audit.slice(-4).reverse() : [];
@@ -188,7 +291,7 @@ function renderReviews() {
     return `<article class="moderation-item" data-id="${item._id}">
       <div class="moderation-avatar">${escapeHtml(initials)}</div>
       <div><span class="view-caption">${'★'.repeat(Number(item.rating || 5))} · ${escapeHtml(statusLabels[item.status]?.[0] || item.status)}</span><h3>${escapeHtml(item.name)}</h3><p>«${escapeHtml(item.text)}»</p><small>${escapeHtml(item.city || 'Місто не вказано')} · ${formatDate(item.createdAt)}</small><small class="review-verified ${item.verified ? 'is-verified' : ''}">${verificationText}</small>${audit.length ? `<ul class="review-audit">${audit.map(entry => `<li><b>${escapeHtml(entry.user || 'admin')}</b> змінив ${escapeHtml(entry.field || 'поле')} · ${formatDate(entry.at)}</li>`).join('')}</ul>` : ''}</div>
-      <div class="review-editor"><textarea rows="3" placeholder="Відповідь компанії">${escapeHtml(item.reply || '')}</textarea><div><button class="secondary-admin review-hide" type="button">Приховати</button><button class="primary-admin review-publish" type="button">Відповісти</button></div></div>
+      <div class="review-editor"><textarea rows="3" placeholder="Відповідь компанії">${escapeHtml(item.reply || '')}</textarea><div><button class="secondary-admin review-hide" type="button">Приховати</button><button class="primary-admin review-publish" type="button">${item.status === 'published' ? 'Оновити відповідь' : 'Відповісти й перевірити'}</button><button class="secondary-admin danger-admin review-delete" type="button">Видалити</button></div><small class="operation-note" aria-live="polite"></small></div>
     </article>`;
   }).join('');
   $$('.review-publish', list).forEach(button => button.addEventListener('click', async () => {
@@ -200,6 +303,7 @@ function renderReviews() {
       setTimeout(() => { button.textContent = 'Відповісти'; }, 1600);
       return;
     }
+    setBusy(button, true);
     await api(`/api/reviews/${card.dataset.id}`, { method: 'PATCH', body: JSON.stringify({ reply, status: 'published', verified: true }) });
     await loadCollection('reviews');
     await refreshDashboard();
@@ -212,16 +316,22 @@ function renderReviews() {
     await refreshDashboard();
     renderReviews();
   }));
+  $$('.review-delete', list).forEach(button => button.addEventListener('click', async () => {
+    if (!confirm('Остаточно видалити відгук?')) return;
+    setBusy(button, true);
+    await api(`/api/reviews/${button.closest('.moderation-item').dataset.id}`, { method: 'DELETE' });
+    await loadCollection('reviews'); await refreshDashboard(); renderReviews();
+  }));
 }
 
 function renderQuestions() {
   const list = $('#question-list');
   if (!list) return;
+  if (!state.questions.length) { list.innerHTML = emptyState('Питань поки немає', 'Відвідувачі можуть поставити перше питання на сайті.'); return; }
   list.innerHTML = state.questions.map(item => `
     <article class="question-item" data-id="${item._id}">
       <div><span class="view-caption">${escapeHtml(item.author || 'Гість')} · ${escapeHtml(item.city || 'Україна')} · ${formatDate(item.createdAt)}</span>
         <input class="question-title" value="${escapeHtml(item.title)}">
-        <textarea class="question-body" rows="2" placeholder="Опис питання">${escapeHtml(item.body || '')}</textarea>
         <textarea class="question-answer" rows="3" placeholder="Відповідь інженера">${escapeHtml(item.answers?.[0]?.text || '')}</textarea>
       </div>
       <aside>
@@ -238,9 +348,8 @@ function renderQuestions() {
       const answer = $('.question-answer', card).value.trim();
       const payload = {
         title: $('.question-title', card).value.trim(),
-        body: $('.question-body', card).value.trim(),
         status: answer ? 'answered' : $('.question-status', card).value,
-        answers: answer ? [{ author: 'ІНК', role: 'engineer', text: answer, createdAt: new Date().toISOString() }] : []
+        answers: answer ? [{ author: currentAdmin?.name || 'ІНК', role: 'engineer', text: answer, createdAt: new Date().toISOString() }] : []
       };
       await api(`/api/questions/${card.dataset.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
       await loadCollection('questions');
@@ -257,9 +366,66 @@ function renderQuestions() {
   });
 }
 
+function renderFaqs() {
+  const list = $('#faq-admin-list');
+  if (!list) return;
+  const sorted = state.faqs.slice().sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+  if (!sorted.length) { list.innerHTML = emptyState('FAQ порожній', 'Додайте перше коротке питання кнопкою вище.'); return; }
+  list.innerHTML = sorted.map((item, index) => `
+    <article class="question-item" data-id="${escapeHtml(String(item._id))}">
+      <div><span class="view-caption">ПОЗИЦІЯ ${index + 1} З ${sorted.length}</span>
+        <input class="faq-admin-question question-title" value="${escapeHtml(item.question || '')}" placeholder="Питання">
+        <textarea class="faq-admin-answer question-answer" rows="4" placeholder="Коротка відповідь">${escapeHtml(item.answer || '')}</textarea>
+      </div>
+      <aside>
+        <label>Змінити позицію<div class="faq-order-controls"><button class="secondary-admin faq-up" type="button" ${index === 0 ? 'disabled' : ''} aria-label="Перемістити вище">↑</button><button class="secondary-admin faq-down" type="button" ${index === sorted.length - 1 ? 'disabled' : ''} aria-label="Перемістити нижче">↓</button></div></label>
+        <label>Статус<select class="faq-admin-status"><option value="active">Активний</option><option value="draft">Чернетка</option></select></label>
+        <button class="primary-admin faq-admin-save" type="button">Зберегти</button>
+        <button class="secondary-admin danger-admin faq-admin-delete" type="button">Видалити</button>
+      </aside>
+    </article>`).join('');
+  $$('.question-item', list).forEach(card => {
+    const item = state.faqs.find(faq => String(faq._id) === card.dataset.id);
+    $('.faq-admin-status', card).value = item?.status || 'active';
+    $('.faq-admin-save', card).addEventListener('click', async () => {
+      const payload = {
+        question: $('.faq-admin-question', card).value.trim(),
+        answer: $('.faq-admin-answer', card).value.trim(),
+        order: Number(item?.order || 0),
+        status: $('.faq-admin-status', card).value
+      };
+      if (!payload.question || !payload.answer) return;
+      await api(`/api/faqs/${card.dataset.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      await loadCollection('faqs');
+      renderFaqs();
+    });
+    const move = async direction => {
+      const index = sorted.findIndex(faq => String(faq._id) === card.dataset.id);
+      const other = sorted[index + direction];
+      if (!other) return;
+      const currentOrder = Number(item.order || index + 1);
+      const otherOrder = Number(other.order || index + direction + 1);
+      await Promise.all([
+        api(`/api/faqs/${item._id}`, { method: 'PATCH', body: JSON.stringify({ order: otherOrder }) }),
+        api(`/api/faqs/${other._id}`, { method: 'PATCH', body: JSON.stringify({ order: currentOrder }) })
+      ]);
+      await loadCollection('faqs'); renderFaqs();
+    };
+    $('.faq-up', card)?.addEventListener('click', () => move(-1));
+    $('.faq-down', card)?.addEventListener('click', () => move(1));
+    $('.faq-admin-delete', card).addEventListener('click', async () => {
+      if (!confirm('Видалити FAQ із розділу “Коротко про важливе”?')) return;
+      await api(`/api/faqs/${card.dataset.id}`, { method: 'DELETE' });
+      await loadCollection('faqs');
+      renderFaqs();
+    });
+  });
+}
+
 function renderProjects() {
   const list = $('#admin-projects');
   if (!list) return;
+  if (!state.projects.length) { list.innerHTML = emptyState('Розділ порожній', 'Додайте перший об’єкт із фото.'); return; }
   list.innerHTML = state.projects.map(item => `
     <article data-id="${item._id}"><img src="${escapeHtml(item.image || '/assets/projects/home-backup.jpg')}" alt="${escapeHtml(item.title)}"><div><b class="${item.status === 'draft' ? 'draft' : ''}">Статус: ${escapeHtml(statusLabels[item.status]?.[0] || item.status || 'Опубліковано')}</b><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.city || '—')} · ${escapeHtml(item.type || 'об’єкт')}</p><label class="inline-status">Показ на сайті<select class="project-status"><option value="published">Опубліковано</option><option value="draft">Чернетка</option></select></label><div class="project-crm-actions"><button class="edit-project" type="button">Редагувати</button><button class="delete-project danger-link" type="button">Видалити</button></div></div></article>`).join('');
   $$('.project-status', list).forEach(select => {
@@ -279,8 +445,9 @@ function renderProjects() {
 function renderArticles() {
   const list = $('#article-list');
   if (!list) return;
+  if (!state.articles.length) { list.innerHTML = emptyState('Розділ порожній', 'Додайте першу статтю для журналу.'); return; }
   list.innerHTML = state.articles.map(item => `
-    <div data-id="${item._id}"><span class="content-icon">${escapeHtml((item.category || 'SEO').slice(0, 2).toUpperCase())}</span><section><b class="${item.status === 'draft' ? 'draft' : ''}">${escapeHtml(item.category || 'SEO')} · ${escapeHtml(statusLabels[item.status]?.[0] || item.status)}</b><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.url || '/' + (item.slug || 'article'))} · ${escapeHtml(item.excerpt || '')}</p></section><button class="edit-article" type="button">Редагувати</button><button class="delete-article danger-link" type="button">Видалити</button></div>`).join('');
+    <div data-id="${item._id}"><span class="content-icon">${item.images?.length ? `<small>${item.images.length} фото</small>` : escapeHtml((item.category || 'SEO').slice(0, 2).toUpperCase())}</span><section><b class="${item.status === 'draft' ? 'draft' : ''}">${escapeHtml(item.category || 'SEO')} · ${escapeHtml(statusLabels[item.status]?.[0] || item.status)}</b><h3>${escapeHtml(item.title)}</h3><p>/articles/${escapeHtml(item.slug || 'article')}.html · ${escapeHtml(item.excerpt || '')}</p></section><button class="edit-article" type="button">Редагувати</button><button class="delete-article danger-link" type="button">Видалити</button></div>`).join('');
   $$('.edit-article', list).forEach(button => button.addEventListener('click', () => openContentDialog('articles', state.articles.find(item => String(item._id) === button.closest('div').dataset.id))));
   $$('.delete-article', list).forEach(button => button.addEventListener('click', () => removeItem('articles', button.closest('div').dataset.id)));
 }
@@ -288,8 +455,9 @@ function renderArticles() {
 function renderEquipment() {
   const list = $('#equipment-list');
   if (!list) return;
+  if (!state.equipment.length) { list.innerHTML = emptyState('Каталог порожній', 'Додайте першу модель обладнання.'); return; }
   list.innerHTML = state.equipment.map(item => `
-    <article data-id="${item._id}"><span>${escapeHtml(item.brand)}</span><h3>${escapeHtml(item.model)}</h3><p>${escapeHtml(item.power || '—')} · ${escapeHtml(item.phase || '—')} · ${escapeHtml(item.voltage || '—')}</p><div>${statusBadge(item.status || 'active')}<button class="edit-equipment" type="button">Налаштувати</button><button class="delete-equipment danger-link" type="button">Видалити</button></div></article>`).join('');
+    <article data-id="${item._id}"><span>${escapeHtml(item.brand)}</span><h3>${escapeHtml(item.model)}</h3><p>${escapeHtml(item.power || '—')} · ${escapeHtml(item.phase || '—')} · ${escapeHtml(item.voltage || '—')}</p><small>${item.images?.length || (item.image ? 1 : 0)} фото</small><div>${statusBadge(item.status || 'active')}<button class="edit-equipment" type="button">Налаштувати</button><button class="delete-equipment danger-link" type="button">Видалити</button></div></article>`).join('');
   $$('.edit-equipment', list).forEach(button => button.addEventListener('click', () => openContentDialog('equipment', state.equipment.find(item => String(item._id) === button.closest('article').dataset.id))));
   $$('.delete-equipment', list).forEach(button => button.addEventListener('click', () => removeItem('equipment', button.closest('article').dataset.id)));
 }
@@ -303,7 +471,7 @@ async function removeItem(type, id) {
 }
 
 function renderByType(type) {
-  ({ leads: renderLeads, reviews: renderReviews, questions: renderQuestions, projects: renderProjects, articles: renderArticles, equipment: renderEquipment }[type])?.();
+  ({ leads: renderLeads, reviews: renderReviews, questions: renderQuestions, faqs: renderFaqs, projects: renderProjects, articles: renderArticles, equipment: renderEquipment }[type])?.();
 }
 
 const dialog = $('#content-dialog');
@@ -313,16 +481,19 @@ let activeType = 'projects';
 let activeItem = null;
 
 const configs = {
-  leads: { title: 'заявку', fields: [['name', 'Ім’я', 'text', true], ['phone', 'Телефон', 'tel', true], ['email', 'Email', 'email'], ['city', 'Місто', 'text'], ['object', 'Об’єкт', 'text'], ['need', 'Запит', 'text'], ['comment', 'Коментар', 'textarea']] },
+  leads: { title: 'заявку', fields: [['name', 'Ваше ім’я', 'text', true], ['phone', 'Телефон', 'tel', true], ['email', 'Email', 'email'], ['city', 'Місто', 'text'], ['object', 'Тип об’єкта', 'text'], ['need', 'Що потрібно?', 'text'], ['comment', 'Коментар', 'textarea'], ['status', 'Статус', 'select', false, ['new', 'work', 'calc', 'done']], ['manager', 'Хто взяв у роботу', 'text'], ['checkedBy', 'Хто перевірив', 'text']] },
+  questions: { title: 'питання та відповідь', fields: [['author', 'Автор питання', 'text'], ['city', 'Місто', 'text'], ['title', 'Питання', 'text', true], ['answer', 'Відповідь інженера', 'textarea']] },
+  faqs: { title: 'короткий FAQ', fields: [['question', 'Питання', 'text', true], ['answer', 'Відповідь', 'textarea', true], ['status', 'Статус', 'select', false, ['active', 'draft']]] },
   projects: { title: "об'єкт", fields: [['title', 'Назва', 'text', true], ['city', 'Локація', 'text'], ['type', 'Тип об’єкта', 'text'], ['description', 'Опис', 'textarea'], ['imageFile', 'Фото об’єкта', 'file'], ['status', 'Статус', 'select', false, ['published', 'draft']]] },
-  articles: { title: 'статтю', fields: [['title', 'Назва', 'text', true], ['slug', 'Slug', 'text'], ['url', 'URL', 'text'], ['category', 'Категорія', 'text'], ['excerpt', 'SEO-опис', 'textarea'], ['body', 'Текст / нотатки', 'textarea'], ['status', 'Статус', 'select', false, ['published', 'draft']]] },
-  equipment: { title: 'модель обладнання', fields: [['brand', 'Бренд', 'text', true], ['model', 'Модель', 'text', true], ['power', 'Потужність', 'text'], ['phase', 'Фази', 'text'], ['voltage', 'Напруга', 'text'], ['price', 'Ціна / діапазон', 'text'], ['description', 'Опис для сайту', 'textarea'], ['imageFile', 'Фото моделі', 'file'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] }
+  articles: { title: 'статтю', fields: [['title', 'Назва', 'text', true], ['slug', 'Адреса сторінки (латиницею, без пробілів)', 'text'], ['category', 'Категорія', 'text'], ['excerpt', 'Короткий SEO-опис', 'textarea'], ['body', 'Повний текст статті', 'textarea'], ['imageFiles', 'Фото статті (можна кілька)', 'files'], ['status', 'Статус', 'select', false, ['published', 'draft']]] },
+  equipment: { title: 'модель обладнання', fields: [['brand', 'Бренд', 'text', true], ['model', 'Модель', 'text', true], ['power', 'Потужність', 'text'], ['phase', 'Фази', 'text'], ['voltage', 'Напруга', 'text'], ['price', 'Ціна / діапазон', 'text'], ['description', 'Опис для сайту', 'textarea'], ['imageFiles', 'Фото моделі (можна кілька)', 'files'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] }
 };
 
 function fieldTemplate([name, label, type, required, options = []], item = {}) {
   if (type === 'textarea') return `<label>${label}<textarea name="${name}" rows="4" ${required ? 'required' : ''}>${escapeHtml(item[name] || '')}</textarea></label>`;
   if (type === 'select') return `<label>${label}<select name="${name}">${options.map(option => `<option value="${option}" ${item[name] === option ? 'selected' : ''}>${escapeHtml(statusLabels[option]?.[0] || option)}</option>`).join('')}</select></label>`;
   if (type === 'file') return `<label>${label}<input name="${name}" type="file" accept="image/png,image/jpeg,image/webp"><small>${item.image ? `Поточне фото: ${escapeHtml(item.image)}` : 'PNG, JPG або WebP'}</small></label>`;
+  if (type === 'files') return `<label>${label}<input name="${name}" type="file" accept="image/png,image/jpeg,image/webp" multiple><small>${item.images?.length ? `Збережено фото: ${item.images.length}` : 'PNG, JPG або WebP; можна вибрати кілька файлів одночасно'}</small></label>`;
   return `<label>${label}<input name="${name}" type="${type}" value="${escapeHtml(item[name] || '')}" ${required ? 'required' : ''}></label>`;
 }
 
@@ -330,6 +501,7 @@ function openContentDialog(type, item = null) {
   activeType = type;
   activeItem = item;
   const config = configs[type];
+  dialog.dataset.type = type;
   dialogTitle.textContent = `${item ? 'Редагувати' : 'Створити'}: ${config.title}`;
   form.innerHTML = `${config.fields.map(field => fieldTemplate(field, item || {})).join('')}<div class="dialog-actions"><button type="button" class="secondary-admin dialog-cancel">Скасувати</button><button type="submit" class="primary-admin">${item ? 'Зберегти зміни' : 'Створити'}</button></div>`;
   $('.dialog-cancel', form).addEventListener('click', () => dialog.close());
@@ -349,20 +521,47 @@ form.addEventListener('submit', async event => {
   event.preventDefault();
   if (!form.reportValidity()) return;
   const data = Object.fromEntries(new FormData(form).entries());
-  const file = form.querySelector('input[type="file"]')?.files?.[0];
+  if (activeType === 'faqs' && !activeItem) data.order = Math.max(0, ...state.faqs.map(item => Number(item.order || 0))) + 1;
+  if (activeType === 'articles') {
+    const slug = String(data.slug || data.title || '').toLowerCase().trim().replace(/[^a-z0-9а-яіїєґ]+/gi, '-').replace(/^-|-$/g, '');
+    data.slug = slug || `article-${Date.now()}`;
+  }
+  if (activeType === 'questions') {
+    const answer = String(data.answer || '').trim();
+    delete data.answer;
+    data.author = String(data.author || '').trim() || currentAdmin?.name || 'ІНК';
+    data.city = String(data.city || '').trim() || 'Україна';
+    data.status = answer ? 'answered' : 'open';
+    data.likes = 0;
+    data.answers = answer ? [{ author: currentAdmin?.name || 'ІНК', role: 'engineer', text: answer, createdAt: new Date().toISOString() }] : [];
+  }
+  const fileInput = form.querySelector('input[type="file"]');
+  const files = [...(fileInput?.files || [])];
+  const file = files[0];
   delete data.imageFile;
-  if (file) {
-    const upload = await api('/api/uploads', { method: 'POST', body: JSON.stringify({ dataUrl: await fileToDataUrl(file) }) });
-    data.image = upload.url;
+  delete data.imageFiles;
+  if (files.length) {
+    const images = [];
+    for (const selectedFile of files) {
+      const upload = await api('/api/uploads', { method: 'POST', body: JSON.stringify({ dataUrl: await fileToDataUrl(selectedFile) }) });
+      images.push(upload.url);
+    }
+    data.images = images;
+    data.image = images[0];
   } else if (activeItem?.image) {
     data.image = activeItem.image;
+    if (activeItem.images) data.images = activeItem.images;
   }
   const path = activeItem ? `/api/${activeType}/${activeItem._id}` : `/api/${activeType}`;
-  await api(path, { method: activeItem ? 'PATCH' : 'POST', body: JSON.stringify(data) });
-  await loadCollection(activeType);
-  await refreshDashboard();
-  renderByType(activeType);
-  dialog.close();
+  try {
+    await api(path, { method: activeItem ? 'PATCH' : 'POST', body: JSON.stringify(data) });
+    await loadCollection(activeType);
+    await refreshDashboard();
+    renderByType(activeType);
+    dialog.close();
+  } catch (error) {
+    showApiNotice(error.message === 'API_NOT_FOUND' ? 'Маршрут FAQ відсутній у запущеній версії сервера. Перезапустіть npm start або зробіть новий deploy.' : `Помилка збереження: ${error.message}`);
+  }
 });
 
 $$('.admin-nav').forEach(button => button.addEventListener('click', () => openView(button.dataset.view)));
@@ -372,6 +571,8 @@ $('#review-filter')?.addEventListener('change', renderReviews);
 $('#lead-search')?.addEventListener('input', renderLeads);
 $('#lead-status-filter')?.addEventListener('change', renderLeads);
 $('#add-lead')?.addEventListener('click', () => openContentDialog('leads'));
+$('#add-question')?.addEventListener('click', () => openContentDialog('questions'));
+$('#add-faq')?.addEventListener('click', () => openContentDialog('faqs'));
 $('#add-project')?.addEventListener('click', () => openContentDialog('projects'));
 $('#add-article')?.addEventListener('click', () => openContentDialog('articles'));
 $('#add-equipment')?.addEventListener('click', () => openContentDialog('equipment'));
@@ -398,4 +599,5 @@ api('/api/auth/me')
     if (error.message !== 'AUTH_REQUIRED') {
       $('.admin-notice')?.replaceChildren(document.createTextNode(`Помилка API: ${error.message}`));
     }
-  });
+  })
+  .finally(() => document.body.classList.remove('is-loading'));

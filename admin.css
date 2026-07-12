@@ -90,3 +90,45 @@ td span,.tasks-card li span,.admin-user small{font-size:11px}
   .moderation-item{grid-template-columns:1fr}
   .review-editor{grid-column:auto}
 }
+
+/* Larger CRM typography and question creation controls. */
+.question-toolbar-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.question-toolbar-actions a{text-decoration:none}
+.admin-notice{font-size:13px;line-height:1.5;padding:14px 16px}
+.stats-grid article>span,.stats-grid article>small{font-size:12px;line-height:1.4}
+.stats-grid article>i{font-size:11px}
+.tasks-card li strong{font-size:14px}
+.tasks-card li span{font-size:12px;line-height:1.45}
+.top-actions>a,.admin-user strong{font-size:13px}
+.admin-user small{font-size:11px}
+.chart-labels{font-size:11px}
+th{font-size:11px}
+th,td{padding:15px 12px}
+td{font-size:13px}
+td span{font-size:12px}
+.admin-projects b,.content-list b{font-size:11px}
+.admin-projects p,.content-list section p,.equipment-grid p{font-size:13px;line-height:1.5}
+.content-list section h3{font-size:16px}
+.settings-grid label{font-size:13px}
+.settings-grid input{font-size:15px}
+.logo-setting strong{font-size:14px}
+.logo-setting small{font-size:12px;line-height:1.45}
+.integration-list li{font-size:14px;line-height:1.45;padding:18px 0}
+.integration-list b{font-size:12px;text-align:right}
+.settings-note{font-size:15px}
+@media(max-width:700px){
+  .question-toolbar-actions{width:100%}
+  .question-toolbar-actions>*{flex:1;text-align:center}
+}
+
+/* Final readable scale for laptop/13-inch CRM use. */
+body{font-size:16px}
+.admin-nav{font-size:15px}
+.admin-topbar p,.card-head span,.view-caption{font-size:11px}
+.top-actions>a,.admin-user strong{font-size:14px}
+.settings-grid label,.admin-dialog label,.question-item label{font-size:14px}
+.search-box input,.view-tools select,.settings-grid input,.admin-dialog input,.admin-dialog textarea,.admin-dialog select,.admin-dialog input[type=file],.question-item input,.question-item textarea,.question-item select,.review-editor textarea{font-size:16px}
+.primary-admin,.secondary-admin,.admin-projects button,.content-list button,.equipment-grid button,.logo-setting button,.integration-list button,.text-button{font-size:14px}
+.question-item small,.admin-dialog small,.settings-grid small{font-size:13px}
+th{font-size:12px}
+td{font-size:14px}
