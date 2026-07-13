@@ -559,7 +559,7 @@ async function loadPublicEquipment() {
   publicEquipment.innerHTML = loadingMarkup('Завантажуємо обладнання…');
   const data = await apiList('equipment');
   if (!Array.isArray(data) || !data.length) {
-    publicEquipment.innerHTML = emptyMarkup('Каталог заповнюється', 'Активні моделі з’являться тут після публікації в CRM.'); return;
+    publicEquipment.innerHTML = emptyMarkup('Асортимент оновлюється', 'Моделі стануть доступними після перевірки та схвалення нашими фахівцями.'); return;
   }
   publicEquipment.innerHTML = data.slice(0, 9).map(renderPublicEquipment).join('');
   bindEquipmentCards(data.slice(0, 9));
