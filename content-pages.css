@@ -6,3 +6,9 @@
 .question-form textarea{min-height:132px;resize:vertical}
 .community-question button,.pager button,.page-button{min-height:42px;padding:11px 15px;font-size:13px;line-height:1.25}
 @media(max-width:750px){.question-form{padding:24px}.question-form input,.question-form textarea{min-height:54px}}
+
+/* Consistent interaction feedback for standalone content, gallery and community pages. */
+a,button,[role="button"],summary,select{transition:transform .18s,border-color .18s,background-color .18s,color .18s,filter .18s,box-shadow .18s}
+button:disabled{cursor:not-allowed;opacity:.4}
+@media(hover:hover){:is(a[href],button:not(:disabled),[role="button"],summary,select):hover{filter:brightness(1.08);transform:translateY(-2px)}:is(button:not(:disabled),[role="button"],summary):hover{border-color:var(--accent);box-shadow:0 9px 26px #0004}.gallery-item:hover{border-color:var(--accent);box-shadow:0 16px 38px #0005}}
+:is(a[href],button,[role="button"],summary,select,input,textarea):focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 76%,white);outline-offset:3px}

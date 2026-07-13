@@ -4,10 +4,21 @@ const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, char => ({ 
 const pageLang = () => new URLSearchParams(location.search).get('lang') || localStorage.getItem('ink-lang') || 'uk';
 const uiText = (uk, en) => pageLang() === 'en' ? en : uk;
 const communityHref = () => pageLang() === 'en' ? '/community.html?lang=en' : '/community.html';
+let pendingSiteRequests = 0;
+const updateSiteLoading = delta => {
+  pendingSiteRequests = Math.max(0, pendingSiteRequests + delta);
+  document.body.classList.toggle('site-loading', pendingSiteRequests > 0);
+  document.body.setAttribute('aria-busy', pendingSiteRequests > 0 ? 'true' : 'false');
+};
 const apiList = async type => {
   if (pageLang() !== 'uk' && ['reviews', 'projects', 'articles', 'questions', 'faqs'].includes(type)) return null;
-  const response = await fetch(`/api/${type}`).catch(() => null);
-  return response?.ok ? response.json() : null;
+  updateSiteLoading(1);
+  try {
+    const response = await fetch(`/api/${type}`).catch(() => null);
+    return response?.ok ? response.json() : null;
+  } finally {
+    updateSiteLoading(-1);
+  }
 };
 const loadingMarkup = label => `<div class="section-loader"><i></i><span>${escapeHtml(label)}</span></div>`;
 const emptyMarkup = (title, text) => `<div class="section-empty"><div><strong>${escapeHtml(title)}</strong>${escapeHtml(text)}</div></div>`;

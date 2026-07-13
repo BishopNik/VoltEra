@@ -42,6 +42,13 @@ const statusLabels = {
   review: ['На перевірці', 'status-work']
 };
 let currentAdmin = null;
+let pendingApiRequests = 0;
+
+function updateApiLoading(delta) {
+  pendingApiRequests = Math.max(0, pendingApiRequests + delta);
+  document.body.classList.toggle('api-loading', pendingApiRequests > 0);
+  document.body.setAttribute('aria-busy', pendingApiRequests > 0 ? 'true' : 'false');
+}
 
 function escapeHtml(value = '') {
   return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
@@ -60,20 +67,25 @@ function formatDate(iso) {
 }
 
 async function api(path, options = {}) {
-  const response = await fetch(path, {
-    credentials: 'same-origin',
-    headers: options.body instanceof FormData ? undefined : { 'Content-Type': 'application/json', ...(options.headers || {}) },
-    ...options
-  });
-  if (response.status === 401) {
-    location.href = '/admin-login.html';
-    throw new Error('AUTH_REQUIRED');
+  updateApiLoading(1);
+  try {
+    const response = await fetch(path, {
+      credentials: 'same-origin',
+      headers: options.body instanceof FormData ? undefined : { 'Content-Type': 'application/json', ...(options.headers || {}) },
+      ...options
+    });
+    if (response.status === 401) {
+      location.href = '/admin-login.html';
+      throw new Error('AUTH_REQUIRED');
+    }
+    const raw = await response.text();
+    let data = {};
+    try { data = raw ? JSON.parse(raw) : {}; } catch { data = {}; }
+    if (!response.ok) throw new Error(data.error || `HTTP_${response.status}`);
+    return data;
+  } finally {
+    updateApiLoading(-1);
   }
-  const raw = await response.text();
-  let data = {};
-  try { data = raw ? JSON.parse(raw) : {}; } catch { data = {}; }
-  if (!response.ok) throw new Error(data.error || `HTTP_${response.status}`);
-  return data;
 }
 
 async function refreshDashboard() {
@@ -257,10 +269,13 @@ function renderLeads() {
     const row = button.closest('tr');
     const lead = state.leads.find(item => String(item._id) === row.dataset.id);
     const next = statusOrder[(statusOrder.indexOf(lead.status || 'new') + 1) % statusOrder.length];
-    await api(`/api/leads/${lead._id}`, { method: 'PATCH', body: JSON.stringify({ status: next }) });
-    await loadCollection('leads');
-    await refreshDashboard();
-    renderLeads();
+    setBusy(button, true);
+    try {
+      await api(`/api/leads/${lead._id}`, { method: 'PATCH', body: JSON.stringify({ status: next }) });
+      await loadCollection('leads');
+      await refreshDashboard();
+      renderLeads();
+    } finally { if (button.isConnected) setBusy(button, false); }
   }));
   $$('.lead-edit', tbody).forEach(button => button.addEventListener('click', () => {
     const lead = state.leads.find(item => String(item._id) === button.closest('tr').dataset.id);
@@ -401,20 +416,25 @@ function renderFaqs() {
       await loadCollection('faqs');
       renderFaqs();
     });
-    const move = async direction => {
+    const move = async (direction, trigger) => {
       const index = sorted.findIndex(faq => String(faq._id) === card.dataset.id);
       const other = sorted[index + direction];
       if (!other) return;
       const currentOrder = Number(item.order || index + 1);
       const otherOrder = Number(other.order || index + direction + 1);
-      await Promise.all([
-        api(`/api/faqs/${item._id}`, { method: 'PATCH', body: JSON.stringify({ order: otherOrder }) }),
-        api(`/api/faqs/${other._id}`, { method: 'PATCH', body: JSON.stringify({ order: currentOrder }) })
-      ]);
-      await loadCollection('faqs'); renderFaqs();
+      setBusy(trigger, true);
+      try {
+        await Promise.all([
+          api(`/api/faqs/${item._id}`, { method: 'PATCH', body: JSON.stringify({ order: otherOrder }) }),
+          api(`/api/faqs/${other._id}`, { method: 'PATCH', body: JSON.stringify({ order: currentOrder }) })
+        ]);
+        await loadCollection('faqs'); renderFaqs();
+      } finally { if (trigger.isConnected) setBusy(trigger, false); }
     };
-    $('.faq-up', card)?.addEventListener('click', () => move(-1));
-    $('.faq-down', card)?.addEventListener('click', () => move(1));
+    const upButton = $('.faq-up', card);
+    const downButton = $('.faq-down', card);
+    upButton?.addEventListener('click', () => move(-1, upButton));
+    downButton?.addEventListener('click', () => move(1, downButton));
     $('.faq-admin-delete', card).addEventListener('click', async () => {
       if (!confirm('Видалити FAQ із розділу “Коротко про важливе”?')) return;
       await api(`/api/faqs/${card.dataset.id}`, { method: 'DELETE' });
