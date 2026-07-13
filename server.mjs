@@ -27,13 +27,21 @@ const ADMIN_USERS = (process.env.ADMIN_USERS || [ADMIN_USER, 'Kostia', 'Pasha'].
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'InkAdmin2026!';
 const SECRET_KEY = process.env.SECRET_KEY || process.env.SESSION_SECRET || 'dev-only-change-me';
 const CONTACT_API_URL = String(process.env.CONTACT_API_URL || '').trim();
-const COLLECTIONS = new Set(['leads','reviews','questions','faqs','projects','articles','equipment']);
+const COLLECTIONS = new Set(['leads','reviews','questions','faqs','projects','articles','equipment','users']);
+const LEGACY_SAMPLE_IDS = {
+  leads: ['1082', '1081'],
+  reviews: ['r1', 'r2', 'r3', 'r4'],
+  questions: ['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7'],
+  faqs: ['faq1', 'faq2', 'faq3', 'faq4', 'faq5', 'faq6'],
+  projects: ['p1', 'p2', 'p3'],
+  equipment: ['e1', 'e2', 'e3']
+};
 
 const mime = { '.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.svg':'image/svg+xml','.xml':'application/xml; charset=utf-8','.txt':'text/plain; charset=utf-8','.webmanifest':'application/manifest+json' };
 
 class FileStore {
   constructor(file){ this.file=file; this.data=null; this.queue=Promise.resolve(); }
-  async init(){ this.data=JSON.parse(await fs.readFile(this.file,'utf8')); let changed=false; for(const name of COLLECTIONS){if(!Array.isArray(this.data[name])){this.data[name]=[];changed=true;}} for(const review of this.data.reviews||[]){ if(review.verified===undefined){ review.verified=false; review.verifiedBy=''; review.verifiedAt=null; review.audit=[]; changed=true; } if(!Array.isArray(review.audit)){ review.audit=[]; changed=true; } } if(changed)await this.persist(); }
+  async init(){ this.data=JSON.parse(await fs.readFile(this.file,'utf8')); let changed=false; for(const name of COLLECTIONS){if(!Array.isArray(this.data[name])){this.data[name]=[];changed=true;}} for(const review of this.data.reviews||[]){ if(review.status==='waiting'){review.status='published';changed=true;} if(review.verified===undefined){ review.verified=false; review.verifiedBy=''; review.verifiedAt=null; review.audit=[]; changed=true; } if(!Array.isArray(review.audit)){ review.audit=[]; changed=true; } } if(changed)await this.persist(); }
   async persist(){ const tmp=`${this.file}.tmp`; await fs.writeFile(tmp,JSON.stringify(this.data,null,2)); await fs.rename(tmp,this.file); }
   async list(type){ return [...(this.data[type]||[])].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))); }
   async create(type,payload){ const now=new Date().toISOString(); const item={...payload,_id:crypto.randomUUID(),createdAt:now,updatedAt:now}; if(['leads','reviews','questions'].includes(type)&&item.viewedAt===undefined)item.viewedAt=null; this.data[type].push(item); await this.persist(); return item; }
@@ -44,8 +52,21 @@ class FileStore {
 
 class MongoStore {
   constructor(client,db,ObjectId){ this.client=client; this.db=db; this.ObjectId=ObjectId; }
-  async init(){ for(const name of COLLECTIONS) await this.db.collection(name).createIndex({createdAt:-1}); await this.seedDefaults(); await this.db.collection('reviews').updateMany({verified:{$exists:false}},{$set:{verified:false,verifiedBy:'',verifiedAt:null,audit:[]}}); await this.db.collection('reviews').updateMany({audit:{$exists:false}},{$set:{audit:[]}}); }
-  async seedDefaults(){ try{ const seed=JSON.parse(await fs.readFile(path.join(ROOT,'data','db.json'),'utf8')); for(const name of COLLECTIONS){ const docs=Array.isArray(seed[name])?seed[name]:[]; for(const doc of docs){ await this.db.collection(name).updateOne({_id:String(doc._id)},{$setOnInsert:{...doc,_id:String(doc._id)}},{upsert:true}); } } }catch(error){ console.warn('Seed skipped:',error.message); } }
+  async init(){
+    for(const name of COLLECTIONS) await this.db.collection(name).createIndex({createdAt:-1});
+    await this.db.collection('users').createIndex({username:1},{unique:true});
+    // Remove only the old demo documents. MongoDB is no longer populated from
+    // data/db.json, so content deleted in CRM stays deleted after a deployment.
+    const migrations=this.db.collection('_migrations');
+    const cleanupId='remove-legacy-samples-v1';
+    if(!await migrations.findOne({_id:cleanupId})){
+      for(const [name,ids] of Object.entries(LEGACY_SAMPLE_IDS)) await this.db.collection(name).deleteMany({_id:{$in:ids}});
+      await migrations.insertOne({_id:cleanupId,completedAt:new Date().toISOString()});
+    }
+    await this.db.collection('reviews').updateMany({verified:{$exists:false}},{$set:{verified:false,verifiedBy:'',verifiedAt:null,audit:[]}});
+    await this.db.collection('reviews').updateMany({audit:{$exists:false}},{$set:{audit:[]}});
+    await this.db.collection('reviews').updateMany({status:'waiting'},{$set:{status:'published',updatedAt:new Date().toISOString()}});
+  }
   id(id){ try{return new this.ObjectId(id)}catch{return id} }
   clean(doc){ if(!doc)return doc; return {...doc,_id:String(doc._id)}; }
   async list(type){ return (await this.db.collection(type).find({}).sort({createdAt:-1}).toArray()).map(x=>this.clean(x)); }
@@ -64,6 +85,28 @@ async function createStore(){
 }
 const store = await createStore();
 
+function passwordRecord(password,salt=crypto.randomBytes(16).toString('hex')){
+  return {passwordSalt:salt,passwordHash:crypto.scryptSync(String(password),salt,64).toString('hex')};
+}
+function passwordMatches(password,user={}){
+  if(!user.passwordSalt||!user.passwordHash)return false;
+  const actual=crypto.scryptSync(String(password),user.passwordSalt,64);
+  const expected=Buffer.from(user.passwordHash,'hex');
+  return actual.length===expected.length&&crypto.timingSafeEqual(actual,expected);
+}
+function safeUser(user={}){
+  const {passwordHash,passwordSalt,...safe}=user;
+  return safe;
+}
+async function ensureBootstrapUsers(){
+  const users=await store.list('users');
+  if(users.length)return;
+  for(const username of ADMIN_USERS){
+    try{await store.create('users',{username,role:'admin',status:'active',...passwordRecord(ADMIN_PASSWORD)});}catch(error){if(error?.code!==11000)throw error;}
+  }
+}
+await ensureBootstrapUsers();
+
 function json(res,status,data,headers={}){ res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',...headers}); res.end(JSON.stringify(data)); }
 function htmlEscape(value=''){return String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));}
 function parseCookies(req){ return Object.fromEntries((req.headers.cookie||'').split(';').filter(Boolean).map(part=>{const i=part.indexOf('=');return [part.slice(0,i).trim(),decodeURIComponent(part.slice(i+1))]})); }
@@ -72,10 +115,14 @@ function packSessionCookie(session){ const payload=Buffer.from(JSON.stringify(se
 function unpackSessionCookie(value=''){ const dot=value.lastIndexOf('.'); if(dot<1)return null; const payload=value.slice(0,dot); const signature=value.slice(dot+1); const expected=signToken(payload); if(signature.length!==expected.length)return null; if(!crypto.timingSafeEqual(Buffer.from(signature),Buffer.from(expected)))return null; try{const session=JSON.parse(Buffer.from(payload,'base64url').toString('utf8')); return session.expires>Date.now()?session:null;}catch{return null;} }
 function sessionCookie(value,maxAge=28800){ const secure=process.env.NODE_ENV==='production'?'; Secure':''; return `ink_session=${value}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}${secure}`; }
 function currentUser(req){ return unpackSessionCookie(parseCookies(req).ink_session)?.user || null; }
-function requireAdmin(req,res){ const user=currentUser(req); if(!user){json(res,401,{error:'AUTH_REQUIRED'});return null} return user; }
+async function activeSessionUser(req){
+  const user=currentUser(req); if(!user)return null;
+  const account=(await store.list('users')).find(item=>String(item._id)===String(user.id||'')||String(item.username)===String(user.name));
+  return account?.status==='active'?user:null;
+}
+async function requireAdmin(req,res){ const user=await activeSessionUser(req); if(!user){json(res,401,{error:'AUTH_REQUIRED'});return null} return user; }
 async function body(req,limit=2_500_000){ let size=0,data=''; for await(const chunk of req){size+=chunk.length;if(size>limit)throw new Error('PAYLOAD_TOO_LARGE');data+=chunk} return data?JSON.parse(data):{}; }
 function compareSafe(a='',b=''){ const left=Buffer.from(String(a)); const right=Buffer.from(String(b)); if(left.length!==right.length)return false; return crypto.timingSafeEqual(left,right); }
-function findAdminUser(inputUser=''){ return ADMIN_USERS.find(user=>compareSafe(inputUser,user)) || null; }
 function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','status','manager','checkedBy','viewedAt'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','description','status','image','images']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
 function publicReview(item){ const {audit,viewedAt,verifiedBy,verifiedAt,...safe}=item; return safe; }
 function reviewAudit(previous={},next={},user){ const fields=['status','reply','verified']; const changes=fields.filter(field=>String(previous[field]??'')!==String(next[field]??'')); if(!changes.length)return previous.audit || []; const now=new Date().toISOString(); const entries=changes.map(field=>({at:now,user:user.name,role:user.role,action:field==='verified'?'verify-review':'update-review',field,from:previous[field]??null,to:next[field]??null})); return [...(Array.isArray(previous.audit)?previous.audit:[]),...entries]; }
@@ -125,15 +172,63 @@ async function getContactApiStatus(){
 }
 
 async function api(req,res,url){
-  if(url.pathname==='/api/auth/login'&&req.method==='POST'){ const input=await body(req); const adminName=findAdminUser(String(input.user||'')); const ok=adminName&&compareSafe(input.password||'',ADMIN_PASSWORD); if(!ok)return json(res,401,{error:'INVALID_CREDENTIALS'}); const user={name:adminName,role:'admin'}; return json(res,200,{user},{'Set-Cookie':sessionCookie(packSessionCookie({user,expires:Date.now()+28_800_000}))}); }
-  if(url.pathname==='/api/auth/me')return currentUser(req)?json(res,200,{user:currentUser(req)}):json(res,401,{error:'AUTH_REQUIRED'});
+  if(url.pathname==='/api/auth/login'&&req.method==='POST'){
+    const input=await body(req);
+    const account=(await store.list('users')).find(user=>compareSafe(String(input.user||''),String(user.username||'')));
+    if(!account||account.status!=='active'||!passwordMatches(input.password||'',account))return json(res,401,{error:'INVALID_CREDENTIALS'});
+    const user={id:String(account._id),name:account.username,role:account.role||'admin'};
+    return json(res,200,{user},{'Set-Cookie':sessionCookie(packSessionCookie({user,expires:Date.now()+28_800_000}))});
+  }
+  if(url.pathname==='/api/auth/me'){const user=await activeSessionUser(req);return user?json(res,200,{user}):json(res,401,{error:'AUTH_REQUIRED'});}
   if(url.pathname==='/api/auth/logout'&&req.method==='POST'){ return json(res,200,{ok:true},{'Set-Cookie':sessionCookie('',0)}); }
-  if(url.pathname==='/api/integrations/status'){ if(!requireAdmin(req,res))return; const contact=await getContactApiStatus(); return json(res,200,{contactApi:contact.available,contactApiConfigured:contact.configured,notifications:contact.available,route:contact.route}); }
-  if(url.pathname==='/api/dashboard'){ if(!requireAdmin(req,res))return; const result={}; for(const type of COLLECTIONS){const items=await store.list(type);const hasUnread=['leads','reviews','questions'].includes(type);result[type]={total:items.length,unread:hasUnread?items.filter(x=>!x.viewedAt).length:0};} return json(res,200,result); }
-  if(url.pathname==='/api/admin/mark-viewed'&&req.method==='POST'){ if(!requireAdmin(req,res))return; const input=await body(req); if(!COLLECTIONS.has(input.type))return json(res,400,{error:'INVALID_TYPE'}); await store.markViewed(input.type); return json(res,200,{ok:true}); }
-  if(url.pathname==='/api/uploads'&&req.method==='POST'){ if(!requireAdmin(req,res))return; const input=await body(req,6_000_000); if(!/^data:image\/(png|jpeg|webp);base64,/.test(input.dataUrl||''))return json(res,400,{error:'INVALID_IMAGE'}); if(process.env.VERCEL)return json(res,201,{url:input.dataUrl}); const ext=input.dataUrl.match(/^data:image\/(png|jpeg|webp)/)[1].replace('jpeg','jpg'); const filename=`${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${ext}`; await fs.mkdir(path.join(ROOT,'uploads'),{recursive:true}); await fs.writeFile(path.join(ROOT,'uploads',filename),Buffer.from(input.dataUrl.split(',')[1],'base64')); return json(res,201,{url:`/uploads/${filename}`}); }
+  if(url.pathname==='/api/integrations/status'){ if(!await requireAdmin(req,res))return; const contact=await getContactApiStatus(); return json(res,200,{contactApi:contact.available,contactApiConfigured:contact.configured,notifications:contact.available,route:contact.route}); }
+  if(url.pathname==='/api/dashboard'){ if(!await requireAdmin(req,res))return; const result={}; for(const type of COLLECTIONS){const items=await store.list(type);const hasUnread=['leads','reviews','questions'].includes(type);result[type]={total:items.length,unread:hasUnread?items.filter(x=>!x.viewedAt).length:0};} return json(res,200,result); }
+  if(url.pathname==='/api/admin/mark-viewed'&&req.method==='POST'){ if(!await requireAdmin(req,res))return; const input=await body(req); if(!COLLECTIONS.has(input.type))return json(res,400,{error:'INVALID_TYPE'}); await store.markViewed(input.type); return json(res,200,{ok:true}); }
+  if(url.pathname==='/api/uploads'&&req.method==='POST'){ if(!await requireAdmin(req,res))return; const input=await body(req,6_000_000); if(!/^data:image\/(png|jpeg|webp);base64,/.test(input.dataUrl||''))return json(res,400,{error:'INVALID_IMAGE'}); if(process.env.VERCEL)return json(res,201,{url:input.dataUrl}); const ext=input.dataUrl.match(/^data:image\/(png|jpeg|webp)/)[1].replace('jpeg','jpg'); const filename=`${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${ext}`; await fs.mkdir(path.join(ROOT,'uploads'),{recursive:true}); await fs.writeFile(path.join(ROOT,'uploads',filename),Buffer.from(input.dataUrl.split(',')[1],'base64')); return json(res,201,{url:`/uploads/${filename}`}); }
+  const userMatch=url.pathname.match(/^\/api\/users(?:\/([^/]+))?$/);
+  if(userMatch){
+    const admin=await requireAdmin(req,res); if(!admin)return;
+    const id=userMatch[1];
+    if(req.method==='GET')return json(res,200,(await store.list('users')).map(safeUser));
+    if(req.method==='POST'){
+      const input=await body(req); const username=String(input.username||'').trim(); const password=String(input.password||'');
+      if(username.length<2||password.length<8)return json(res,400,{error:'USER_FIELDS_REQUIRED'});
+      if((await store.list('users')).some(user=>String(user.username).toLowerCase()===username.toLowerCase()))return json(res,409,{error:'USER_EXISTS'});
+      return json(res,201,safeUser(await store.create('users',{username,role:'admin',status:input.status==='disabled'?'disabled':'active',...passwordRecord(password)})));
+    }
+    if(!id)return json(res,400,{error:'ID_REQUIRED'});
+    const users=await store.list('users'); const previous=users.find(user=>String(user._id)===id);
+    if(!previous)return json(res,404,{error:'NOT_FOUND'});
+    if(req.method==='PATCH'){
+      const input=await body(req); const update={};
+      if(input.username!==undefined){ const username=String(input.username).trim(); if(username.length<2)return json(res,400,{error:'INVALID_USERNAME'}); if(users.some(user=>String(user._id)!==id&&String(user.username).toLowerCase()===username.toLowerCase()))return json(res,409,{error:'USER_EXISTS'}); update.username=username; }
+      if(input.status!==undefined){
+        update.status=input.status==='disabled'?'disabled':'active';
+        if(update.status==='disabled'&&(String(admin.id||'')===id||String(previous.username)===String(admin.name)))return json(res,400,{error:'CANNOT_DISABLE_SELF'});
+        if(update.status==='disabled'&&previous.status==='active'&&users.filter(user=>user.status==='active').length<=1)return json(res,400,{error:'LAST_ADMIN'});
+      }
+      if(input.password){ if(String(input.password).length<8)return json(res,400,{error:'PASSWORD_TOO_SHORT'}); Object.assign(update,passwordRecord(input.password)); }
+      return json(res,200,safeUser(await store.update('users',id,update)));
+    }
+    if(req.method==='DELETE'){
+      if(String(admin.id||'')===id||String(previous.username)===String(admin.name))return json(res,400,{error:'CANNOT_DELETE_SELF'});
+      if(previous.status==='active'&&users.filter(user=>user.status==='active').length<=1)return json(res,400,{error:'LAST_ADMIN'});
+      return json(res,(await store.remove('users',id))?200:404,{ok:true});
+    }
+    return json(res,405,{error:'METHOD_NOT_ALLOWED'});
+  }
+  const answerMatch=url.pathname.match(/^\/api\/questions\/([^/]+)\/answers$/);
+  if(answerMatch&&req.method==='POST'){
+    const input=await body(req); const author=String(input.author||'').trim().slice(0,80); const text=String(input.text||'').trim().slice(0,2000);
+    if(!author||text.length<2)return json(res,400,{error:'REQUIRED_FIELDS'});
+    const question=(await store.list('questions')).find(item=>String(item._id)===answerMatch[1]);
+    if(!question)return json(res,404,{error:'NOT_FOUND'});
+    const answers=[...(Array.isArray(question.answers)?question.answers:[]),{author,role:'community',text,createdAt:new Date().toISOString()}];
+    const updated=await store.update('questions',answerMatch[1],{answers,status:answers.some(answer=>answer.role==='engineer')?'answered':'discussion'});
+    return json(res,201,updated);
+  }
   const match=url.pathname.match(/^\/api\/(leads|reviews|questions|faqs|projects|articles|equipment)(?:\/([^/]+))?$/); if(!match)return false;
-  const [,type,id]=match; const adminUser=currentUser(req); const isAdmin=Boolean(adminUser);
+  const [,type,id]=match; const adminUser=await activeSessionUser(req); const isAdmin=Boolean(adminUser);
   if(req.method==='GET'){
     if(type==='leads'&&!isAdmin)return json(res,401,{error:'AUTH_REQUIRED'});
     let items=await store.list(type);
@@ -141,10 +236,10 @@ async function api(req,res,url){
     return json(res,200,id?(items.find(x=>String(x._id)===id)||null):items);
   }
   if(req.method==='POST'){
-    if(!['leads','reviews','questions'].includes(type)&&!requireAdmin(req,res))return;
+    if(!['leads','reviews','questions'].includes(type)&&!await requireAdmin(req,res))return;
     const input=sanitize(type,await body(req));
     if(type==='leads')Object.assign(input,{status:input.status||'new',manager:input.manager||'',checkedBy:input.checkedBy||'',viewedAt:null});
-    if(type==='reviews')Object.assign(input,{status:'waiting',reply:'',verified:false,verifiedAt:null,verifiedBy:'',audit:[],viewedAt:null,rating:Number(input.rating||5)});
+    if(type==='reviews')Object.assign(input,{status:'published',reply:'',verified:false,verifiedAt:null,verifiedBy:'',audit:[],viewedAt:null,rating:Number(input.rating||5)});
     if(type==='questions'){
       if(isAdmin){
         input.answers=Array.isArray(input.answers)?input.answers.filter(answer=>answer&&String(answer.text||'').trim()).map(answer=>({author:String(answer.author||adminUser?.name||'ІНК'),role:'engineer',text:String(answer.text).trim(),createdAt:answer.createdAt||new Date().toISOString()})):[];
@@ -159,7 +254,7 @@ async function api(req,res,url){
     await sendContactNotification(type,created);
     return json(res,201,created);
   }
-  if(['PATCH','DELETE'].includes(req.method)){ const user=requireAdmin(req,res); if(!user)return; if(!id)return json(res,400,{error:'ID_REQUIRED'}); if(req.method==='DELETE')return json(res,(await store.remove(type,id))?200:404,{ok:true}); const previous=(await store.list(type)).find(item=>String(item._id)===id); if(!previous)return json(res,404,{error:'NOT_FOUND'}); const input=sanitize(type,await body(req)); if(type==='reviews'){ if(input.verified!==undefined){ input.verified=Boolean(input.verified); input.verifiedAt=input.verified?new Date().toISOString():null; input.verifiedBy=input.verified?user.name:''; } const next={...previous,...input}; input.audit=reviewAudit(previous,next,user); } return json(res,200,await store.update(type,id,input)); }
+  if(['PATCH','DELETE'].includes(req.method)){ const user=await requireAdmin(req,res); if(!user)return; if(!id)return json(res,400,{error:'ID_REQUIRED'}); if(req.method==='DELETE')return json(res,(await store.remove(type,id))?200:404,{ok:true}); const previous=(await store.list(type)).find(item=>String(item._id)===id); if(!previous)return json(res,404,{error:'NOT_FOUND'}); const input=sanitize(type,await body(req)); if(type==='reviews'){ if(input.verified!==undefined){ input.verified=Boolean(input.verified); input.verifiedAt=input.verified?new Date().toISOString():null; input.verifiedBy=input.verified?user.name:''; } const next={...previous,...input}; input.audit=reviewAudit(previous,next,user); } return json(res,200,await store.update(type,id,input)); }
   return json(res,405,{error:'METHOD_NOT_ALLOWED'});
 }
 

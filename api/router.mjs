@@ -1,9 +1,8 @@
 export default async function handler(req, res) {
   process.env.VERCEL = process.env.VERCEL || '1';
 
-  // Vercel exposes catch-all parameters through req.query.path. Rebuild the
-  // original API URL explicitly so nested endpoints such as /api/auth/me and
-  // /api/faqs/:id reach the same server router as they do locally.
+  // All /api/* requests are rewritten to this fixed function. Rebuild the
+  // original URL so nested auth and CRUD endpoints use the local server router.
   const rawPath = req.query?.path;
   const pathSegments = (Array.isArray(rawPath) ? rawPath : String(rawPath || '').split('/'))
     .map(segment => String(segment).replace(/[^a-zA-Z0-9_-]/g, ''))

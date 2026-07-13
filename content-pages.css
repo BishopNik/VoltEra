@@ -6,6 +6,7 @@
 .question-form textarea{min-height:132px;resize:vertical}
 .community-question button,.pager button,.page-button{min-height:42px;padding:11px 15px;font-size:13px;line-height:1.25}
 @media(max-width:750px){.question-form{padding:24px}.question-form input,.question-form textarea{min-height:54px}}
+.community-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.community-actions>span{color:var(--muted);font-size:12px}.community-reply-form{margin-top:18px;padding:20px;border:1px solid #d9ff4345;border-radius:16px;background:#07110f}.community-reply-form label{display:block;color:var(--muted);font-size:12px}.community-reply-form input,.community-reply-form textarea{display:block;width:100%;margin:7px 0 14px;padding:13px 15px;border:1px solid var(--line);border-radius:11px;background:#10211b;color:var(--ink);font:inherit}.community-reply-form p[role=status]{min-height:1.5em;color:var(--accent)}.community-answer.is-community{border-left-color:#65d8bf}.community-answer.is-community strong{color:#65d8bf}.reply-toggle{border-color:#d9ff4360!important;color:var(--accent)!important}.community-question:target{border-color:var(--accent);box-shadow:0 0 0 4px #d9ff4312}
 
 /* Consistent interaction feedback for standalone content, gallery and community pages. */
 a,button,[role="button"],summary,select{transition:transform .18s,border-color .18s,background-color .18s,color .18s,filter .18s,box-shadow .18s}

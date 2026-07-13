@@ -5,10 +5,23 @@ const pageLang = () => new URLSearchParams(location.search).get('lang') || local
 const uiText = (uk, en) => pageLang() === 'en' ? en : uk;
 const communityHref = () => pageLang() === 'en' ? '/community.html?lang=en' : '/community.html';
 let pendingSiteRequests = 0;
+let initialHashAligned = false;
+function alignLocationHash() {
+  if (!location.hash || location.hash === '#top') return;
+  let target = null;
+  try { target = document.querySelector(location.hash); } catch { return; }
+  if (!target) return;
+  target.scrollIntoView({ behavior: 'auto', block: 'start' });
+}
 const updateSiteLoading = delta => {
   pendingSiteRequests = Math.max(0, pendingSiteRequests + delta);
   document.body.classList.toggle('site-loading', pendingSiteRequests > 0);
   document.body.setAttribute('aria-busy', pendingSiteRequests > 0 ? 'true' : 'false');
+  if (!pendingSiteRequests && location.hash && !initialHashAligned) {
+    initialHashAligned = true;
+    requestAnimationFrame(() => requestAnimationFrame(alignLocationHash));
+    window.setTimeout(alignLocationHash, 350);
+  }
 };
 const apiList = async type => {
   if (pageLang() !== 'uk' && ['reviews', 'projects', 'articles', 'questions', 'faqs'].includes(type)) return null;
@@ -51,8 +64,10 @@ function enhanceClickableHints(root = document) {
     ['.grid-simulator', 'Перемкнути стан мережі'],
     ['.appliance', 'Додати або прибрати прилад із розрахунку'],
     ['.brand-compare', 'Заповнити заявку з цим брендом'],
-    ['.topic-votes button', 'Позначити питання корисним'],
-    ['.topic-answers', 'Переглянути відповідь інженера'],
+    ['.topic-votes button', 'Позначити питання корисним — лічильник збільшиться на один'],
+    ['.topic-answer-count', 'Відкрити всі відповіді та продовжити обговорення'],
+    ['.topic-answers[data-answer]', 'Показати першу відповідь у цій картці'],
+    ['.topic-reply-link', 'Перейти до повного обговорення та залишити свою відповідь'],
     ['.faq-question', 'Відкрити відповідь без зміщення сторінки'],
     ['.submit-button', 'Надіслати заявку в CRM'],
     ['.lang-switch', 'Open English version'],
@@ -62,8 +77,8 @@ function enhanceClickableHints(root = document) {
   ];
   explicitHints.forEach(([selector, hint]) => $$(selector, root).forEach(element => {
     if (element.matches(noHintSelector)) return;
-    element.dataset.hint = hint;
-    if (!element.title) element.title = hint;
+    if (!element.dataset.hint) element.dataset.hint = hint;
+    element.removeAttribute('title');
   }));
   $$('a,button,[role="button"]', root).forEach(element => {
     if (element.matches(noHintSelector)) return;
@@ -72,7 +87,7 @@ function enhanceClickableHints(root = document) {
     if (!label) return;
     const hint = label.length > 72 ? `${label.slice(0, 69)}…` : label;
     element.dataset.hint = hint;
-    if (!element.title) element.title = hint;
+    element.removeAttribute('title');
   });
 }
 
@@ -251,9 +266,9 @@ function createReview(data) {
   article.className = 'review-card';
   const rating = Math.max(1, Math.min(5, Number(data.rating || 5)));
   const initials = (data.name || 'ІНК').split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
-  const reply = data.reply || 'Дякуємо. Команда прочитає відгук і відповість після модерації.';
-  const badge = data.status === 'waiting' ? '<b>ЧЕКАЄ МОДЕРАЦІЇ</b>' : data.verified === true ? '<b>ПЕРЕВІРЕНИЙ ВІДГУК</b>' : '';
-  article.innerHTML = `<div class="stars" aria-label="${rating} з 5">${'★'.repeat(rating)}${'☆'.repeat(5-rating)}</div><blockquote>«${escapeHtml(data.text || '')}»</blockquote><div class="team-reply"><span>↳ ВІДПОВІДЬ ІНК</span><p>${escapeHtml(reply)}</p></div><footer><div class="avatar">${escapeHtml(initials)}</div><div><strong>${escapeHtml(data.name || 'Клієнт ІНК')}</strong><span>${escapeHtml(data.city || 'Україна')}</span></div>${badge}</footer>`;
+  const reply = String(data.reply || '').trim();
+  const badge = data.verified === true ? '<b>ПЕРЕВІРЕНИЙ ВІДГУК</b>' : '';
+  article.innerHTML = `<div class="stars" aria-label="${rating} з 5">${'★'.repeat(rating)}${'☆'.repeat(5-rating)}</div><blockquote>«${escapeHtml(data.text || '')}»</blockquote>${reply ? `<div class="team-reply"><span>↳ ВІДПОВІДЬ ІНК</span><p>${escapeHtml(reply)}</p></div>` : ''}<footer><div class="avatar">${escapeHtml(initials)}</div><div><strong>${escapeHtml(data.name || 'Клієнт ІНК')}</strong><span>${escapeHtml(data.city || 'Україна')}</span></div>${badge}</footer>`;
   reviewTrack.append(article);
   reviews.push(article);
   return article;
@@ -261,9 +276,9 @@ function createReview(data) {
 async function loadReviews() {
   reviewTrack.innerHTML = loadingMarkup('Завантажуємо відгуки…');
   const data = await apiList('reviews');
+  reviews.splice(0, reviews.length);
   if (!Array.isArray(data) || !data.length) { reviewTrack.innerHTML = emptyMarkup('Відгуків поки немає', 'Будьте першим, хто поділиться досвідом.'); return; }
   reviewTrack.innerHTML = '';
-  reviews.splice(0, reviews.length);
   data.forEach(createReview);
   showReview(0);
   enhanceClickableHints(reviewTrack);
@@ -289,14 +304,16 @@ reviewForm.addEventListener('submit', async event => {
   submit.classList.remove('is-sending');
   submit.textContent = 'Опублікувати відгук ↗';
   if (!response?.ok) { submit.textContent = 'Помилка. Спробуйте ще раз'; return; }
-  createReview({...data, rating:Number(data.rating), status:'waiting'});
+  await reviewsReady;
+  if (!reviews.length) reviewTrack.innerHTML = '';
+  createReview({...data, rating:Number(data.rating), status:'published', verified:false});
   showReview(reviews.length - 1);
   reviewForm.reset();
   reviewForm.hidden = true;
   reviewTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 showReview(0);
-loadReviews();
+const reviewsReady = loadReviews();
 
 // Brand comparison starts a consultation with useful context already filled in.
 $$('.brand-compare').forEach(button => button.addEventListener('click', () => {
@@ -370,7 +387,7 @@ function renderProjectCard(project, index) {
 async function loadProjects() {
   projectGrid.innerHTML = loadingMarkup('Завантажуємо об’єкти…');
   const data = await apiList('projects');
-  if (!Array.isArray(data) || !data.length) { projectGrid.innerHTML = emptyMarkup('Розділ заповнюється', 'Нові об’єкти з’являться після публікації в CRM.'); return; }
+  if (!Array.isArray(data) || !data.length) { projectGrid.innerHTML = emptyMarkup('Географія оновлюється', 'Нові об’єкти з’являться після перевірки та схвалення технічним відділом.'); return; }
   projectData.clear();
   projectGrid.innerHTML = data.slice(0, 6).map(renderProjectCard).join('');
   bindProjectButtons();
@@ -626,7 +643,7 @@ function toggleTopicAnswer(card, title, copy) {
   $$('.topic-inline-answer', topicList).forEach(answer => answer.remove());
   const panel = document.createElement('div');
   panel.className = 'topic-inline-answer';
-  panel.innerHTML = `<button type="button" aria-label="Закрити відповідь">×</button><span>Відповідь інженера</span><h4>${escapeHtml(title)}</h4><p>${escapeHtml(copy)}</p>`;
+  panel.innerHTML = `<button type="button" aria-label="Закрити відповідь">×</button><span>Відповіді Енергокола</span><h4>${escapeHtml(title)}</h4><p>${escapeHtml(copy)}</p>`;
   $('.topic-answers', card)?.insertAdjacentElement('afterend', panel);
   $('button', panel).addEventListener('click', () => {
     panel.remove();
@@ -640,7 +657,11 @@ function renderTopicCard(question, isNew = false) {
   const answer = (question.answers || [])[0]?.text || '';
   const article = document.createElement('article');
   article.className = `topic-card${isNew ? ' is-new' : ''}`;
-  article.innerHTML = `<div class="topic-votes"><button type="button" aria-label="Відмітити як корисне">♥</button><strong>${Number(question.likes || 0)}</strong><small>корисно</small></div><div><span class="topic-state ${answered ? 'answered' : ''}">${answered ? 'ВІДПОВІВ ІНЖЕНЕР' : 'ОБГОВОРЕННЯ'}</span><h3>${escapeHtml(question.title)}</h3><p>${escapeHtml(answer || question.body || 'Питання збережено в базі. Інженер відповість якнайшвидше.')}</p>${answered ? `<button class="topic-answers" type="button" data-answer="${escapeHtml(answer)}">Переглянути відповідь ↓</button>` : `<a class="topic-answers" href="${communityHref()}">Відкрити обговорення →</a>`}<footer>${escapeHtml(question.author || 'Гість')} · ${escapeHtml(question.city || 'Україна')} <span>${(question.answers || []).length || 'очікує відповіді'}</span></footer></div>`;
+  const discussionUrl = `${communityHref()}#${encodeURIComponent(String(question._id || ''))}`;
+  const answerCount = (question.answers || []).length;
+  const answerWord = answerCount === 1 ? 'відповідь' : answerCount >= 2 && answerCount <= 4 ? 'відповіді' : 'відповідей';
+  const answerHint = answerCount ? `Відкрити ${answerCount} ${answerWord} та продовжити обговорення` : 'Відповідей ще немає — відкрийте обговорення, щоб відповісти першим';
+  article.innerHTML = `<div class="topic-metrics"><div class="topic-votes"><button type="button" aria-label="Позначити питання корисним" data-hint="Позначити питання корисним — лічильник збільшиться на один">♥</button><strong>${Number(question.likes || 0)}</strong><small>корисно</small></div><a class="topic-answer-count" href="${discussionUrl}" aria-label="${escapeHtml(answerHint)}" data-hint="${escapeHtml(answerHint)}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 5h14v10H9l-4 4V5Z"/></svg><strong>${answerCount}</strong><small>відпов.</small></a></div><div><span class="topic-state ${answered ? 'answered' : ''}">${answered ? 'Є ВІДПОВІДІ' : 'ОБГОВОРЕННЯ'}</span><h3>${escapeHtml(question.title)}</h3><p>${escapeHtml(answer || question.body || 'Питання збережено в базі. Інженер відповість якнайшвидше.')}</p>${answered ? `<button class="topic-answers" type="button" data-answer="${escapeHtml(answer)}">Переглянути відповіді ↓</button>` : ''}<a class="topic-answers topic-reply-link" href="${discussionUrl}">Відповісти на питання →</a><footer>${escapeHtml(question.author || 'Гість')} · ${escapeHtml(question.city || 'Україна')} <span>${answerCount ? `${answerCount} ${answerWord}` : 'очікує відповіді'}</span></footer></div>`;
   bindTopicVotes(article);
   const answerButton = $('.topic-answers[data-answer]', article);
   if (answerButton) answerButton.addEventListener('click', () => toggleTopicAnswer(article, $('h3', article).textContent, answerButton.dataset.answer));
@@ -697,6 +718,13 @@ loadTopics();
 loadFaqs();
 syncLocalizedLinks();
 window.addEventListener('ink:languagechange', () => syncLocalizedLinks());
+window.addEventListener('load', () => {
+  if (!location.hash) return;
+  window.setTimeout(alignLocationHash, 80);
+  window.setTimeout(alignLocationHash, 700);
+  window.setTimeout(alignLocationHash, 1500);
+  window.setTimeout(alignLocationHash, 2600);
+});
 $('#topic-form').addEventListener('submit', async event => {
   event.preventDefault();
   const input = $('#topic-input');

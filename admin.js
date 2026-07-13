@@ -9,6 +9,7 @@ const state = {
   projects: [],
   articles: [],
   equipment: [],
+  users: [],
   dashboard: {}
 };
 
@@ -21,10 +22,11 @@ const titles = {
   projects: "Об'єкти",
   articles: 'Статті',
   equipment: 'Обладнання',
+  users: 'Користувачі',
   settings: 'Налаштування'
 };
 
-const collections = ['leads', 'reviews', 'questions', 'faqs', 'projects', 'articles', 'equipment'];
+const collections = ['leads', 'reviews', 'questions', 'faqs', 'projects', 'articles', 'equipment', 'users'];
 const unreadViews = new Set(['leads', 'reviews', 'questions']);
 const statusOrder = ['new', 'work', 'calc', 'done'];
 const statusLabels = {
@@ -39,7 +41,8 @@ const statusLabels = {
   answered: ['Є відповідь', 'status-done'],
   draft: ['Чернетка', 'status-calc'],
   active: ['Активний', 'status-done'],
-  review: ['На перевірці', 'status-work']
+  review: ['На перевірці', 'status-work'],
+  disabled: ['Вимкнений', 'status-calc']
 };
 let currentAdmin = null;
 let pendingApiRequests = 0;
@@ -113,6 +116,7 @@ async function loadAll() {
   renderProjects();
   renderArticles();
   renderEquipment();
+  renderUsers();
   await loadIntegrationStatus();
   if (failed.length) showApiNotice(`Не завантажено: ${failed.join(', ')}. Перезапустіть локальний сервер або розгорніть актуальну версію API.`);
   document.body.classList.remove('is-loading');
@@ -165,7 +169,7 @@ function renderStats() {
   if (!stats) return;
   stats.innerHTML = `
     <article><span>Нові заявки</span><strong>${state.dashboard.leads?.unread || 0}</strong><small>${state.dashboard.leads?.total || 0} у CRM</small><i>LIVE</i></article>
-    <article><span>Відгуки без відповіді</span><strong>${state.reviews.filter(item => item.status === 'waiting').length}</strong><small>${state.dashboard.reviews?.total || 0} всього</small><i>модерація</i></article>
+    <article><span>Відгуки без відповіді</span><strong>${state.reviews.filter(item => !String(item.reply || '').trim()).length}</strong><small>${state.dashboard.reviews?.total || 0} всього</small><i>відповідь</i></article>
     <article><span>Питання Енергокола</span><strong>${state.dashboard.questions?.unread || 0}</strong><small>${state.dashboard.questions?.total || 0} тем</small><i>форум</i></article>
     <article class="accent-stat"><span>Контент</span><strong>${state.projects.length + state.articles.length}</strong><small>об'єкти + статті</small><i>SEO</i></article>`;
 }
@@ -208,7 +212,7 @@ function renderAttention() {
   if (!list || !count) return;
   const tasks = [];
   state.leads.filter(item => item.status === 'new').slice(0, 2).forEach(item => tasks.push({ view: 'leads', cls: 'urgent', title: `Передзвонити: ${item.name || 'клієнт'}`, note: `${item.phone || 'без телефону'} · ${formatDate(item.createdAt)}` }));
-  const waitingReview = state.reviews.find(item => item.status === 'waiting');
+  const waitingReview = state.reviews.find(item => !String(item.reply || '').trim());
   if (waitingReview) tasks.push({ view: 'reviews', cls: '', title: 'Відповісти на відгук', note: `${waitingReview.name || 'Клієнт'} · ${waitingReview.rating || 5} зірок` });
   const openQuestion = state.questions.find(item => item.status === 'open' || !item.answers?.length);
   if (openQuestion) tasks.push({ view: 'questions', cls: 'warn', title: 'Відповісти в Енергоколі', note: openQuestion.title || 'Нове питання' });
@@ -301,13 +305,11 @@ function renderReviews() {
   if (!items.length) { list.innerHTML = emptyState('Розділ порожній', 'Нові відгуки з’являться тут після відправлення клієнтом.'); return; }
   list.innerHTML = items.map(item => {
     const initials = (item.name || '?').split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
-    const audit = Array.isArray(item.audit) ? item.audit.slice(-4).reverse() : [];
-    const verificationText = item.verified
-      ? `Ким перевірено: ${escapeHtml(item.verifiedBy || 'адмін')} · ${formatDate(item.verifiedAt)}`
-      : 'Ким перевірено: ще не перевірено · бейдж на сайті не показується';
+    const audit = Array.isArray(item.audit) ? item.audit.filter(entry => entry.field === 'verified').slice(-4).reverse() : [];
+    const verificationText = item.verified ? `<small class="review-verified is-verified">Ким перевірено: ${escapeHtml(item.verifiedBy || 'адмін')} · ${formatDate(item.verifiedAt)}</small>` : '';
     return `<article class="moderation-item" data-id="${item._id}">
       <div class="moderation-avatar">${escapeHtml(initials)}</div>
-      <div><span class="view-caption">${'★'.repeat(Number(item.rating || 5))} · ${escapeHtml(statusLabels[item.status]?.[0] || item.status)}</span><h3>${escapeHtml(item.name)}</h3><p>«${escapeHtml(item.text)}»</p><small>${escapeHtml(item.city || 'Місто не вказано')} · ${formatDate(item.createdAt)}</small><small class="review-verified ${item.verified ? 'is-verified' : ''}">${verificationText}</small>${audit.length ? `<ul class="review-audit">${audit.map(entry => `<li><b>${escapeHtml(entry.user || 'admin')}</b> змінив ${escapeHtml(entry.field || 'поле')} · ${formatDate(entry.at)}</li>`).join('')}</ul>` : ''}</div>
+      <div><span class="view-caption">${'★'.repeat(Number(item.rating || 5))} · ${escapeHtml(statusLabels[item.status]?.[0] || item.status)}</span><h3>${escapeHtml(item.name)}</h3><p>«${escapeHtml(item.text)}»</p><small>${escapeHtml(item.city || 'Місто не вказано')} · ${formatDate(item.createdAt)}</small>${verificationText}${audit.length ? `<ul class="review-audit">${audit.map(entry => `<li><b>${escapeHtml(entry.user || 'admin')}</b> змінив ${escapeHtml(entry.field || 'поле')} · ${formatDate(entry.at)}</li>`).join('')}</ul>` : ''}</div>
       <div class="review-editor"><textarea rows="3" placeholder="Відповідь компанії">${escapeHtml(item.reply || '')}</textarea><div><button class="secondary-admin review-hide" type="button">Приховати</button><button class="primary-admin review-publish" type="button">${item.status === 'published' ? 'Оновити відповідь' : 'Відповісти й перевірити'}</button><button class="secondary-admin danger-admin review-delete" type="button">Видалити</button></div><small class="operation-note" aria-live="polite"></small></div>
     </article>`;
   }).join('');
@@ -349,10 +351,10 @@ function renderQuestions() {
     <article class="question-item" data-id="${item._id}">
       <div><span class="view-caption">${escapeHtml(item.author || 'Гість')} · ${escapeHtml(item.city || 'Україна')} · ${formatDate(item.createdAt)}</span>
         <input class="question-title" value="${escapeHtml(item.title)}">
-        <textarea class="question-answer" rows="3" placeholder="Відповідь інженера">${escapeHtml(item.answers?.[0]?.text || '')}</textarea>
+        <textarea class="question-answer" rows="3" placeholder="Відповідь інженера">${escapeHtml(item.answers?.find(answer => answer.role === 'engineer')?.text || '')}</textarea>
       </div>
       <aside>
-        <label>Статус<select class="question-status"><option value="open">Відкрите</option><option value="answered">Є відповідь</option></select></label>
+        <label>Статус<select class="question-status"><option value="open">Відкрите</option><option value="discussion">Обговорення</option><option value="answered">Є відповідь інженера</option></select></label>
         <small>${Number(item.likes || 0)} корисно</small>
         <button class="primary-admin question-save" type="button">Відповісти</button>
         <button class="secondary-admin danger-admin question-delete" type="button">Видалити</button>
@@ -363,10 +365,11 @@ function renderQuestions() {
     $('.question-status', card).value = item.status || 'open';
     $('.question-save', card).addEventListener('click', async () => {
       const answer = $('.question-answer', card).value.trim();
+      const communityAnswers = (item.answers || []).filter(entry => entry.role !== 'engineer');
       const payload = {
         title: $('.question-title', card).value.trim(),
         status: answer ? 'answered' : $('.question-status', card).value,
-        answers: answer ? [{ author: currentAdmin?.name || 'ІНК', role: 'engineer', text: answer, createdAt: new Date().toISOString() }] : []
+        answers: answer ? [...communityAnswers, { author: currentAdmin?.name || 'ІНК', role: 'engineer', text: answer, createdAt: new Date().toISOString() }] : communityAnswers
       };
       await api(`/api/questions/${card.dataset.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
       await loadCollection('questions');
@@ -484,6 +487,19 @@ function renderEquipment() {
   $$('.delete-equipment', list).forEach(button => button.addEventListener('click', () => removeItem('equipment', button.closest('article').dataset.id)));
 }
 
+function renderUsers() {
+  const list = $('#user-list');
+  if (!list) return;
+  if (!state.users.length) { list.innerHTML = emptyState('Користувачів немає', 'Створіть перший обліковий запис адміністратора.'); return; }
+  list.innerHTML = state.users.map(item => `<div data-id="${escapeHtml(String(item._id))}"><span class="content-icon">${escapeHtml((item.username || '?').slice(0,2).toUpperCase())}</span><section><b>${escapeHtml(item.role || 'admin')} · ${escapeHtml(statusLabels[item.status]?.[0] || item.status)}</b><h3>${escapeHtml(item.username)}</h3><p>Створено: ${formatDate(item.createdAt)} · пароль зберігається лише як захищений хеш</p></section><button class="edit-user" type="button">Змінити</button><button class="delete-user danger-link" type="button">Видалити</button></div>`).join('');
+  $$('.edit-user', list).forEach(button => button.addEventListener('click', () => openContentDialog('users', state.users.find(item => String(item._id) === button.closest('div').dataset.id))));
+  $$('.delete-user', list).forEach(button => button.addEventListener('click', async () => {
+    if (!confirm('Видалити користувача CRM?')) return;
+    try { await api(`/api/users/${button.closest('div').dataset.id}`, {method:'DELETE'}); await loadCollection('users'); renderUsers(); }
+    catch (error) { showApiNotice(`Не вдалося видалити користувача: ${error.message}`); }
+  }));
+}
+
 async function removeItem(type, id) {
   if (!confirm('Видалити запис?')) return;
   await api(`/api/${type}/${id}`, { method: 'DELETE' });
@@ -493,7 +509,7 @@ async function removeItem(type, id) {
 }
 
 function renderByType(type) {
-  ({ leads: renderLeads, reviews: renderReviews, questions: renderQuestions, faqs: renderFaqs, projects: renderProjects, articles: renderArticles, equipment: renderEquipment }[type])?.();
+  ({ leads: renderLeads, reviews: renderReviews, questions: renderQuestions, faqs: renderFaqs, projects: renderProjects, articles: renderArticles, equipment: renderEquipment, users: renderUsers }[type])?.();
 }
 
 const dialog = $('#content-dialog');
@@ -508,7 +524,8 @@ const configs = {
   faqs: { title: 'короткий FAQ', fields: [['question', 'Питання', 'text', true], ['answer', 'Відповідь', 'textarea', true], ['status', 'Статус', 'select', false, ['active', 'draft']]] },
   projects: { title: "об'єкт", fields: [['title', 'Назва', 'text', true], ['city', 'Локація', 'text'], ['type', 'Тип об’єкта', 'text'], ['description', 'Опис', 'textarea'], ['imageFile', 'Фото об’єкта', 'file'], ['status', 'Статус', 'select', false, ['published', 'draft']]] },
   articles: { title: 'статтю', fields: [['title', 'Назва', 'text', true], ['slug', 'Адреса сторінки (латиницею, без пробілів)', 'text'], ['category', 'Категорія', 'text'], ['excerpt', 'Короткий SEO-опис', 'textarea'], ['body', 'Повний текст статті', 'textarea'], ['imageFiles', 'Фото статті (можна кілька)', 'files'], ['status', 'Статус', 'select', false, ['published', 'draft']]] },
-  equipment: { title: 'модель обладнання', fields: [['brand', 'Бренд', 'text', true], ['model', 'Модель', 'text', true], ['power', 'Потужність', 'text'], ['phase', 'Фази', 'text'], ['voltage', 'Напруга', 'text'], ['price', 'Ціна / діапазон', 'text'], ['description', 'Опис для сайту', 'textarea'], ['imageFiles', 'Фото моделі (можна кілька)', 'files'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] }
+  equipment: { title: 'модель обладнання', fields: [['brand', 'Бренд', 'text', true], ['model', 'Модель', 'text', true], ['power', 'Потужність', 'text'], ['phase', 'Фази', 'text'], ['voltage', 'Напруга', 'text'], ['price', 'Ціна / діапазон', 'text'], ['description', 'Опис для сайту', 'textarea'], ['imageFiles', 'Фото моделі (можна кілька)', 'files'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] },
+  users: { title: 'користувача CRM', fields: [['username', "Ім'я користувача", 'text', true], ['password', 'Новий пароль (мінімум 8 символів)', 'password'], ['status', 'Доступ', 'select', false, ['active', 'disabled']]] }
 };
 
 function fieldTemplate([name, label, type, required, options = []], item = {}) {
@@ -526,6 +543,11 @@ function openContentDialog(type, item = null) {
   dialog.dataset.type = type;
   dialogTitle.textContent = `${item ? 'Редагувати' : 'Створити'}: ${config.title}`;
   form.innerHTML = `${config.fields.map(field => fieldTemplate(field, item || {})).join('')}<div class="dialog-actions"><button type="button" class="secondary-admin dialog-cancel">Скасувати</button><button type="submit" class="primary-admin">${item ? 'Зберегти зміни' : 'Створити'}</button></div>`;
+  if (type === 'users') {
+    const password = form.querySelector('input[name="password"]');
+    password.required = !item;
+    password.placeholder = item ? 'Залиште порожнім, щоб не змінювати' : 'Щонайменше 8 символів';
+  }
   $('.dialog-cancel', form).addEventListener('click', () => dialog.close());
   dialog.showModal();
 }
@@ -557,6 +579,7 @@ form.addEventListener('submit', async event => {
     data.likes = 0;
     data.answers = answer ? [{ author: currentAdmin?.name || 'ІНК', role: 'engineer', text: answer, createdAt: new Date().toISOString() }] : [];
   }
+  if (activeType === 'users' && !String(data.password || '').trim()) delete data.password;
   const fileInput = form.querySelector('input[type="file"]');
   const files = [...(fileInput?.files || [])];
   const file = files[0];
@@ -598,15 +621,18 @@ $('#add-faq')?.addEventListener('click', () => openContentDialog('faqs'));
 $('#add-project')?.addEventListener('click', () => openContentDialog('projects'));
 $('#add-article')?.addEventListener('click', () => openContentDialog('articles'));
 $('#add-equipment')?.addEventListener('click', () => openContentDialog('equipment'));
+$('#add-user')?.addEventListener('click', () => openContentDialog('users'));
 $('.dialog-x')?.addEventListener('click', () => dialog.close());
 $('.save-settings')?.addEventListener('click', event => {
   event.currentTarget.textContent = 'Збережено ✓';
   setTimeout(() => { event.currentTarget.textContent = 'Зберегти зміни'; }, 1600);
 });
-$('#logout')?.addEventListener('click', async () => {
-  await api('/api/auth/logout', { method: 'POST', body: JSON.stringify({}) });
-  location.href = '/admin-login.html';
-});
+async function endAdminSession() {
+  try { await api('/api/auth/logout', { method: 'POST', body: JSON.stringify({}) }); }
+  finally { location.href = '/admin-login.html'; }
+}
+$('#logout')?.addEventListener('click', endAdminSession);
+$('#switch-user')?.addEventListener('click', endAdminSession);
 
 api('/api/auth/me')
   .then(data => {

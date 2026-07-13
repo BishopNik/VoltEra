@@ -36,7 +36,7 @@ MONGODB_URI=mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/?retryWrites=true&w=
 MONGODB_DB=ink_energy
 ```
 
-`MONGODB_URI` містить логін і пароль користувача MongoDB. `ADMIN_PASSWORD` — пароль входу в адмінку. `SECRET_KEY` — секрет застосунку для підпису session-cookie адмінки. `ADMIN_USERS` — список логінів CRM через кому з однаковими правами; якщо не заданий, сервер використовує `admin`, `Kostia` і `Pasha`.
+`MONGODB_URI` містить логін і пароль користувача MongoDB. `SECRET_KEY` — секрет застосунку для підпису session-cookie адмінки. `ADMIN_USERS` і `ADMIN_PASSWORD` потрібні лише для першого запуску: якщо collection `users` порожня, сервер створює початкових адміністраторів із захищеними хешами паролів. Далі користувачі, паролі й блокування керуються у розділі «Користувачі» CRM та зберігаються в MongoDB.
 
 Не надсилай мені пароль у відкритому чаті, якщо не потрібно. Достатньо сказати, що URI готовий, або вставити його в `.env` локально.
 
