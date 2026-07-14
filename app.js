@@ -1,6 +1,51 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[char]));
+function renderSimpleMarkdown(value = '') {
+  const inline = line => escapeHtml(line)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__(.+?)__/g, '<strong>$1</strong>');
+  const output = [];
+  let paragraph = [];
+  let list = [];
+  let listType = 'ul';
+  const flushParagraph = () => {
+    if (!paragraph.length) return;
+    output.push(`<p>${paragraph.join('<br>')}</p>`);
+    paragraph = [];
+  };
+  const flushList = () => {
+    if (!list.length) return;
+    output.push(`<${listType}>${list.map(item => `<li>${item}</li>`).join('')}</${listType}>`);
+    list = [];
+  };
+  String(value).replace(/\r/g, '').split('\n').forEach(rawLine => {
+    const line = rawLine.trim();
+    if (!line) { flushParagraph(); flushList(); return; }
+    const heading = line.match(/^(#{1,4})\s+(.+)$/);
+    const standaloneBold = line.match(/^\*\*(.+)\*\*$/);
+    const unorderedItem = line.match(/^(?:[-*•])\s+(.+)$/);
+    const orderedItem = line.match(/^\d+[.)]\s+(.+)$/);
+    if (heading || standaloneBold) {
+      flushParagraph(); flushList();
+      output.push(`<h3>${inline(heading ? heading[2] : standaloneBold[1])}</h3>`);
+      return;
+    }
+    if (unorderedItem || orderedItem) {
+      flushParagraph();
+      const nextType = orderedItem ? 'ol' : 'ul';
+      if (list.length && listType !== nextType) flushList();
+      listType = nextType;
+      list.push(inline((unorderedItem || orderedItem)[1]));
+      return;
+    }
+    flushList();
+    paragraph.push(inline(line));
+  });
+  flushParagraph();
+  flushList();
+  return output.join('');
+}
 const pageLang = () => new URLSearchParams(location.search).get('lang') || localStorage.getItem('ink-lang') || 'uk';
 const uiText = (uk, en) => pageLang() === 'en' ? en : uk;
 const communityHref = () => pageLang() === 'en' ? '/community.html?lang=en' : '/community.html';
@@ -479,7 +524,7 @@ function openEquipment(item) {
     $$('button', gallery).forEach(item => item.classList.toggle('is-active', item === button));
   }));
   $('h2', equipmentDialog).textContent = `${item.brand || 'ІНК'} ${item.model || ''}`.trim();
-  $('.equipment-dialog-copy', equipmentDialog).textContent = item.description || 'Модель використовується в проєктних системах ІНК. Точну сумісність, комплектацію й ціну інженер підтвердить після карти навантажень.';
+  $('.equipment-dialog-copy', equipmentDialog).innerHTML = renderSimpleMarkdown(item.description || 'Модель використовується в проєктних системах ІНК. Точну сумісність, комплектацію й ціну інженер підтвердить після карти навантажень.');
   $('[data-equipment-field="power"]', equipmentDialog).textContent = item.power || '—';
   $('[data-equipment-field="grid"]', equipmentDialog).textContent = [item.phase, item.voltage].filter(Boolean).join(' · ') || '—';
   $('[data-equipment-field="price"]', equipmentDialog).textContent = item.price || 'За запитом';
