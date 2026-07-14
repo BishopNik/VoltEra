@@ -78,7 +78,12 @@ async function api(path, options = {}) {
       ...options
     });
     if (response.status === 401) {
-      location.href = '/admin-login.html';
+      document.body.classList.add('auth-redirecting');
+      const loadingTitle = $('#admin-loading-title');
+      const loadingMessage = $('#admin-loading-message');
+      if (loadingTitle) loadingTitle.textContent = 'Переходимо до входу';
+      if (loadingMessage) loadingMessage.textContent = 'Сесію не знайдено або її термін завершився';
+      location.replace('/admin-login.html');
       throw new Error('AUTH_REQUIRED');
     }
     const raw = await response.text();
@@ -490,8 +495,15 @@ function renderEquipment() {
 function renderUsers() {
   const list = $('#user-list');
   if (!list) return;
-  if (!state.users.length) { list.innerHTML = emptyState('Користувачів немає', 'Створіть перший обліковий запис адміністратора.'); return; }
-  list.innerHTML = state.users.map(item => `<div data-id="${escapeHtml(String(item._id))}"><span class="content-icon">${escapeHtml((item.username || '?').slice(0,2).toUpperCase())}</span><section><b>${escapeHtml(item.role || 'admin')} · ${escapeHtml(statusLabels[item.status]?.[0] || item.status)}</b><h3>${escapeHtml(item.username)}</h3><p>Створено: ${formatDate(item.createdAt)} · пароль зберігається лише як захищений хеш</p></section><button class="edit-user" type="button">Змінити</button><button class="delete-user danger-link" type="button">Видалити</button></div>`).join('');
+  const canManageUsers = currentAdmin?.role === 'admin';
+  if (!state.users.length) { list.innerHTML = emptyState('Користувачів немає', canManageUsers ? 'Створіть перший обліковий запис співробітника.' : 'Облікові записи співробітників ще не додано.'); return; }
+  list.innerHTML = state.users.map(item => {
+    const isSelf = String(item._id) === String(currentAdmin?.id) || String(item.username) === String(currentAdmin?.name);
+    const roleLabel = item.role === 'admin' ? 'Основний адміністратор' : 'Співробітник компанії';
+    const canEditThisAccount = canManageUsers || isSelf;
+    const accessNote = !canManageUsers && !isSelf ? ' · керування доступне власнику акаунта' : '';
+    return `<div data-id="${escapeHtml(String(item._id))}"><span class="content-icon">${escapeHtml((item.username || '?').slice(0,2).toUpperCase())}</span><section><b>${roleLabel} · ${escapeHtml(statusLabels[item.status]?.[0] || item.status)}</b><h3>${escapeHtml(item.username)}${isSelf ? ' · ви' : ''}</h3><p>Створено: ${formatDate(item.createdAt)} · пароль зберігається лише як захищений хеш${accessNote}</p></section><button class="edit-user" type="button" ${canEditThisAccount ? '' : 'disabled aria-label="Керування доступне лише власнику акаунта або основному адміністратору"'}>${canManageUsers ? 'Керувати' : isSelf ? 'Змінити пароль' : 'Лише власник'}</button>${canManageUsers && !isSelf ? '<button class="delete-user danger-link" type="button">Видалити</button>' : ''}</div>`;
+  }).join('');
   $$('.edit-user', list).forEach(button => button.addEventListener('click', () => openContentDialog('users', state.users.find(item => String(item._id) === button.closest('div').dataset.id))));
   $$('.delete-user', list).forEach(button => button.addEventListener('click', async () => {
     if (!confirm('Видалити користувача CRM?')) return;
@@ -540,13 +552,15 @@ function openContentDialog(type, item = null) {
   activeType = type;
   activeItem = item;
   const config = configs[type];
+  const ownPasswordOnly = type === 'users' && currentAdmin?.role !== 'admin';
+  const fields = ownPasswordOnly ? [['password', 'Новий пароль (мінімум 8 символів)', 'password', true]] : config.fields;
   dialog.dataset.type = type;
-  dialogTitle.textContent = `${item ? 'Редагувати' : 'Створити'}: ${config.title}`;
-  form.innerHTML = `${config.fields.map(field => fieldTemplate(field, item || {})).join('')}<div class="dialog-actions"><button type="button" class="secondary-admin dialog-cancel">Скасувати</button><button type="submit" class="primary-admin">${item ? 'Зберегти зміни' : 'Створити'}</button></div>`;
+  dialogTitle.textContent = ownPasswordOnly ? 'Змінити власний пароль' : `${item ? 'Редагувати' : 'Створити'}: ${config.title}`;
+  form.innerHTML = `${fields.map(field => fieldTemplate(field, item || {})).join('')}<div class="dialog-actions"><button type="button" class="secondary-admin dialog-cancel">Скасувати</button><button type="submit" class="primary-admin">${ownPasswordOnly ? 'Змінити пароль' : item ? 'Зберегти зміни' : 'Створити'}</button></div>`;
   if (type === 'users') {
     const password = form.querySelector('input[name="password"]');
-    password.required = !item;
-    password.placeholder = item ? 'Залиште порожнім, щоб не змінювати' : 'Щонайменше 8 символів';
+    password.required = ownPasswordOnly || !item;
+    password.placeholder = ownPasswordOnly ? 'Щонайменше 8 символів' : item ? 'Залиште порожнім, щоб не змінювати' : 'Щонайменше 8 символів';
   }
   $('.dialog-cancel', form).addEventListener('click', () => dialog.close());
   dialog.showModal();
@@ -632,20 +646,36 @@ async function endAdminSession() {
   finally { location.href = '/admin-login.html'; }
 }
 $('#logout')?.addEventListener('click', endAdminSession);
-$('#switch-user')?.addEventListener('click', endAdminSession);
 
 api('/api/auth/me')
   .then(data => {
     currentAdmin = data.user;
+    $$('[data-admin-shell]').forEach(element => { element.hidden = false; });
+    const loadingTitle = $('#admin-loading-title');
+    const loadingMessage = $('#admin-loading-message');
+    if (loadingTitle) loadingTitle.textContent = 'Синхронізуємо CRM';
+    if (loadingMessage) loadingMessage.textContent = 'Завантажуємо актуальні дані з бази';
     const userName = $('.admin-user strong');
     const userRole = $('.admin-user small');
+    const addUser = $('#add-user');
+    const usersHelp = $('#users-help');
     if (userName) userName.textContent = currentAdmin?.name || 'Admin';
-    if (userRole) userRole.textContent = 'Авторизовано · однакові права';
+    if (userRole) userRole.textContent = currentAdmin?.role === 'admin' ? 'Основний адміністратор' : 'Співробітник компанії';
+    if (addUser) addUser.hidden = currentAdmin?.role !== 'admin';
+    if (usersHelp && currentAdmin?.role !== 'admin') usersHelp.textContent = 'Ви бачите склад команди, але можете змінити пароль лише власного акаунта. Керування іншими обліковими записами доступне основному адміністратору.';
     return loadAll();
   })
   .catch(error => {
     if (error.message !== 'AUTH_REQUIRED') {
-      $('.admin-notice')?.replaceChildren(document.createTextNode(`Помилка API: ${error.message}`));
+      const loadingTitle = $('#admin-loading-title');
+      const loadingMessage = $('#admin-loading-message');
+      const loginLink = $('#admin-loading-login');
+      if (loadingTitle) loadingTitle.textContent = 'Не вдалося перевірити доступ';
+      if (loadingMessage) loadingMessage.textContent = `Помилка API: ${error.message}`;
+      if (loginLink) loginLink.hidden = false;
+      document.body.classList.add('auth-error');
     }
   })
-  .finally(() => document.body.classList.remove('is-loading'));
+  .finally(() => {
+    if (!document.body.classList.contains('auth-error') && !document.body.classList.contains('auth-redirecting')) document.body.classList.remove('is-loading');
+  });

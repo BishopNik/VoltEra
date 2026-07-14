@@ -96,13 +96,15 @@ function passwordMatches(password,user={}){
 }
 function safeUser(user={}){
   const {passwordHash,passwordSalt,...safe}=user;
-  return safe;
+  return {...safe,role:isPrimaryAdminName(user.username)?'admin':'user'};
 }
+function isPrimaryAdminName(username=''){return String(username).toLowerCase()===String(ADMIN_USER).toLowerCase()}
+function sessionUser(account={}){return {id:String(account._id),name:account.username,role:isPrimaryAdminName(account.username)?'admin':'user'}}
 async function ensureBootstrapUsers(){
   const users=await store.list('users');
   if(users.length)return;
   for(const username of ADMIN_USERS){
-    try{await store.create('users',{username,role:'admin',status:'active',...passwordRecord(ADMIN_PASSWORD)});}catch(error){if(error?.code!==11000)throw error;}
+    try{await store.create('users',{username,role:isPrimaryAdminName(username)?'admin':'user',status:'active',...passwordRecord(ADMIN_PASSWORD)});}catch(error){if(error?.code!==11000)throw error;}
   }
 }
 await ensureBootstrapUsers();
@@ -118,7 +120,7 @@ function currentUser(req){ return unpackSessionCookie(parseCookies(req).ink_sess
 async function activeSessionUser(req){
   const user=currentUser(req); if(!user)return null;
   const account=(await store.list('users')).find(item=>String(item._id)===String(user.id||'')||String(item.username)===String(user.name));
-  return account?.status==='active'?user:null;
+  return account?.status==='active'?sessionUser(account):null;
 }
 async function requireAdmin(req,res){ const user=await activeSessionUser(req); if(!user){json(res,401,{error:'AUTH_REQUIRED'});return null} return user; }
 async function body(req,limit=2_500_000){ let size=0,data=''; for await(const chunk of req){size+=chunk.length;if(size>limit)throw new Error('PAYLOAD_TOO_LARGE');data+=chunk} return data?JSON.parse(data):{}; }
@@ -176,7 +178,7 @@ async function api(req,res,url){
     const input=await body(req);
     const account=(await store.list('users')).find(user=>compareSafe(String(input.user||''),String(user.username||'')));
     if(!account||account.status!=='active'||!passwordMatches(input.password||'',account))return json(res,401,{error:'INVALID_CREDENTIALS'});
-    const user={id:String(account._id),name:account.username,role:account.role||'admin'};
+    const user=sessionUser(account);
     return json(res,200,{user},{'Set-Cookie':sessionCookie(packSessionCookie({user,expires:Date.now()+28_800_000}))});
   }
   if(url.pathname==='/api/auth/me'){const user=await activeSessionUser(req);return user?json(res,200,{user}):json(res,401,{error:'AUTH_REQUIRED'});}
@@ -189,29 +191,39 @@ async function api(req,res,url){
   if(userMatch){
     const admin=await requireAdmin(req,res); if(!admin)return;
     const id=userMatch[1];
-    if(req.method==='GET')return json(res,200,(await store.list('users')).map(safeUser));
+    const canManageUsers=admin.role==='admin';
+    if(req.method==='GET'){
+      const users=await store.list('users');
+      return json(res,200,users.map(safeUser));
+    }
     if(req.method==='POST'){
+      if(!canManageUsers)return json(res,403,{error:'ADMIN_ONLY'});
       const input=await body(req); const username=String(input.username||'').trim(); const password=String(input.password||'');
       if(username.length<2||password.length<8)return json(res,400,{error:'USER_FIELDS_REQUIRED'});
       if((await store.list('users')).some(user=>String(user.username).toLowerCase()===username.toLowerCase()))return json(res,409,{error:'USER_EXISTS'});
-      return json(res,201,safeUser(await store.create('users',{username,role:'admin',status:input.status==='disabled'?'disabled':'active',...passwordRecord(password)})));
+      return json(res,201,safeUser(await store.create('users',{username,role:'user',status:input.status==='disabled'?'disabled':'active',...passwordRecord(password)})));
     }
     if(!id)return json(res,400,{error:'ID_REQUIRED'});
     const users=await store.list('users'); const previous=users.find(user=>String(user._id)===id);
     if(!previous)return json(res,404,{error:'NOT_FOUND'});
+    const isSelf=String(admin.id||'')===id||String(previous.username)===String(admin.name);
     if(req.method==='PATCH'){
       const input=await body(req); const update={};
-      if(input.username!==undefined){ const username=String(input.username).trim(); if(username.length<2)return json(res,400,{error:'INVALID_USERNAME'}); if(users.some(user=>String(user._id)!==id&&String(user.username).toLowerCase()===username.toLowerCase()))return json(res,409,{error:'USER_EXISTS'}); update.username=username; }
+      if(!canManageUsers&&!isSelf)return json(res,403,{error:'OWN_PASSWORD_ONLY'});
+      if(!canManageUsers&&(input.username!==undefined||input.status!==undefined))return json(res,403,{error:'OWN_PASSWORD_ONLY'});
+      if(input.username!==undefined){ const username=String(input.username).trim(); if(isPrimaryAdminName(previous.username)&&!isPrimaryAdminName(username))return json(res,400,{error:'PRIMARY_USERNAME_LOCKED'}); if(username.length<2)return json(res,400,{error:'INVALID_USERNAME'}); if(users.some(user=>String(user._id)!==id&&String(user.username).toLowerCase()===username.toLowerCase()))return json(res,409,{error:'USER_EXISTS'}); update.username=username; }
       if(input.status!==undefined){
         update.status=input.status==='disabled'?'disabled':'active';
-        if(update.status==='disabled'&&(String(admin.id||'')===id||String(previous.username)===String(admin.name)))return json(res,400,{error:'CANNOT_DISABLE_SELF'});
+        if(update.status==='disabled'&&isSelf)return json(res,400,{error:'CANNOT_DISABLE_SELF'});
         if(update.status==='disabled'&&previous.status==='active'&&users.filter(user=>user.status==='active').length<=1)return json(res,400,{error:'LAST_ADMIN'});
       }
       if(input.password){ if(String(input.password).length<8)return json(res,400,{error:'PASSWORD_TOO_SHORT'}); Object.assign(update,passwordRecord(input.password)); }
+      if(!canManageUsers&&!input.password)return json(res,400,{error:'PASSWORD_REQUIRED'});
       return json(res,200,safeUser(await store.update('users',id,update)));
     }
     if(req.method==='DELETE'){
-      if(String(admin.id||'')===id||String(previous.username)===String(admin.name))return json(res,400,{error:'CANNOT_DELETE_SELF'});
+      if(!canManageUsers)return json(res,403,{error:'ADMIN_ONLY'});
+      if(isSelf)return json(res,400,{error:'CANNOT_DELETE_SELF'});
       if(previous.status==='active'&&users.filter(user=>user.status==='active').length<=1)return json(res,400,{error:'LAST_ADMIN'});
       return json(res,(await store.remove('users',id))?200:404,{ok:true});
     }
