@@ -669,13 +669,15 @@ function renderTopicCard(question, isNew = false) {
 }
 let faqPage = 1;
 let faqItems = [];
+const FAQ_PAGE_SIZE = 5;
 function renderFaqPage() {
   const accordion = $('.accordion');
   const pagination = $('.faq-pagination');
-  const pages = Math.max(1, Math.ceil(faqItems.length / 5));
+  const pages = Math.max(1, Math.ceil(faqItems.length / FAQ_PAGE_SIZE));
   faqPage = Math.min(Math.max(1, faqPage), pages);
-  const faqs = faqItems.slice((faqPage - 1) * 5, faqPage * 5);
-  accordion.innerHTML = faqs.map((item, index) => `<button class="faq-question" type="button" data-api-faq="${index}"><span>${escapeHtml(item.question)}</span><i>↓</i></button>`).join('');
+  const faqs = faqItems.slice((faqPage - 1) * FAQ_PAGE_SIZE, faqPage * FAQ_PAGE_SIZE);
+  const reservedRows = Math.max(0, FAQ_PAGE_SIZE - faqs.length);
+  accordion.innerHTML = `${faqs.map((item, index) => `<button class="faq-question" type="button" data-api-faq="${index}"><span>${escapeHtml(item.question)}</span><i>↓</i></button>`).join('')}${Array.from({ length: reservedRows }, () => '<div class="faq-question-placeholder" aria-hidden="true"></div>').join('')}`;
   const pageButtons = Array.from({length:pages},(_,index)=>index+1).map(page => `<button type="button" data-faq-page="${page}" class="${page===faqPage?'is-current':''}" aria-label="Сторінка ${page}">${page}</button>`).join('');
   pagination.innerHTML = `<button type="button" data-faq-nav="first" ${faqPage===1?'disabled':''} aria-label="Перша сторінка">«</button><button type="button" data-faq-nav="prev" ${faqPage===1?'disabled':''} aria-label="Попередня сторінка">‹</button>${pageButtons}<button type="button" data-faq-nav="next" ${faqPage===pages?'disabled':''} aria-label="Наступна сторінка">›</button><button type="button" data-faq-nav="last" ${faqPage===pages?'disabled':''} aria-label="Остання сторінка">»</button>`;
   const faqSchema = $('#faq-schema');
