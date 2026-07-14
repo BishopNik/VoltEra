@@ -512,8 +512,19 @@ function renderEquipment() {
   const list = $('#equipment-list');
   if (!list) return;
   if (!state.equipment.length) { list.innerHTML = emptyState('Каталог порожній', 'Додайте першу модель обладнання.'); return; }
-  list.innerHTML = state.equipment.map(item => `
-    <article data-id="${item._id}"><span>${escapeHtml(item.brand)}</span><h3>${escapeHtml(item.model)}</h3><p>${escapeHtml(item.power || '—')} · ${escapeHtml(item.phase || '—')} · ${escapeHtml(item.voltage || '—')}</p><small>${item.images?.length || (item.image ? 1 : 0)} фото</small><div>${statusBadge(item.status || 'active')}<button class="edit-equipment" type="button">Налаштувати</button><button class="delete-equipment danger-link" type="button">Видалити</button></div></article>`).join('');
+  list.innerHTML = state.equipment.map(item => {
+    const images = [...new Set([...(Array.isArray(item.images) ? item.images : []), item.image].filter(Boolean))];
+    const media = images.length
+      ? `<div class="equipment-admin-media"><img src="${escapeHtml(images[0])}" alt="${escapeHtml(`${item.brand || ''} ${item.model || ''}`.trim())}" loading="lazy"><span>${images.length} ${images.length === 1 ? 'фото' : 'фото'}</span></div>`
+      : '<div class="equipment-admin-media is-empty"><span>Фото не додано</span></div>';
+    return `<article data-id="${item._id}">${media}<span class="equipment-admin-brand">${escapeHtml(item.brand)}</span><h3>${escapeHtml(item.model)}</h3><p>${escapeHtml(item.power || '—')} · ${escapeHtml(item.phase || '—')} · ${escapeHtml(item.voltage || '—')}</p><div>${statusBadge(item.status || 'active')}<button class="edit-equipment" type="button">Налаштувати</button><button class="delete-equipment danger-link" type="button">Видалити</button></div></article>`;
+  }).join('');
+  $$('.equipment-admin-media img', list).forEach(image => image.addEventListener('error', () => {
+    const media = image.parentElement;
+    image.remove();
+    media.classList.add('is-empty');
+    media.querySelector('span').textContent = 'Фото недоступне';
+  }, { once:true }));
   $$('.edit-equipment', list).forEach(button => button.addEventListener('click', () => openContentDialog('equipment', state.equipment.find(item => String(item._id) === button.closest('article').dataset.id))));
   $$('.delete-equipment', list).forEach(button => button.addEventListener('click', () => removeItem('equipment', button.closest('article').dataset.id)));
 }
