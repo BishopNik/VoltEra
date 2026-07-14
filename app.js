@@ -532,6 +532,9 @@ function openEquipment(item) {
   activeEquipmentItem = item;
   equipmentReturnY = window.scrollY;
   equipmentRestoreScroll = true;
+  const contentPane = equipmentDialog.querySelector(':scope > div');
+  if (contentPane) contentPane.scrollTop = 0;
+  equipmentDialog.scrollTop = 0;
   const images = Array.isArray(item.images) && item.images.length ? item.images : [item.image || '/assets/projects/home-backup.jpg'];
   const image = images[0];
   const mainImage = $('img', equipmentDialog);
@@ -569,6 +572,10 @@ function openEquipment(item) {
   if (orderStatus) orderStatus.textContent = '';
   if (typeof equipmentDialog.showModal === 'function') equipmentDialog.showModal();
   else equipmentDialog.setAttribute('open', '');
+  requestAnimationFrame(() => {
+    if (contentPane) contentPane.scrollTop = 0;
+    equipmentDialog.scrollTop = 0;
+  });
   requestAnimationFrame(() => window.scrollTo({ top: equipmentReturnY, left: window.scrollX, behavior: 'auto' }));
 }
 
@@ -1011,7 +1018,7 @@ function setupSectionJumpMenus() {
     const jump = document.createElement('nav');
     jump.className = 'section-jump';
     jump.setAttribute('aria-label', uiText('Швидкий перехід між розділами', 'Quick section navigation'));
-    jump.innerHTML = `<button class="section-jump-trigger" type="button" aria-expanded="false" aria-label="${escapeHtml(uiText('Відкрити меню розділів', 'Open section menu'))}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 18 18 6M9 6h9v9"/></svg></button><div class="section-jump-menu"><strong>${escapeHtml(uiText('Перейти до розділу', 'Go to section'))}</strong>${links(id)}</div>`;
+    jump.innerHTML = `<button class="section-jump-trigger" type="button" aria-expanded="false" aria-label="${escapeHtml(uiText('Відкрити меню розділів', 'Open section menu'))}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 18 18 6M9 6h9v9"/></svg></button><div class="section-jump-menu"><strong>${escapeHtml(uiText('Перейти до розділу', 'Go to section'))}</strong><a class="section-jump-top" href="#top"><span>${escapeHtml(uiText('На початок сторінки', 'Back to top'))}</span><i>↑</i></a>${links(id)}</div>`;
     section.append(jump);
     const trigger = $('.section-jump-trigger', jump);
     trigger.addEventListener('click', event => {
