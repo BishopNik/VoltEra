@@ -4,6 +4,213 @@
     en: { label: 'EN', htmlLang: 'en' }
   };
 
+  // Exact UI copy that is shared by static cards, dialog chrome and form options.
+  // Keeping it here prevents page sections from carrying their own ad-hoc translations.
+  const I18N_TEXT_PAIRS = [
+    ['ОСНОВНІ ІНВЕРТОРИ', 'CORE INVERTER BRANDS'],
+    ['«Ваш спокій — наш єдиний сигнал,', '“Your peace of mind is our only signal'],
+    ['що система справді працює».', 'that the system is truly working.”'],
+    ['Ми розуміємо проблему не як “немає струму”, а як втрату контролю. Повертаємо контроль — розрахунком, чесним підбором і підтримкою після монтажу.', 'We see the problem not simply as “no power”, but as a loss of control. We restore control through accurate calculations, honest selection and post-installation support.'],
+    ['Гібридний інвертор', 'Hybrid inverter'],
+    ['Перемикання до 10 мс', 'Switching within 10 ms'],
+    ['Віддалений контроль', 'Remote control'],
+    ['LiFePO4 батареї', 'LiFePO4 batteries'],
+    ['Інвертор для дому', 'Home inverter'],
+    ['Сонячні панелі', 'Solar panels'],
+    ['Сонячні панелі для дому', 'Solar panels for your home'],
+    ['Smart monitoring', 'Smart monitoring'],
+    ['Дивитися технології', 'Explore technology'],
+    ['У кожного бренду є сильний сценарій. Ми порівнюємо навантаження, бюджет, масштабування й сервіс — і пояснюємо вибір людською мовою.', 'Each brand has a scenario where it excels. We compare load, budget, scalability and service, then explain the choice in plain language.'],
+    ['Архітектор', 'Architect'],
+    ['Для складних гібридних систем, сонця, генератора й масштабування. Коли потрібна гнучка логіка та запас на майбутнє.', 'For complex hybrid systems, solar, generators and future expansion. Choose it when flexible control logic and headroom matter.'],
+    ['1 / 3 фази', '1 / 3 phases'],
+    ['Паралельна робота', 'Parallel operation'],
+    ['НАЙЧАСТІШЕ ОБИРАЮТЬ', 'MOST POPULAR'],
+    ['Раціоналіст', 'Pragmatist'],
+    ['Збалансоване резервне живлення квартири чи будинку. Коли важливі доступність, зрозумілий функціонал і швидкий старт.', 'Balanced backup power for an apartment or house. A strong choice when affordability, clear features and a fast launch matter.'],
+    ['Чистий синус', 'Pure sine wave'],
+    ['MPPT контролер', 'MPPT controller'],
+    ['Wi-Fi моніторинг*', 'Wi-Fi monitoring*'],
+    ['Практик', 'Practical choice'],
+    ['Для базового автономного контуру, дачі, майстерні чи компактного будинку. Функціонально, без зайвої складності.', 'For a basic off-grid circuit, cottage, workshop or compact home. Functional without unnecessary complexity.'],
+    ['Off-grid сценарії', 'Off-grid scenarios'],
+    ['Широкий MPPT', 'Wide MPPT range'],
+    ['Гнучкі налаштування', 'Flexible settings'],
+    ['Порівняти для мене ↗', 'Compare for me ↗'],
+    ['* Функції залежать від конкретної моделі та прошивки. Сумісність перевіряємо до формування пропозиції.', '* Features depend on the specific model and firmware. We verify compatibility before preparing an offer.'],
+    ["Карта спокою / об'єкт №042", 'Peace-of-mind map / project No. 042'],
+    ['Спокій — це', 'Peace of mind means'],
+    ['чотири перевірки.', 'four verified steps.'],
+    ['ІНДЕКС СПОКОЮ', 'PEACE-OF-MIND INDEX'],
+    ['Навантаження пораховано', 'Load calculated'],
+    ['Резерв перевірено під навантаженням', 'Backup tested under load'],
+    ['Клієнт бачить систему в застосунку', 'Client can monitor the system in the app'],
+    ['Контрольний дзвінок через 7 днів', 'Follow-up call after 7 days'],
+    ['Активний', 'Active'],
+    ['На перевірці', 'Under review'],
+    ['Детальніше ↗', 'Details ↗'],
+    ['1 фаза', '1 phase'],
+    ['Комплекти, які адаптуються під ваші звички, потужність і майбутнє розширення.', 'System packages that adapt to your habits, required power and future expansion.'],
+    ['Усі', 'All'],
+    ['Дім', 'Home'],
+    ['Бізнес', 'Business'],
+    ['Сонце', 'Solar'],
+    ['проєктний', 'project-based'],
+    ['ВИБІР ІНК', 'INK CHOICE'],
+    ['інвертор', 'inverter'],
+    ['резерв', 'backup'],
+    ["Квартира або компактний будинок. Зв'язок, світло й базова техніка.", 'Apartment or compact home. Connectivity, lighting and essential appliances.'],
+    ['Холодильник + котел', 'Refrigerator + boiler'],
+    ['Світло + Wi-Fi', 'Lighting + Wi-Fi'],
+    ['Базова автономність', 'Essential runtime'],
+    ['Повноцінне життя будинку без компромісів під час відключень.', 'Keep your home running comfortably without outage compromises.'],
+    ['Насос + котел + кухня', 'Pump + boiler + kitchen'],
+    ['Можливість додати сонце', 'Solar-ready'],
+    ['Офіс, магазин чи ресторан. Система, що тримає ваш бізнес у русі.', 'Office, shop or restaurant. A system that keeps your business moving.'],
+    ['3-фазна архітектура', 'Three-phase architecture'],
+    ['Пріоритет критичних ліній', 'Critical-circuit priority'],
+    ['Дистанційний сервіс', 'Remote service'],
+    ['Максимум автономії там, де мережа нестабільна або її немає.', 'Maximum autonomy where the grid is unstable or unavailable.'],
+    ['Гібридна генерація', 'Hybrid generation'],
+    ['Прогноз погоди', 'Weather forecast integration'],
+    ['Масштабування батарей', 'Scalable battery capacity'],
+    ['Отримати розрахунок', 'Get a calculation'],
+    ['Коли світло вимикають часто', 'When outages are frequent'],
+    ['Безшовне перемикання за мілісекунди. Ви помітите відключення лише в застосунку.', 'Seamless switching in milliseconds. You will notice the outage only in the app.'],
+    ['Створити резерв', 'Build a backup system'],
+    ['Для квартири', 'For an apartment'],
+    ['Тихо, компактно, без вихлопів і складного обслуговування.', 'Quiet, compact, emission-free and easy to maintain.'],
+    ['Для бізнесу', 'For business'],
+    ['Каса, сервери, холодильники й команда продовжують працювати.', 'Checkout, servers, refrigeration and your team keep working.'],
+    ['Для економії', 'For savings'],
+    ['Заряджайтесь у дешеві години, споживайте — у пікові.', 'Charge during lower-cost hours and use stored energy at peak times.'],
+    ['Повна автономія', 'Full autonomy'],
+    ['Сонце, батарея та розумне керування в єдиному контурі.', 'Solar, battery and smart control in one integrated system.'],
+    ['Новий відгук', 'New review'],
+    ['Розкажіть, як працює ваша система', 'Tell us how your system performs'],
+    ["Ім'я", 'Name'],
+    ['Ваше ім\'я', 'Your name'],
+    ['Місто', 'City'],
+    ['Оцінка', 'Rating'],
+    ['Ваш відгук', 'Your review'],
+    ['Що змінилося після запуску системи?', 'What changed after the system was commissioned?'],
+    ['Опублікувати відгук ↗', 'Publish review ↗'],
+    ['Відгук одразу з’явиться на сайті. Позначка «Перевірений» додається лише після підтвердження компанією.', 'Your review appears immediately. The “Verified” badge is added only after company confirmation.'],
+    ['Приватний будинок', 'Private house'],
+    ['Квартира', 'Apartment'],
+    ['Офіс', 'Office'],
+    ['Магазин / ресторан', 'Shop / restaurant'],
+    ['Склад / виробництво', 'Warehouse / production'],
+    ['Інше', 'Other'],
+    ['Резервне живлення', 'Backup power'],
+    ['Повна система', 'Complete system'],
+    ['Потрібна порада', 'I need advice'],
+    ['Натискаючи кнопку, ви погоджуєтесь з політикою конфіденційності.', 'By submitting, you agree to the privacy policy.'],
+    ['Запит прийнято.', 'Enquiry received.'],
+    ["Дякуємо! Ми зв'яжемося з вами найближчим часом.", 'Thank you! We will contact you shortly.'],
+    ['Інвертор для дому', 'Home inverter'],
+    ['Резерв для бізнесу', 'Business backup'],
+    ['Технології', 'Technology'],
+    ['Калькулятор', 'Calculator'],
+    ['Питання та відповіді', 'Questions and answers'],
+    ['Паспорт об\'єкта', 'Project details'],
+    ['Автономність', 'Runtime'],
+    ['Перемикання', 'Switching'],
+    ['Монтаж', 'Installation'],
+    ['Каталог обладнання', 'Equipment catalogue'],
+    ['Потужність', 'Power'],
+    ['Фази / напруга', 'Phases / voltage'],
+    ['Ціна', 'Price'],
+    ['За запитом', 'On request'],
+    ['Коротко про важливе', 'Key questions'],
+    ['AI-підбір / 01', 'AI selection / 01'],
+    ['Де потрібна енергія?', 'Where do you need power?'],
+    ['Будинок', 'House'],
+    ['3 питання · близько 90 секунд', '3 questions · about 90 seconds'],
+    ['ІНК', 'INK'],
+    ['DC / СОНЦЕ', 'DC / SOLAR'],
+    ['AC / МЕРЕЖА', 'AC / GRID'],
+    ['ЗАРЯД', 'CHARGING'],
+    ['ЖИВЛЕННЯ', 'POWER'],
+    ['СОНЯЧНІ ПАНЕЛІ', 'SOLAR PANELS'],
+    ['БУДИНОК / СПОЖИВАЧ', 'HOME / LOAD'],
+    ['Мережа', 'Grid'],
+    ['ДЖЕРЕЛА', 'SOURCES'],
+    ['КЕРУВАННЯ', 'CONTROL'],
+    ['ЗБЕРІГАННЯ / СПОЖИВАННЯ', 'STORAGE / CONSUMPTION'],
+    ["* Поки реальні фото об'єктів готуються до публікації, у блоці використані демонстраційні візуалізації.", '* Demonstration visuals are shown while real project photos are being prepared for publication.'],
+    ['«Проблеми з нестачею напруги вирішили прекрасно! Рекомендою! Пізніше доставлю панелі та зможу ще економити. »', '“The low-voltage issues were solved perfectly. Highly recommended! I plan to add panels later and save even more.”'],
+    ['Дякую! Звертайтеся, коли надумаєте.', 'Thank you! Contact us whenever you are ready.'],
+    ['Микола', 'Mykola'],
+    ['Практика', 'Practical guide'],
+    ["5 приладів, які з'їдають автономність непомітно", '5 appliances that quietly drain your backup runtime'],
+    ['Рахуємо реальний вечір без мережі.', 'Calculating a real evening without grid power.'],
+    ['Сонце', 'Solar'],
+    ['Чи працюють сонячні панелі взимку та під час відключення?', 'Do solar panels work in winter and during an outage?'],
+    ['Дві різні відповіді для мережевої та гібридної станції.', 'Two different answers for grid-tied and hybrid systems.'],
+    ['Гід', 'Guide'],
+    ['Як вибрати інвертор для дому й не переплатити', 'How to choose a home inverter without overpaying'],
+    ['Потужність, пускові струми, фази та чесний розрахунок автономності.', 'Power, startup currents, phases and an honest runtime calculation.'],
+    ['Як поставити не на все?', 'Can backup power cover only part of the house?'],
+    ['Так. Якщо є можливість виконати перекомутацію в електрощиті, резервне живлення можна підключити лише до потрібної частини будинку.', 'Yes. If the switchboard can be rewired, backup power can cover only the required part of the house.'],
+    ['Микола · Миколаїв', 'Mykola · Mykolaiv'],
+    ['Чи потрібен професійний монтаж?', 'Is professional installation necessary?'],
+    ['Так. Потрібні правильний переріз кабелів, захист, розділення критичних ліній, налаштування BMS/інвертора і перевірка роботи під навантаженням. Це питання безпеки, а не лише зручності.', 'Yes. Correct cable sizing, protection, separation of critical circuits, BMS/inverter setup and load testing are essential. This is about safety, not only convenience.'],
+    ['ІНК · Україна', 'INK · Ukraine'],
+    ['Що краще для квартири: Deye, Anenji чи Easun?', 'Which is better for an apartment: Deye, Anenji or Easun?'],
+    ['Для квартири частіше дивимось на компактність, шум вентиляторів, чистий синус і простоту підключення. Deye кращий для складної гібридної логіки, Anenji — для раціонального резерву, Easun — для простіших off-grid сценаріїв.', 'For an apartment, compact size, fan noise, pure sine output and simple connection matter most. Deye suits complex hybrid logic, Anenji offers practical backup, and Easun works for simpler off-grid scenarios.'],
+    ['Чи можна додати сонячні панелі пізніше?', 'Can solar panels be added later?'],
+    ['Так. Якщо одразу закласти гібридний інвертор, автоматику й кабельні маршрути, панелі можна додати пізніше без переробки всієї системи.', 'Yes. If a hybrid inverter, protection and cable routes are planned from the start, panels can be added later without rebuilding the whole system.'],
+    ['Скільки реально працює батарея 5 кВт·год?', 'How long does a 5 kWh battery really last?'],
+    ['Корисна енергія зазвичай становить 80–88% номіналу через резерв BMS і втрати перетворення. При середньому навантаженні 400 Вт батарея 5 кВт·год дає орієнтовно 8–10 годин.', 'Usable energy is typically 80–88% of nominal capacity because of the BMS reserve and conversion losses. At an average 400 W load, a 5 kWh battery provides roughly 8–10 hours.'],
+    ['Який інвертор потрібен для будинку?', 'What inverter does a house need?'],
+    ['Для базового будинку часто достатньо 4–6 кВт, але насос, кондиціонер, електроплита або трифазні споживачі можуть вимагати 8–12 кВт і окремої схеми критичних ліній.', 'A basic house often needs 4–6 kW, but a pump, air conditioner, electric cooker or three-phase loads may require 8–12 kW and a dedicated critical-circuit layout.'],
+    ['ІНК · Львівщина', 'INK · Lviv region'],
+    ['Anenji чи Easun для квартири: що тихіше працює вночі?', 'Anenji or Easun for an apartment: which is quieter at night?'],
+    ['Наталя · Київ', 'Natalia · Kyiv'],
+    ['Чи можна до Deye спочатку підключити одну батарею, а за рік додати другу?', 'Can I connect one battery to Deye now and add another next year?'],
+    ['Так, якщо модель батареї підтримує паралельне масштабування, однакова напруга та сумісний протокол BMS.', 'Yes, if the battery model supports parallel expansion, uses the same voltage and has a compatible BMS protocol.'],
+    ['Ігор · Вінниця', 'Ihor · Vinnytsia'],
+    ['Скільки працює система від акумулятора?', 'How long will the system run from the battery?'],
+    ['Чи можна підключити резервне живлення тільки до частини будинку?', 'Can backup power cover only part of the house?'],
+    ['Чи підходять такі системи для бізнесу?', 'Are these systems suitable for business?'],
+    ['Консультація', 'Consultation'],
+    ['Будинок / Київщина', 'House / Kyiv region'],
+    ['Система Deye 8 kW з резервом 20 kWh. Критичні лінії: свердловина, котел, холодильник, кухня та два робочі місця.', 'Deye 8 kW system with 20 kWh backup. Critical circuits: well pump, boiler, refrigerator, kitchen and two workstations.'],
+    ['до 24 год', 'up to 24 h'],
+    ['< 10 мс', '< 10 ms'],
+    ['2 дні', '2 days'],
+    ['До основного вмісту', 'Skip to main content'],
+    ['ІНК — на головну', 'INK — home'],
+    ['Логотип ІНК', 'INK logo'],
+    ['Головна навігація', 'Main navigation'],
+    ['Вибір мови', 'Language selection'],
+    ['Переваги', 'Benefits'],
+    ["Схема зв'язку мережі, сонячних панелей, інвертора, батареї та будинку", 'Diagram connecting the grid, solar panels, inverter, battery and home'],
+    ['Симуляція мережі', 'Grid simulation'],
+    ['Принцип ІНК', 'INK principle'],
+    ['Фільтр обладнання', 'Equipment filter'],
+    ["Тип об'єкта", 'Property type'],
+    ['Порівняння джерел резервного живлення', 'Backup power source comparison'],
+    ['Оригінальний інтерфейс застосунку SmartESS', 'Original SmartESS app interface'],
+    ["Попередній об'єкт", 'Previous project'],
+    ["Наступний об'єкт", 'Next project'],
+    ['Попередній відгук', 'Previous review'],
+    ['Наступний відгук', 'Next review'],
+    ['Закрити форму', 'Close form'],
+    ['Опублікувати питання', 'Publish question'],
+    ['Сторінки FAQ', 'FAQ pages'],
+    ['ІНК на карті — Солонка, вул. Козацька 6', 'INK on the map — 6 Kozatska St, Solonka'],
+    ['Регіон роботи', 'Service region'],
+    ['Закрити проєкт', 'Close project'],
+    ['Закрити обладнання', 'Close equipment'],
+    ['Закрити відповідь', 'Close answer'],
+    ['Закрити', 'Close']
+  ];
+
+  const I18N_UK_TO_EN = new Map(I18N_TEXT_PAIRS);
+  const I18N_EN_TO_UK = new Map(I18N_TEXT_PAIRS.map(([uk, en]) => [en, uk]));
+
   const I18N_MESSAGES = {
     uk: {
       'meta.title': 'Інвертори та резервне живлення у Львові й Україні | ІНК',
@@ -42,23 +249,38 @@
       'energy.home': 'Будинок / споживач',
       'energy.inverter': 'Гібридний інвертор',
       'systems.eyebrow': '/ 01 — Енергетичні модулі',
-      'systems.title': 'Не продаємо коробки.<br><em>Проєктуємо спокій.</em>',
-      'systems.copy': 'Кожен модуль — це не просто інвертор і батарея, а сценарій життя під час відключень.',
-      'modules.feature.title': 'Base / Pulse / Shift / Orbit',
-      'modules.feature.copy': 'Чотири архітектури для квартири, будинку, бізнесу та гібридної сонячної системи.',
-      'modules.feature.cta': 'Порівняти модулі ↗',
-      'modules.base.title': 'Base',
-      'modules.base.copy': '4.2 кВт інвертор + 2.5 кВт·год резерв для базових приладів.',
-      'modules.pulse.title': 'Pulse',
-      'modules.pulse.copy': '6 кВт + 5 кВт·год для будинку з насосом, котлом і кухнею.',
-      'modules.shift.title': 'Shift',
-      'modules.shift.copy': '12 кВт + 10 кВт·год для бізнесу й критичних ліній.',
-      'inverters.eyebrow': '/ 02 — Інвертори без міфів',
-      'inverters.title': 'Deye, Anenji, Easun.<br><em>Підбираємо під задачу.</em>',
-      'calculator.eyebrow': '/ 03 — Розрахунок',
-      'calculator.title': 'Рахуємо не паспорт,<br><em>а ваш реальний вечір.</em>',
-      'kits.eyebrow': '/ 04 — Готові конфігурації',
-      'kits.title': 'Стартові системи.<br><em>З можливістю росту.</em>',
+      'systems.title': 'Не коробки.<br><em>Цілісні рішення.</em>',
+      'systems.copy': 'Кожен модуль працює окремо. Разом вони створюють систему, яка сама керує енергією.',
+      'modules.feature.title': 'Мозок вашої системи',
+      'modules.feature.copy': 'Миттєво перемикає живлення, керує зарядом і обирає найвигідніше джерело енергії.',
+      'modules.feature.cta': 'Спроєктувати систему ↗',
+      'modules.base.title': 'Енергія в резерві',
+      'modules.base.copy': 'Безпечні акумулятори на 6000+ циклів. Масштабуються від квартири до виробництва.',
+      'modules.pulse.title': 'Власна генерація',
+      'modules.pulse.copy': 'Перетворюємо дах на актив. Менше залежності від мережі, більше прогнозованості.',
+      'modules.shift.title': 'Система на долоні',
+      'modules.shift.copy': 'Генерація, споживання й заряд у реальному часі. Сповіщення до того, як виникне проблема.',
+      'inverters.eyebrow': '/ 02 — Три характери системи',
+      'inverters.title': 'Deye. Anenji. Easun.<br><em>Обираємо не логотип.</em>',
+      'calculator.eyebrow': '/ 02 — Energy lab',
+      'calculator.title': 'Скільки свободи<br><em>вам потрібно?</em>',
+      'calculator.copy': 'Оберіть, що має працювати під час відключення. Ми порахуємо навантаження, ємність і орієнтовну автономність.',
+      'calculator.note': 'Розрахунок попередній. Пускові струми й реальні режими перевірить інженер.',
+      'calculator.step': 'КРОК 1 З 2',
+      'calculator.choose': 'Оберіть прилади',
+      'calculator.fridge': 'Холодильник',
+      'calculator.internet': 'Інтернет',
+      'calculator.lighting': 'Освітлення',
+      'calculator.boiler': 'Котел',
+      'calculator.pump': 'Насос',
+      'calculator.computer': "Комп'ютер",
+      'calculator.hours': 'Бажаний час роботи',
+      'calculator.hourUnit': 'год',
+      'calculator.load': 'ВАШЕ НАВАНТАЖЕННЯ',
+      'calculator.battery': 'РЕКОМЕНДОВАНА БАТАРЕЯ',
+      'calculator.cta': 'Отримати точний підбір ↗',
+      'kits.eyebrow': '/ 03 — Готові архітектури',
+      'kits.title': 'Стартова точка.<br><em>Не межа.</em>',
       'solutions.eyebrow': '/ 04 — Під вашу задачу',
       'solutions.title': 'Енергія підлаштовується<br><em>під життя.</em>',
       'compare.eyebrow': '/ 05 — Чесне порівняння',
@@ -197,23 +419,38 @@
       'energy.home': 'Home / load',
       'energy.inverter': 'Hybrid inverter',
       'systems.eyebrow': '/ 01 — Energy modules',
-      'systems.title': 'We do not sell boxes.<br><em>We design calm.</em>',
-      'systems.copy': 'Each module is not just an inverter and a battery, but a real-life outage scenario.',
-      'modules.feature.title': 'Base / Pulse / Shift / Orbit',
-      'modules.feature.copy': 'Four architectures for an apartment, a home, a business and a hybrid solar system.',
-      'modules.feature.cta': 'Compare modules ↗',
-      'modules.base.title': 'Base',
-      'modules.base.copy': '4.2 kW inverter + 2.5 kWh reserve for essential devices.',
-      'modules.pulse.title': 'Pulse',
-      'modules.pulse.copy': '6 kW + 5 kWh for a home with a pump, boiler and kitchen.',
-      'modules.shift.title': 'Shift',
-      'modules.shift.copy': '12 kW + 10 kWh for business and critical lines.',
-      'inverters.eyebrow': '/ 02 — Inverters without myths',
-      'inverters.title': 'Deye, Anenji, Easun.<br><em>Matched to the task.</em>',
-      'calculator.eyebrow': '/ 03 — Calculation',
-      'calculator.title': 'We calculate not the passport,<br><em>but your real evening.</em>',
-      'kits.eyebrow': '/ 04 — Ready configurations',
-      'kits.title': 'Starter systems.<br><em>Ready to grow.</em>',
+      'systems.title': 'Not boxes.<br><em>Integrated solutions.</em>',
+      'systems.copy': 'Each module works on its own. Together they form a system that manages energy automatically.',
+      'modules.feature.title': 'The brain of your system',
+      'modules.feature.copy': 'Switches power instantly, manages charging and selects the most efficient energy source.',
+      'modules.feature.cta': 'Design my system ↗',
+      'modules.base.title': 'Energy in reserve',
+      'modules.base.copy': 'Safe batteries rated for 6,000+ cycles. Scalable from an apartment to a production site.',
+      'modules.pulse.title': 'Your own generation',
+      'modules.pulse.copy': 'Turn your roof into an asset. Less grid dependence and more predictability.',
+      'modules.shift.title': 'Your system at a glance',
+      'modules.shift.copy': 'Generation, consumption and charge in real time. Alerts before a problem develops.',
+      'inverters.eyebrow': '/ 02 — Three system personalities',
+      'inverters.title': 'Deye. Anenji. Easun.<br><em>We choose more than a logo.</em>',
+      'calculator.eyebrow': '/ 02 — Energy lab',
+      'calculator.title': 'How much freedom<br><em>do you need?</em>',
+      'calculator.copy': 'Choose what must keep working during an outage. We will calculate the load, capacity and estimated runtime.',
+      'calculator.note': 'This is a preliminary estimate. An engineer will verify startup currents and real operating modes.',
+      'calculator.step': 'STEP 1 OF 2',
+      'calculator.choose': 'Choose appliances',
+      'calculator.fridge': 'Refrigerator',
+      'calculator.internet': 'Internet',
+      'calculator.lighting': 'Lighting',
+      'calculator.boiler': 'Boiler',
+      'calculator.pump': 'Pump',
+      'calculator.computer': 'Computer',
+      'calculator.hours': 'Desired runtime',
+      'calculator.hourUnit': 'h',
+      'calculator.load': 'YOUR LOAD',
+      'calculator.battery': 'RECOMMENDED BATTERY',
+      'calculator.cta': 'Get an exact recommendation ↗',
+      'kits.eyebrow': '/ 03 — Ready architectures',
+      'kits.title': 'A starting point.<br><em>Not a limit.</em>',
       'solutions.eyebrow': '/ 04 — For your task',
       'solutions.title': 'Energy adapts<br><em>to life.</em>',
       'compare.eyebrow': '/ 05 — Honest comparison',
@@ -355,7 +592,7 @@
     ['systems.title', '#systems-title', 'html'],
     ['systems.copy', '#systems .section-heading>p'],
     ['modules.feature.title', '.module-feature h3'],
-    ['modules.feature.copy', '.module-feature .module-copy p'],
+    ['modules.feature.copy', '.module-feature .module-copy>p:not(.tag)'],
     ['modules.feature.cta', '.module-feature a'],
     ['modules.base.title', '.module-grid .module-card:nth-child(2) h3'],
     ['modules.base.copy', '.module-grid .module-card:nth-child(2) p'],
@@ -367,6 +604,21 @@
     ['inverters.title', '#inverters-title', 'html'],
     ['calculator.eyebrow', '#calculator .eyebrow'],
     ['calculator.title', '#calc-title', 'html'],
+    ['calculator.copy', '#calculator .calc-copy>p:not(.eyebrow)'],
+    ['calculator.note', '#calculator .calc-note', 'textWithInfo'],
+    ['calculator.step', '#calculator .calc-step span'],
+    ['calculator.choose', '#calculator .calc-step b'],
+    ['calculator.fridge', '#calculator .appliance:nth-child(1) b'],
+    ['calculator.internet', '#calculator .appliance:nth-child(2) b'],
+    ['calculator.lighting', '#calculator .appliance:nth-child(3) b'],
+    ['calculator.boiler', '#calculator .appliance:nth-child(4) b'],
+    ['calculator.pump', '#calculator .appliance:nth-child(5) b'],
+    ['calculator.computer', '#calculator .appliance:nth-child(6) b'],
+    ['calculator.hours', '#calculator .hours-label>span'],
+    ['calculator.hourUnit', '#calculator .hours-label>strong', 'outputSuffix'],
+    ['calculator.load', '#calculator .calc-result>div:nth-child(1) small'],
+    ['calculator.battery', '#calculator .calc-result>div:nth-child(2) small'],
+    ['calculator.cta', '#calculator .calc-result>a'],
     ['kits.eyebrow', '#kits .section-heading .eyebrow'],
     ['kits.title', '#kits-title', 'html'],
     ['solutions.eyebrow', '#solutions .section-heading .eyebrow'],
@@ -489,10 +741,57 @@
   function applyValue(element, type, value) {
     if (type === 'html') element.innerHTML = value;
     else if (type === 'textWithDot') element.innerHTML = `<span class="live-dot"></span> ${value}`;
+    else if (type === 'textWithInfo') element.innerHTML = `<span>i</span> ${value}`;
+    else if (type === 'outputSuffix') {
+      const suffix = [...element.childNodes].find(node => node.nodeType === Node.TEXT_NODE);
+      if (suffix) suffix.textContent = ` ${value}`;
+      else element.append(document.createTextNode(` ${value}`));
+    }
     else if (type === 'placeholder') element.setAttribute('placeholder', value);
     else if (type === 'labelText') setLabelText(element, value);
     else if (type) element.setAttribute(type, value);
     else element.textContent = value;
+  }
+
+  function translateExactValue(value, lang) {
+    const trimmed = String(value || '').trim();
+    if (!trimmed) return value;
+    const translated = (lang === 'en' ? I18N_UK_TO_EN : I18N_EN_TO_UK).get(trimmed);
+    if (!translated) return value;
+    const leading = String(value).match(/^\s*/)?.[0] || '';
+    const trailing = String(value).match(/\s*$/)?.[0] || '';
+    return `${leading}${translated}${trailing}`;
+  }
+
+  function translateLooseContent(root, lang) {
+    if (!root) return;
+    if (root.nodeType === Node.TEXT_NODE) {
+      const translated = translateExactValue(root.nodeValue, lang);
+      if (translated !== root.nodeValue) root.nodeValue = translated;
+      return;
+    }
+    const scope = root.nodeType === Node.DOCUMENT_NODE ? root.documentElement : root;
+    if (!scope) return;
+    const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        return node.parentElement?.closest('script,style,noscript') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    const textNodes = [];
+    while (walker.nextNode()) textNodes.push(walker.currentNode);
+    textNodes.forEach(node => {
+      const translated = translateExactValue(node.nodeValue, lang);
+      if (translated !== node.nodeValue) node.nodeValue = translated;
+    });
+    const elements = [];
+    if (scope.nodeType === Node.ELEMENT_NODE) elements.push(scope);
+    elements.push(...scope.querySelectorAll('[aria-label],[title],[placeholder],[data-hint]'));
+    elements.forEach(element => ['aria-label', 'title', 'placeholder', 'data-hint'].forEach(attribute => {
+      if (!element.hasAttribute(attribute)) return;
+      const current = element.getAttribute(attribute);
+      const translated = translateExactValue(current, lang);
+      if (translated !== current) element.setAttribute(attribute, translated);
+    }));
   }
 
   function applyLanguage(lang = getCurrentLang()) {
@@ -507,6 +806,7 @@
       if (value == null) return;
       document.querySelectorAll(selector).forEach(element => applyValue(element, type, value));
     });
+    translateLooseContent(document, lang);
     document.querySelectorAll('[data-i18n-lang]').forEach(button => {
       button.classList.toggle('is-active', button.dataset.i18nLang === lang);
       button.setAttribute('aria-pressed', button.dataset.i18nLang === lang ? 'true' : 'false');
@@ -542,5 +842,13 @@
   document.addEventListener('DOMContentLoaded', () => {
     buildSwitcher();
     setLanguage(getCurrentLang(), false);
+    const observer = new MutationObserver(records => {
+      const lang = getCurrentLang();
+      records.forEach(record => record.addedNodes.forEach(node => {
+        if (node.nodeType === Node.ELEMENT_NODE || node.nodeType === Node.TEXT_NODE) translateLooseContent(node, lang);
+      }));
+      window.INK_REFRESH_HINTS?.();
+    });
+    observer.observe(document.body, { childList:true, subtree:true });
   });
 })();

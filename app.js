@@ -48,6 +48,12 @@ function renderSimpleMarkdown(value = '') {
 }
 const pageLang = () => new URLSearchParams(location.search).get('lang') || localStorage.getItem('ink-lang') || 'uk';
 const uiText = (uk, en) => pageLang() === 'en' ? en : uk;
+let activeRuntimeLanguage = pageLang();
+const localizedContent = (item, key, fallback = '') => {
+  if (!item || typeof item !== 'object') return fallback;
+  if (pageLang() === 'en') return item[`${key}En`] || item.translations?.en?.[key] || item[key] || fallback;
+  return item[key] || fallback;
+};
 const communityHref = () => pageLang() === 'en' ? '/community.html?lang=en' : '/community.html';
 let pendingSiteRequests = 0;
 let initialHashAligned = false;
@@ -69,7 +75,6 @@ const updateSiteLoading = delta => {
   }
 };
 const apiList = async type => {
-  if (pageLang() !== 'uk' && ['reviews', 'projects', 'articles', 'questions', 'faqs'].includes(type)) return null;
   updateSiteLoading(1);
   try {
     const response = await fetch(`/api/${type}`).catch(() => null);
@@ -89,45 +94,47 @@ function syncLocalizedLinks(root = document) {
 }
 
 function enhanceClickableHints(root = document) {
-  const noHintSelector = '.dialog-close,.answer-dialog-close,.project-dialog-close,.equipment-dialog-close,.equipment-more-toggle,.gallery-dialog button[aria-label="Закрити"],.site-header .desktop-nav a,.site-header .button-small,.section-jump-trigger,.section-jump-menu a';
+  const noHintSelector = '.site-header .desktop-nav a,.site-header .button-small,.section-jump-menu a';
   $$(noHintSelector, root).forEach(element => {
     delete element.dataset.hint;
     element.removeAttribute('title');
   });
   const explicitHints = [
-    ['.theme-toggle', 'Перемкнути світлу / темну тему'],
-    ['.menu-toggle', 'Відкрити меню сайту'],
-    ['.phone', 'Показати всі телефони ІНК'],
-    ['.phone-dropdown a', 'Подзвонити за цим номером'],
-    ['.js-open-selector', 'Запустити швидкий підбір системи'],
-    ['.review-prev', 'Показати попередні відгуки'],
-    ['.review-next', 'Показати наступні відгуки'],
-    ['.review-add', 'Додати свій відгук'],
-    ['.project-prev', 'Гортати обʼєкти назад'],
-    ['.project-next', 'Гортати обʼєкти вперед'],
-    ['.project-open', 'Відкрити фото та паспорт обʼєкта'],
-    ['.grid-simulator', 'Перемкнути стан мережі'],
-    ['.appliance', 'Додати або прибрати прилад із розрахунку'],
-    ['.brand-compare', 'Заповнити заявку з цим брендом'],
-    ['.topic-votes button', 'Позначити питання корисним — лічильник збільшиться на один'],
-    ['.topic-answer-count', 'Відкрити всі відповіді та продовжити обговорення'],
-    ['.topic-answers[data-answer]', 'Показати першу відповідь у цій картці'],
-    ['.topic-reply-link', 'Перейти до повного обговорення та залишити свою відповідь'],
-    ['.faq-question', 'Відкрити відповідь без зміщення сторінки'],
-    ['.submit-button', 'Надіслати заявку в CRM'],
-    ['.lang-switch', 'Open English version'],
-    ['.language-switcher button', 'Змінити мову сайту'],
-    ['.circle-all-link', 'Перейти до всіх питань'],
-    ['.floating-consult', 'Швидко перейти до консультації']
+    ['.theme-toggle', 'Перемкнути світлу / темну тему', 'Switch light / dark theme'],
+    ['.menu-toggle', 'Відкрити меню сайту', 'Open site menu'],
+    ['.phone', 'Показати всі телефони ІНК', 'Show all INK phone numbers'],
+    ['.phone-dropdown a', 'Подзвонити за цим номером', 'Call this number'],
+    ['.js-open-selector', 'Запустити швидкий підбір системи', 'Start quick system selection'],
+    ['.review-prev', 'Показати попередні відгуки', 'Show previous reviews'],
+    ['.review-next', 'Показати наступні відгуки', 'Show next reviews'],
+    ['.review-add', 'Додати свій відгук', 'Add your review'],
+    ['.project-prev', 'Гортати обʼєкти назад', 'Browse previous projects'],
+    ['.project-next', 'Гортати обʼєкти вперед', 'Browse next projects'],
+    ['.project-open', 'Відкрити фото та паспорт обʼєкта', 'Open project photos and details'],
+    ['.grid-simulator', 'Перемкнути стан мережі', 'Toggle grid status'],
+    ['.appliance', 'Додати або прибрати прилад із розрахунку', 'Add or remove this appliance from the calculation'],
+    ['.brand-compare', 'Заповнити заявку з цим брендом', 'Start an enquiry for this brand'],
+    ['.topic-votes button', 'Позначити питання корисним — лічильник збільшиться на один', 'Mark this question as useful — the counter will increase by one'],
+    ['.topic-answers[data-answer]', 'Показати першу відповідь у цій картці', 'Show the first answer in this card'],
+    ['.topic-reply-link', 'Перейти до повного обговорення та залишити свою відповідь', 'Open the full discussion and add your answer'],
+    ['.faq-question', 'Відкрити відповідь без зміщення сторінки', 'Open the answer without moving the page'],
+    ['.submit-button', 'Надіслати заявку в CRM', 'Send the enquiry to CRM'],
+    ['.language-switcher button', 'Змінити мову сайту', 'Change site language'],
+    ['.circle-all-link', 'Перейти до всіх питань', 'Open all questions'],
+    ['.floating-consult', 'Швидко перейти до консультації', 'Jump to consultation'],
+    ['.section-jump-trigger', 'Наведіть, щоб відкрити · натисніть, щоб закріпити меню', 'Hover to open · click to pin the menu'],
+    ['.dialog-close,.answer-dialog-close,.project-dialog-close,.equipment-dialog-close,.review-form-close', 'Закрити вікно', 'Close window']
   ];
-  explicitHints.forEach(([selector, hint]) => $$(selector, root).forEach(element => {
+  explicitHints.forEach(([selector, uk, en]) => $$(selector, root).forEach(element => {
     if (element.matches(noHintSelector)) return;
-    if (!element.dataset.hint) element.dataset.hint = hint;
+    element.dataset.hint = uiText(uk, en);
+    element.dataset.hintExplicit = 'true';
     element.removeAttribute('title');
   }));
+  $$('.section-jump-trigger', root).forEach(trigger => syncSectionJumpTriggerState(trigger, trigger.closest('.section-jump')?.classList.contains('is-open')));
   $$('a,button,[role="button"]', root).forEach(element => {
     if (element.matches(noHintSelector)) return;
-    if (element.dataset.hint) return;
+    if (element.dataset.hintExplicit === 'true') return;
     const label = element.getAttribute('aria-label') || element.title || element.textContent.trim().replace(/\s+/g, ' ');
     if (!label) return;
     const hint = label.length > 72 ? `${label.slice(0, 69)}…` : label;
@@ -135,13 +142,14 @@ function enhanceClickableHints(root = document) {
     element.removeAttribute('title');
   });
 }
+window.INK_REFRESH_HINTS = enhanceClickableHints;
 
 function setupScrollHud(selector, axis = 'x') {
   const target = $(selector);
   if (!target || target.nextElementSibling?.classList.contains('scroll-hud')) return;
   const nav = document.createElement('div');
   nav.className = 'scroll-hud';
-  nav.innerHTML = '<button type="button" aria-label="Гортати назад">←</button><button type="button" aria-label="Гортати вперед">→</button>';
+  nav.innerHTML = `<button type="button" aria-label="${escapeHtml(uiText('Гортати назад', 'Scroll back'))}">←</button><button type="button" aria-label="${escapeHtml(uiText('Гортати вперед', 'Scroll forward'))}">→</button>`;
   const [prev, next] = $$('button', nav);
   const step = () => axis === 'x' ? Math.round(target.clientWidth * .82) : Math.round(target.clientHeight * .72);
   prev.addEventListener('click', () => target.classList.contains('topic-list') ? scrollTopicCards(target, -1) : target.scrollBy({ left: axis === 'x' ? -step() : 0, top: axis === 'y' ? -step() : 0, behavior: 'smooth' }));
@@ -259,9 +267,9 @@ simulator.addEventListener('click', () => {
   $('.energy-stage').classList.toggle('is-grid-off', !on);
   simulator.classList.toggle('is-on', on);
   simulator.setAttribute('aria-pressed', on);
-  $('.grid-label').textContent = on ? 'Є' : 'НЕМАЄ';
-  $('.outage-label').textContent = on ? 'СТАБІЛЬНА' : 'OFFLINE';
-  $('.grid-status').lastChild.textContent = on ? ' Система активна' : ' Резерв активний';
+  $('.grid-label').textContent = on ? uiText('Є', 'ON') : uiText('НЕМАЄ', 'OFF');
+  $('.outage-label').textContent = on ? uiText('СТАБІЛЬНА', 'STABLE') : 'OFFLINE';
+  $('.grid-status').lastChild.textContent = on ? uiText(' Система активна', ' System active') : uiText(' Резерв активний', ' Backup active');
 });
 
 // Energy calculator
@@ -312,17 +320,17 @@ function createReview(data) {
   const rating = Math.max(1, Math.min(5, Number(data.rating || 5)));
   const initials = (data.name || 'ІНК').split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
   const reply = String(data.reply || '').trim();
-  const badge = data.verified === true ? '<b>ПЕРЕВІРЕНИЙ ВІДГУК</b>' : '';
-  article.innerHTML = `<div class="stars" aria-label="${rating} з 5">${'★'.repeat(rating)}${'☆'.repeat(5-rating)}</div><blockquote>«${escapeHtml(data.text || '')}»</blockquote>${reply ? `<div class="team-reply"><span>↳ ВІДПОВІДЬ ІНК</span><p>${escapeHtml(reply)}</p></div>` : ''}<footer><div class="avatar">${escapeHtml(initials)}</div><div><strong>${escapeHtml(data.name || 'Клієнт ІНК')}</strong><span>${escapeHtml(data.city || 'Україна')}</span></div>${badge}</footer>`;
+  const badge = data.verified === true ? `<b>${escapeHtml(uiText('ПЕРЕВІРЕНИЙ ВІДГУК', 'VERIFIED REVIEW'))}</b>` : '';
+  article.innerHTML = `<div class="stars" aria-label="${rating} ${escapeHtml(uiText('з 5', 'out of 5'))}">${'★'.repeat(rating)}${'☆'.repeat(5-rating)}</div><blockquote>«${escapeHtml(localizedContent(data, 'text'))}»</blockquote>${reply ? `<div class="team-reply"><span>↳ ${escapeHtml(uiText('ВІДПОВІДЬ ІНК', 'INK RESPONSE'))}</span><p>${escapeHtml(localizedContent(data, 'reply', reply))}</p></div>` : ''}<footer><div class="avatar">${escapeHtml(initials)}</div><div><strong>${escapeHtml(data.name || uiText('Клієнт ІНК', 'INK client'))}</strong><span>${escapeHtml(data.city || uiText('Україна', 'Ukraine'))}</span></div>${badge}</footer>`;
   reviewTrack.append(article);
   reviews.push(article);
   return article;
 }
 async function loadReviews() {
-  reviewTrack.innerHTML = loadingMarkup('Завантажуємо відгуки…');
+  reviewTrack.innerHTML = loadingMarkup(uiText('Завантажуємо відгуки…', 'Loading reviews…'));
   const data = await apiList('reviews');
   reviews.splice(0, reviews.length);
-  if (!Array.isArray(data) || !data.length) { reviewTrack.innerHTML = emptyMarkup('Відгуків поки немає', 'Будьте першим, хто поділиться досвідом.'); return; }
+  if (!Array.isArray(data) || !data.length) { reviewTrack.innerHTML = emptyMarkup(uiText('Відгуків поки немає', 'No reviews yet'), uiText('Будьте першим, хто поділиться досвідом.', 'Be the first to share your experience.')); return; }
   reviewTrack.innerHTML = '';
   data.forEach(createReview);
   showReview(0);
@@ -343,12 +351,12 @@ reviewForm.addEventListener('submit', async event => {
   const submit = reviewForm.querySelector('button[type="submit"]');
   submit.disabled = true;
   submit.classList.add('is-sending');
-  submit.textContent = 'Публікуємо…';
+  submit.textContent = uiText('Публікуємо…', 'Publishing…');
   const response = await fetch('/api/reviews', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) }).catch(() => null);
   submit.disabled = false;
   submit.classList.remove('is-sending');
-  submit.textContent = 'Опублікувати відгук ↗';
-  if (!response?.ok) { submit.textContent = 'Помилка. Спробуйте ще раз'; return; }
+  submit.textContent = uiText('Опублікувати відгук ↗', 'Publish review ↗');
+  if (!response?.ok) { submit.textContent = uiText('Помилка. Спробуйте ще раз', 'Error. Please try again'); return; }
   await reviewsReady;
   if (!reviews.length) reviewTrack.innerHTML = '';
   createReview({...data, rating:Number(data.rating), status:'published', verified:false});
@@ -363,7 +371,7 @@ const reviewsReady = loadReviews();
 // Brand comparison starts a consultation with useful context already filled in.
 $$('.brand-compare').forEach(button => button.addEventListener('click', () => {
   const comment = $('#lead-form textarea[name="comment"]');
-  comment.value = `Хочу порівняти ${button.dataset.brand} з іншими інверторами під мій об'єкт.`;
+  comment.value = uiText(`Хочу порівняти ${button.dataset.brand} з іншими інверторами під мій об'єкт.`, `I would like to compare ${button.dataset.brand} with other inverters for my property.`);
   $('#consultation').scrollIntoView({ behavior: 'smooth' });
 }));
 
@@ -425,14 +433,18 @@ function bindProjectButtons() {
 function renderProjectCard(project, index) {
   const id = String(project._id || index);
   const large = index === 0 ? ' project-large' : '';
-  const status = project.status === 'published' ? 'Опубліковано' : 'Активний';
-  projectData.set(id, { image:project.image || '/assets/projects/home-backup.jpg', title:`${project.title} / ${project.city || 'Україна'}`, copy:project.description || 'Паспорт системи редагується в адмінці.', stats:[project.type || 'об’єкт', project.city || 'Україна', status] });
-  return `<article class="project-card${large} reveal visible"><button type="button" class="project-open" data-project="${escapeHtml(id)}" aria-label="Відкрити об'єкт ${escapeHtml(project.title)}"><img src="${escapeHtml(project.image || '/assets/projects/home-backup.jpg')}" alt="${escapeHtml(project.title)}" loading="lazy"><span class="project-arrow">↗</span></button><div class="project-meta"><div><span>${escapeHtml(project.city || 'Україна')} · ${escapeHtml(project.type || 'об’єкт')} · ${status}</span><h3>${escapeHtml(project.title)}</h3></div><p>${escapeHtml(project.description || '')}</p></div></article>`;
+  const title = localizedContent(project, 'title', uiText('Обʼєкт ІНК', 'INK project'));
+  const description = localizedContent(project, 'description');
+  const type = localizedContent(project, 'type', uiText('об’єкт', 'project'));
+  const city = localizedContent(project, 'city', uiText('Україна', 'Ukraine'));
+  const status = project.status === 'published' ? uiText('Опубліковано', 'Published') : uiText('Активний', 'Active');
+  projectData.set(id, { image:project.image || '/assets/projects/home-backup.jpg', title:`${title} / ${city}`, copy:description || uiText('Паспорт системи редагується в адмінці.', 'Project details are maintained in CRM.'), stats:[type, city, status] });
+  return `<article class="project-card${large} reveal visible"><button type="button" class="project-open" data-project="${escapeHtml(id)}" aria-label="${escapeHtml(uiText('Відкрити обʼєкт', 'Open project'))} ${escapeHtml(title)}"><img src="${escapeHtml(project.image || '/assets/projects/home-backup.jpg')}" alt="${escapeHtml(title)}" loading="lazy"><span class="project-arrow">↗</span></button><div class="project-meta"><div><span>${escapeHtml(city)} · ${escapeHtml(type)} · ${escapeHtml(status)}</span><h3>${escapeHtml(title)}</h3></div><p>${escapeHtml(description)}</p></div></article>`;
 }
 async function loadProjects() {
-  projectGrid.innerHTML = loadingMarkup('Завантажуємо об’єкти…');
+  projectGrid.innerHTML = loadingMarkup(uiText('Завантажуємо об’єкти…', 'Loading projects…'));
   const data = await apiList('projects');
-  if (!Array.isArray(data) || !data.length) { projectGrid.innerHTML = emptyMarkup('Географія оновлюється', 'Нові об’єкти з’являться після перевірки та схвалення технічним відділом.'); return; }
+  if (!Array.isArray(data) || !data.length) { projectGrid.innerHTML = emptyMarkup(uiText('Географія оновлюється', 'Projects are being updated'), uiText('Нові об’єкти з’являться після перевірки та схвалення технічним відділом.', 'New projects will appear after review and approval by our technical team.')); return; }
   projectData.clear();
   projectGrid.innerHTML = data.slice(0, 6).map(renderProjectCard).join('');
   bindProjectButtons();
@@ -524,8 +536,9 @@ $$('.equipment-filter button').forEach(button => button.addEventListener('click'
   applyEquipmentFilters();
 }));
 function renderPublicEquipment(item) {
-  const status = item.status === 'active' ? 'Активний' : 'На перевірці';
-  return `<button class="equipment-card reveal visible" type="button" data-equipment="${escapeHtml(String(item._id || item.model || ''))}" aria-label="Відкрити опис ${escapeHtml(item.brand || '')} ${escapeHtml(item.model || '')}"><span>${escapeHtml(item.brand || 'ІНК')}</span><h3>${escapeHtml(item.model || 'Модель')}</h3><p>${escapeHtml(item.power || '—')} · ${escapeHtml(item.phase || '—')} · ${escapeHtml(item.voltage || '—')}</p><b><i>${escapeHtml(status)}</i><em>Детальніше ↗</em></b></button>`;
+  const status = item.status === 'active' ? uiText('Активний', 'Active') : uiText('На перевірці', 'Under review');
+  const phase = pageLang() === 'en' ? String(item.phase || '—').replace(/фази/gi, 'phases').replace(/фаза/gi, 'phase') : item.phase || '—';
+  return `<button class="equipment-card reveal visible" type="button" data-equipment="${escapeHtml(String(item._id || item.model || ''))}" aria-label="${escapeHtml(uiText('Відкрити опис', 'Open details for'))} ${escapeHtml(item.brand || '')} ${escapeHtml(item.model || '')}"><span>${escapeHtml(item.brand || 'ІНК')}</span><h3>${escapeHtml(item.model || uiText('Модель', 'Model'))}</h3><p>${escapeHtml(item.power || '—')} · ${escapeHtml(phase)} · ${escapeHtml(item.voltage || '—')}</p><b><i>${escapeHtml(status)}</i><em>${escapeHtml(uiText('Детальніше ↗', 'Details ↗'))}</em></b></button>`;
 }
 function openEquipment(item) {
   if (!equipmentDialog || !item) return;
@@ -546,16 +559,16 @@ function openEquipment(item) {
     gallery.className = 'equipment-dialog-gallery';
     $('.eyebrow', equipmentDialog).insertAdjacentElement('beforebegin', gallery);
   }
-  gallery.innerHTML = images.length > 1 ? images.map((src, index) => `<button type="button" class="${index === 0 ? 'is-active' : ''}" data-equipment-image="${escapeHtml(src)}" aria-label="Фото ${index + 1}"><img src="${escapeHtml(src)}" alt=""></button>`).join('') : '';
+  gallery.innerHTML = images.length > 1 ? images.map((src, index) => `<button type="button" class="${index === 0 ? 'is-active' : ''}" data-equipment-image="${escapeHtml(src)}" aria-label="${escapeHtml(uiText('Фото', 'Photo'))} ${index + 1}"><img src="${escapeHtml(src)}" alt=""></button>`).join('') : '';
   $$('[data-equipment-image]', gallery).forEach(button => button.addEventListener('click', () => {
     mainImage.src = button.dataset.equipmentImage;
     $$('button', gallery).forEach(item => item.classList.toggle('is-active', item === button));
   }));
   $('h2', equipmentDialog).textContent = `${item.brand || 'ІНК'} ${item.model || ''}`.trim();
-  $('.equipment-dialog-copy', equipmentDialog).innerHTML = renderSimpleMarkdown(item.description || 'Модель використовується в проєктних системах ІНК. Точну сумісність, комплектацію й ціну інженер підтвердить після карти навантажень.');
+  $('.equipment-dialog-copy', equipmentDialog).innerHTML = renderSimpleMarkdown(localizedContent(item, 'description', uiText('Модель використовується в проєктних системах ІНК. Точну сумісність, комплектацію й ціну інженер підтвердить після карти навантажень.', 'This model is used in INK engineered systems. An engineer will confirm exact compatibility, configuration and price after reviewing your load profile.')));
   $('[data-equipment-field="power"]', equipmentDialog).textContent = item.power || '—';
   $('[data-equipment-field="grid"]', equipmentDialog).textContent = [item.phase, item.voltage].filter(Boolean).join(' · ') || '—';
-  $('[data-equipment-field="price"]', equipmentDialog).textContent = item.price || 'За запитом';
+  $('[data-equipment-field="price"]', equipmentDialog).textContent = item.price || uiText('За запитом', 'On request');
   const orderForm = $('.equipment-order-form', equipmentDialog);
   const orderStatus = $('.equipment-order-status', equipmentDialog);
   const extraFields = $('.equipment-extra-fields', equipmentDialog);
@@ -633,7 +646,7 @@ function equipmentFromCard(card) {
     brand: card.querySelector('span')?.textContent,
     model: card.querySelector('h3')?.textContent,
     power: card.querySelector('p')?.textContent,
-    price: 'За запитом'
+    price: uiText('За запитом', 'On request')
   };
 }
 publicEquipment?.addEventListener('click', event => {
@@ -650,10 +663,10 @@ publicEquipment?.addEventListener('keydown', event => {
 });
 async function loadPublicEquipment() {
   if (!publicEquipment) return;
-  publicEquipment.innerHTML = loadingMarkup('Завантажуємо обладнання…');
+  publicEquipment.innerHTML = loadingMarkup(uiText('Завантажуємо обладнання…', 'Loading equipment…'));
   const data = await apiList('equipment');
   if (!Array.isArray(data) || !data.length) {
-    publicEquipment.innerHTML = emptyMarkup('Асортимент оновлюється', 'Моделі стануть доступними після перевірки та схвалення нашими фахівцями.'); return;
+    publicEquipment.innerHTML = emptyMarkup(uiText('Асортимент оновлюється', 'The range is being updated'), uiText('Моделі стануть доступними після перевірки та схвалення нашими фахівцями.', 'Models will become available after review and approval by our specialists.')); return;
   }
   publicEquipment.innerHTML = data.slice(0, 9).map(renderPublicEquipment).join('');
   bindEquipmentCards(data.slice(0, 9));
@@ -679,15 +692,20 @@ function renderArticleCard(article, index) {
   const url = article.url || `/articles/${article.slug || article._id}.html`;
   const lead = index === 0 ? ' article-lead' : '';
   const number = String(index + 1).padStart(2, '0');
-  return `<a class="article-card${lead} reveal visible" href="${escapeHtml(url)}"><span>${escapeHtml(article.category || 'ЖУРНАЛ')} · ${index === 0 ? '9' : '5'} ХВ</span>${index === 0 ? '<div class="article-visual"><b>10</b><i>ms</i><small>час, якого ви<br>не помітите</small></div>' : `<div class="article-number">${number}</div>`}<h3>${escapeHtml(article.title)}</h3><p>${escapeHtml(article.excerpt || '')}</p><strong>Читати статтю ↗</strong></a>`;
+  const title = localizedContent(article, 'title');
+  const excerpt = localizedContent(article, 'excerpt');
+  const rawCategory = localizedContent(article, 'category', uiText('ЖУРНАЛ', 'JOURNAL'));
+  const categoryTranslations = { Практика:'Practical guide', Сонце:'Solar', Гід:'Guide', Журнал:'Journal', ЖУРНАЛ:'JOURNAL' };
+  const category = pageLang() === 'en' ? categoryTranslations[rawCategory] || rawCategory : rawCategory;
+  return `<a class="article-card${lead} reveal visible" href="${escapeHtml(url)}"><span>${escapeHtml(category)} · ${index === 0 ? '9' : '5'} ${escapeHtml(uiText('ХВ', 'MIN'))}</span>${index === 0 ? `<div class="article-visual"><b>10</b><i>ms</i><small>${uiText('час, якого ви<br>не помітите', 'time you will<br>not notice')}</small></div>` : `<div class="article-number">${number}</div>`}<h3>${escapeHtml(title)}</h3><p>${escapeHtml(excerpt)}</p><strong>${escapeHtml(uiText('Читати статтю ↗', 'Read article ↗'))}</strong></a>`;
 }
 async function loadArticles() {
-  articleGrid.innerHTML = loadingMarkup('Завантажуємо журнал…');
+  articleGrid.innerHTML = loadingMarkup(uiText('Завантажуємо журнал…', 'Loading journal…'));
   const data = await apiList('articles');
   if (Array.isArray(data) && data.length) {
     articleGrid.innerHTML = data.slice(0, 12).map(renderArticleCard).join('');
     enhanceClickableHints(articleGrid);
-  } else articleGrid.innerHTML = emptyMarkup('Журнал заповнюється', 'Нові матеріали вже готуються до публікації.');
+  } else articleGrid.innerHTML = emptyMarkup(uiText('Журнал заповнюється', 'The journal is being updated'), uiText('Нові матеріали вже готуються до публікації.', 'New articles are already being prepared for publication.'));
 }
 loadArticles();
 
@@ -720,7 +738,7 @@ function toggleTopicAnswer(card, title, copy) {
   $$('.topic-inline-answer', topicList).forEach(answer => answer.remove());
   const panel = document.createElement('div');
   panel.className = 'topic-inline-answer';
-  panel.innerHTML = `<button type="button" aria-label="Закрити відповідь">×</button><span>Відповіді Енергокола</span><h4>${escapeHtml(title)}</h4><p>${escapeHtml(copy)}</p>`;
+  panel.innerHTML = `<button type="button" aria-label="${escapeHtml(uiText('Закрити відповідь', 'Close answer'))}">×</button><span>${escapeHtml(uiText('Відповіді Енергокола', 'Energy Circle answers'))}</span><h4>${escapeHtml(title)}</h4><p>${escapeHtml(copy)}</p>`;
   $('.topic-answers', card)?.insertAdjacentElement('afterend', panel);
   $('button', panel).addEventListener('click', () => {
     panel.remove();
@@ -731,14 +749,18 @@ function toggleTopicAnswer(card, title, copy) {
 
 function renderTopicCard(question, isNew = false) {
   const answered = question.status === 'answered' || (question.answers || []).length > 0;
-  const answer = (question.answers || [])[0]?.text || '';
+  const firstAnswer = (question.answers || [])[0] || {};
+  const answer = localizedContent(firstAnswer, 'text');
+  const questionTitle = localizedContent(question, 'title');
+  const questionBody = localizedContent(question, 'body');
   const article = document.createElement('article');
   article.className = `topic-card${isNew ? ' is-new' : ''}`;
   const discussionUrl = `${communityHref()}#${encodeURIComponent(String(question._id || ''))}`;
   const answerCount = (question.answers || []).length;
-  const answerWord = answerCount === 1 ? 'відповідь' : answerCount >= 2 && answerCount <= 4 ? 'відповіді' : 'відповідей';
-  const answerHint = answerCount ? `Відкрити ${answerCount} ${answerWord} та продовжити обговорення` : 'Відповідей ще немає — відкрийте обговорення, щоб відповісти першим';
-  article.innerHTML = `<div class="topic-metrics"><div class="topic-votes"><button type="button" aria-label="Позначити питання корисним" data-hint="Позначити питання корисним — лічильник збільшиться на один">♥</button><strong>${Number(question.likes || 0)}</strong><small>корисно</small></div><a class="topic-answer-count" href="${discussionUrl}" aria-label="${escapeHtml(answerHint)}" data-hint="${escapeHtml(answerHint)}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 5h14v10H9l-4 4V5Z"/></svg><strong>${answerCount}</strong><small>відпов.</small></a></div><div><span class="topic-state ${answered ? 'answered' : ''}">${answered ? 'Є ВІДПОВІДІ' : 'ОБГОВОРЕННЯ'}</span><h3>${escapeHtml(question.title)}</h3><p>${escapeHtml(answer || question.body || 'Питання збережено в базі. Інженер відповість якнайшвидше.')}</p>${answered ? `<button class="topic-answers" type="button" data-answer="${escapeHtml(answer)}">Переглянути відповіді ↓</button>` : ''}<a class="topic-answers topic-reply-link" href="${discussionUrl}">Відповісти на питання →</a><footer>${escapeHtml(question.author || 'Гість')} · ${escapeHtml(question.city || 'Україна')} <span>${answerCount ? `${answerCount} ${answerWord}` : 'очікує відповіді'}</span></footer></div>`;
+  const answerWord = pageLang() === 'en' ? (answerCount === 1 ? 'answer' : 'answers') : answerCount === 1 ? 'відповідь' : answerCount >= 2 && answerCount <= 4 ? 'відповіді' : 'відповідей';
+  const answerHint = answerCount ? uiText(`Відкрити ${answerCount} ${answerWord} та продовжити обговорення`, `Open ${answerCount} ${answerWord} and continue the discussion`) : uiText('Відповідей ще немає — відкрийте обговорення, щоб відповісти першим', 'No answers yet — open the discussion and be the first to reply');
+  const voteHint = uiText('Позначити питання корисним — лічильник збільшиться на один', 'Mark this question as useful — the counter will increase by one');
+  article.innerHTML = `<div class="topic-metrics"><div class="topic-votes"><button type="button" aria-label="${escapeHtml(voteHint)}" data-hint="${escapeHtml(voteHint)}">♥</button><strong>${Number(question.likes || 0)}</strong><small>${escapeHtml(uiText('корисно', 'useful'))}</small></div><a class="topic-answer-count" href="${discussionUrl}" aria-label="${escapeHtml(answerHint)}" data-hint="${escapeHtml(answerHint)}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 5h14v10H9l-4 4V5Z"/></svg><strong>${answerCount}</strong><small>${escapeHtml(uiText('відпов.', 'answers'))}</small></a></div><div><span class="topic-state ${answered ? 'answered' : ''}">${escapeHtml(answered ? uiText('Є ВІДПОВІДІ', 'ANSWERED') : uiText('ОБГОВОРЕННЯ', 'DISCUSSION'))}</span><h3>${escapeHtml(questionTitle)}</h3><p>${escapeHtml(answer || questionBody || uiText('Питання збережено в базі. Інженер відповість якнайшвидше.', 'The question has been saved. An engineer will reply as soon as possible.'))}</p>${answered ? `<button class="topic-answers" type="button" data-answer="${escapeHtml(answer)}">${escapeHtml(uiText('Переглянути відповіді ↓', 'View answers ↓'))}</button>` : ''}<a class="topic-answers topic-reply-link" href="${discussionUrl}">${escapeHtml(uiText('Відповісти на питання →', 'Answer this question →'))}</a><footer>${escapeHtml(question.author || uiText('Гість', 'Guest'))} · ${escapeHtml(question.city || uiText('Україна', 'Ukraine'))} <span>${answerCount ? `${answerCount} ${answerWord}` : uiText('очікує відповіді', 'awaiting an answer')}</span></footer></div>`;
   bindTopicVotes(article);
   const answerButton = $('.topic-answers[data-answer]', article);
   if (answerButton) answerButton.addEventListener('click', () => toggleTopicAnswer(article, $('h3', article).textContent, answerButton.dataset.answer));
@@ -754,22 +776,22 @@ function renderFaqPage() {
   faqPage = Math.min(Math.max(1, faqPage), pages);
   const faqs = faqItems.slice((faqPage - 1) * FAQ_PAGE_SIZE, faqPage * FAQ_PAGE_SIZE);
   const reservedRows = Math.max(0, FAQ_PAGE_SIZE - faqs.length);
-  accordion.innerHTML = `${faqs.map((item, index) => `<button class="faq-question" type="button" data-api-faq="${index}"><span>${escapeHtml(item.question)}</span><i>↓</i></button>`).join('')}${Array.from({ length: reservedRows }, () => '<div class="faq-question-placeholder" aria-hidden="true"></div>').join('')}`;
-  const pageButtons = Array.from({length:pages},(_,index)=>index+1).map(page => `<button type="button" data-faq-page="${page}" class="${page===faqPage?'is-current':''}" aria-label="Сторінка ${page}">${page}</button>`).join('');
-  pagination.innerHTML = `<button type="button" data-faq-nav="first" ${faqPage===1?'disabled':''} aria-label="Перша сторінка">«</button><button type="button" data-faq-nav="prev" ${faqPage===1?'disabled':''} aria-label="Попередня сторінка">‹</button>${pageButtons}<button type="button" data-faq-nav="next" ${faqPage===pages?'disabled':''} aria-label="Наступна сторінка">›</button><button type="button" data-faq-nav="last" ${faqPage===pages?'disabled':''} aria-label="Остання сторінка">»</button>`;
+  accordion.innerHTML = `${faqs.map((item, index) => `<button class="faq-question" type="button" data-api-faq="${index}"><span>${escapeHtml(localizedContent(item, 'question'))}</span><i>↓</i></button>`).join('')}${Array.from({ length: reservedRows }, () => '<div class="faq-question-placeholder" aria-hidden="true"></div>').join('')}`;
+  const pageButtons = Array.from({length:pages},(_,index)=>index+1).map(page => `<button type="button" data-faq-page="${page}" class="${page===faqPage?'is-current':''}" aria-label="${escapeHtml(uiText('Сторінка', 'Page'))} ${page}">${page}</button>`).join('');
+  pagination.innerHTML = `<button type="button" data-faq-nav="first" ${faqPage===1?'disabled':''} aria-label="${escapeHtml(uiText('Перша сторінка', 'First page'))}">«</button><button type="button" data-faq-nav="prev" ${faqPage===1?'disabled':''} aria-label="${escapeHtml(uiText('Попередня сторінка', 'Previous page'))}">‹</button>${pageButtons}<button type="button" data-faq-nav="next" ${faqPage===pages?'disabled':''} aria-label="${escapeHtml(uiText('Наступна сторінка', 'Next page'))}">›</button><button type="button" data-faq-nav="last" ${faqPage===pages?'disabled':''} aria-label="${escapeHtml(uiText('Остання сторінка', 'Last page'))}">»</button>`;
   const faqSchema = $('#faq-schema');
   if (faqSchema) faqSchema.textContent = JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
     mainEntity: faqItems.map(item => ({
       '@type': 'Question',
-      name: item.question,
-      acceptedAnswer: { '@type': 'Answer', text: item.answer }
+      name: localizedContent(item, 'question'),
+      acceptedAnswer: { '@type': 'Answer', text: localizedContent(item, 'answer') }
     }))
   });
   $$('.faq-question', accordion).forEach((button, index) => {
     const item = faqs[index];
-    button.addEventListener('click', () => openAnswer(item.question, item.answer));
+    button.addEventListener('click', () => openAnswer(localizedContent(item, 'question'), localizedContent(item, 'answer')));
   });
   enhanceClickableHints(accordion);
   $$('[data-faq-page]', pagination).forEach(button => button.addEventListener('click', () => { faqPage = Number(button.dataset.faqPage); renderFaqPage(); }));
@@ -777,16 +799,16 @@ function renderFaqPage() {
 }
 async function loadFaqs() {
   const accordion = $('.accordion');
-  accordion.innerHTML = loadingMarkup('Завантажуємо питання…');
+  accordion.innerHTML = loadingMarkup(uiText('Завантажуємо питання…', 'Loading questions…'));
   const data = await apiList('faqs');
   faqItems = Array.isArray(data) ? data.filter(item => item.status === 'active').sort((a, b) => Number(a.order || 0) - Number(b.order || 0)) : [];
-  if (!faqItems.length) { accordion.innerHTML = emptyMarkup('Питань поки немає', 'Поставте своє питання в Енергоколі.'); $('.faq-pagination').innerHTML = ''; return; }
+  if (!faqItems.length) { accordion.innerHTML = emptyMarkup(uiText('Питань поки немає', 'No questions yet'), uiText('Поставте своє питання в Енергоколі.', 'Ask your question in the Energy Circle.')); $('.faq-pagination').innerHTML = ''; return; }
   faqPage = 1; renderFaqPage();
 }
 async function loadTopics() {
-  topicList.innerHTML = loadingMarkup('Завантажуємо питання…');
+  topicList.innerHTML = loadingMarkup(uiText('Завантажуємо питання…', 'Loading questions…'));
   const data = await apiList('questions');
-  if (!Array.isArray(data) || !data.length) { topicList.innerHTML = emptyMarkup('Питань поки немає', 'Поставте перше питання — інженер відповість якнайшвидше.'); return; }
+  if (!Array.isArray(data) || !data.length) { topicList.innerHTML = emptyMarkup(uiText('Питань поки немає', 'No questions yet'), uiText('Поставте перше питання — інженер відповість якнайшвидше.', 'Ask the first question — an engineer will reply as soon as possible.')); return; }
   topicList.innerHTML = '';
   data.slice(0, 8).forEach(question => topicList.append(renderTopicCard(question)));
   scheduleTopicViewportFit();
@@ -796,7 +818,26 @@ bindTopicVotes();
 loadTopics();
 loadFaqs();
 syncLocalizedLinks();
-window.addEventListener('ink:languagechange', () => syncLocalizedLinks());
+window.addEventListener('ink:languagechange', event => {
+  const languageChanged = Boolean(event.detail?.lang && event.detail.lang !== activeRuntimeLanguage);
+  activeRuntimeLanguage = event.detail?.lang || pageLang();
+  syncLocalizedLinks();
+  updateSectionJumpTranslations();
+  enhanceClickableHints();
+  updateCalculator();
+  const gridOn = simulator.classList.contains('is-on');
+  $('.grid-label').textContent = gridOn ? uiText('Є', 'ON') : uiText('НЕМАЄ', 'OFF');
+  $('.outage-label').textContent = gridOn ? uiText('СТАБІЛЬНА', 'STABLE') : 'OFFLINE';
+  $('.grid-status').lastChild.textContent = gridOn ? uiText(' Система активна', ' System active') : uiText(' Резерв активний', ' Backup active');
+  if (!languageChanged) return;
+  resetSelector();
+  loadReviews();
+  loadProjects();
+  loadPublicEquipment();
+  loadArticles();
+  loadTopics();
+  loadFaqs();
+});
 window.addEventListener('load', () => {
   if (!location.hash) return;
   window.setTimeout(alignLocationHash, 80);
@@ -853,48 +894,53 @@ $('.form-success-reset', consultationForm)?.addEventListener('click', () => cons
 const dialog = $('#selector-dialog');
 const selectorContent = $('.selector-content', dialog);
 const answers = [];
-const selectorStartMarkup = selectorContent.innerHTML;
-const steps = [
-  { eyebrow: 'AI-підбір / 02', title: 'Що має працювати?', options: ['Базові прилади', 'Увесь об’єкт', 'Критичні лінії бізнесу'] },
-  { eyebrow: 'AI-підбір / 03', title: 'Ваш пріоритет?', options: ['Максимум автономності', 'Оптимальний бюджет', 'Можливість додати сонце'] }
+const selectorStartMarkup = () => `<p class="eyebrow">${escapeHtml(uiText('AI-підбір / 01', 'AI selection / 01'))}</p><h2>${escapeHtml(uiText('Де потрібна енергія?', 'Where do you need power?'))}</h2><div class="selector-options"><button type="button" data-answer="apartment">${escapeHtml(uiText('Квартира', 'Apartment'))} <span>→</span></button><button type="button" data-answer="house">${escapeHtml(uiText('Приватний будинок', 'Private house'))} <span>→</span></button><button type="button" data-answer="business">${escapeHtml(uiText('Бізнес', 'Business'))} <span>→</span></button></div><p class="selector-hint">${escapeHtml(uiText('3 питання · близько 90 секунд', '3 questions · about 90 seconds'))}</p>`;
+const selectorSteps = () => [
+  { eyebrow: uiText('AI-підбір / 02', 'AI selection / 02'), title: uiText('Що має працювати?', 'What must keep working?'), options: [['essential', uiText('Базові прилади', 'Essential appliances')], ['all', uiText('Увесь об’єкт', 'The whole property')], ['critical', uiText('Критичні лінії бізнесу', 'Critical business circuits')]] },
+  { eyebrow: uiText('AI-підбір / 03', 'AI selection / 03'), title: uiText('Ваш пріоритет?', 'What is your priority?'), options: [['autonomy', uiText('Максимум автономності', 'Maximum autonomy')], ['budget', uiText('Оптимальний бюджет', 'Optimised budget')], ['solar', uiText('Можливість додати сонце', 'Solar-ready')]] }
 ];
-const selectorResults = {
+const selectorResults = () => ({
   Base: {
-    title: 'Вам пасує система Base.',
+    model: 'Base',
+    title: uiText('Вам пасує система Base.', 'The Base system fits your needs.'),
     badge: '4.2 kW · 2.5 kWh',
-    object: 'Квартира',
+    object: uiText('Квартира', 'Apartment'),
     need: 'backup',
-    copy: 'Для квартири або компактного будинку: світло, Wi‑Fi, холодильник, котел і базова техніка без переплати за зайвий резерв.'
+    copy: uiText('Для квартири або компактного будинку: світло, Wi‑Fi, холодильник, котел і базова техніка без переплати за зайвий резерв.', 'For an apartment or compact home: lighting, Wi-Fi, refrigerator, boiler and essential appliances without paying for unnecessary reserve.')
   },
   Pulse: {
-    title: 'Вам пасує система Pulse.',
+    model: 'Pulse',
+    title: uiText('Вам пасує система Pulse.', 'The Pulse system fits your needs.'),
     badge: '6 kW · 5 kWh',
-    object: 'Приватний будинок',
+    object: uiText('Приватний будинок', 'Private house'),
     need: 'full',
-    copy: 'Для приватного будинку, де мають працювати насос, котел, кухня, зв’язок і комфортні побутові сценарії під час відключень.'
+    copy: uiText('Для приватного будинку, де мають працювати насос, котел, кухня, зв’язок і комфортні побутові сценарії під час відключень.', 'For a private house where the pump, boiler, kitchen, connectivity and everyday comforts must keep working during outages.')
   },
   Shift: {
-    title: 'Вам пасує система Shift.',
+    model: 'Shift',
+    title: uiText('Вам пасує система Shift.', 'The Shift system fits your needs.'),
     badge: '12 kW · 10 kWh',
-    object: 'Магазин / ресторан',
+    object: uiText('Магазин / ресторан', 'Shop / restaurant'),
     need: 'full',
-    copy: 'Для бізнесу: каса, холодильники, освітлення, мережеве обладнання та критичні лінії, які не можна зупиняти.'
+    copy: uiText('Для бізнесу: каса, холодильники, освітлення, мережеве обладнання та критичні лінії, які не можна зупиняти.', 'For business: checkout, refrigeration, lighting, network equipment and critical circuits that cannot stop.')
   },
   Orbit: {
-    title: 'Вам пасує система Orbit.',
+    model: 'Orbit',
+    title: uiText('Вам пасує система Orbit.', 'The Orbit system fits your needs.'),
     badge: '15 kW · 20 kWh',
-    object: 'Інше',
+    object: uiText('Інше', 'Other'),
     need: 'solar',
-    copy: 'Для максимальної автономності, нестабільної мережі або сценарію з сонячними панелями та запасом на масштабування.'
+    copy: uiText('Для максимальної автономності, нестабільної мережі або сценарію з сонячними панелями та запасом на масштабування.', 'For maximum autonomy, an unstable grid or a solar scenario with room to expand.')
   }
-};
+});
 function getSelectorResult() {
   const [place = '', load = '', priority = ''] = answers;
-  if (place === 'Бізнес' || load === 'Критичні лінії бізнесу') return selectorResults.Shift;
-  if (priority === 'Максимум автономності' || priority === 'Можливість додати сонце') return selectorResults.Orbit;
-  if (place === 'Квартира' && load === 'Базові прилади') return selectorResults.Base;
-  if (priority === 'Оптимальний бюджет' && load === 'Базові прилади') return selectorResults.Base;
-  return selectorResults.Pulse;
+  const results = selectorResults();
+  if (place === 'business' || load === 'critical') return results.Shift;
+  if (priority === 'autonomy' || priority === 'solar') return results.Orbit;
+  if (place === 'apartment' && load === 'essential') return results.Base;
+  if (priority === 'budget' && load === 'essential') return results.Base;
+  return results.Pulse;
 }
 function prefillSelectorLead(result) {
   const form = $('#lead-form');
@@ -905,7 +951,7 @@ function prefillSelectorLead(result) {
   if (object) object.value = result.object;
   if (need) need.checked = true;
   if (comment) {
-    comment.value = `AI-підбір рекомендував ${result.title.replace('Вам пасує система ', '').replace('.', '')} (${result.badge}). Відповіді: ${answers.join(' → ')}. Прошу зробити точний розрахунок під мій об'єкт.`;
+    comment.value = uiText(`AI-підбір рекомендував ${result.model} (${result.badge}). Прошу зробити точний розрахунок під мій об'єкт.`, `AI selection recommended ${result.model} (${result.badge}). Please prepare an exact calculation for my property.`);
   }
 }
 function bindSelectorOptions(root = dialog) {
@@ -913,7 +959,7 @@ function bindSelectorOptions(root = dialog) {
 }
 function resetSelector() {
   answers.length = 0;
-  selectorContent.innerHTML = selectorStartMarkup;
+  selectorContent.innerHTML = selectorStartMarkup();
   $('.selector-progress i', dialog).style.width = '33%';
   bindSelectorOptions(selectorContent);
   enhanceClickableHints(selectorContent);
@@ -924,9 +970,9 @@ function openSelector() {
   else dialog.setAttribute('open', '');
 }
 function renderStep(stepIndex) {
-  const step = steps[stepIndex];
+  const step = selectorSteps()[stepIndex];
   $('.selector-progress i', dialog).style.width = `${(stepIndex + 2) * 33.34}%`;
-  selectorContent.innerHTML = `<p class="eyebrow">${step.eyebrow}</p><h2>${step.title}</h2><div class="selector-options">${step.options.map(o => `<button type="button" data-answer="${o}">${o}<span>→</span></button>`).join('')}</div><p class="selector-hint">Підбираємо архітектуру, а не окрему коробку</p>`;
+  selectorContent.innerHTML = `<p class="eyebrow">${escapeHtml(step.eyebrow)}</p><h2>${escapeHtml(step.title)}</h2><div class="selector-options">${step.options.map(([value, label]) => `<button type="button" data-answer="${escapeHtml(value)}">${escapeHtml(label)}<span>→</span></button>`).join('')}</div><p class="selector-hint">${escapeHtml(uiText('Підбираємо архітектуру, а не окрему коробку', 'We select an architecture, not just a box'))}</p>`;
   $$('.selector-options button', selectorContent).forEach(btn => btn.addEventListener('click', () => handleAnswer(btn.dataset.answer, stepIndex + 2), { once:true }));
   enhanceClickableHints(selectorContent);
 }
@@ -934,7 +980,7 @@ function handleAnswer(answer, nextStep) {
   answers.push(answer);
   if (nextStep < 3) return renderStep(nextStep - 1);
   const result = getSelectorResult();
-  selectorContent.innerHTML = `<p class="eyebrow">Результат / ІНК · ${escapeHtml(result.badge)}</p><h2>${escapeHtml(result.title)}</h2><p style="color:var(--muted)">${escapeHtml(result.copy)}</p><a class="button button-primary" href="#consultation" id="selector-result">Отримати точний розрахунок <span>↗</span></a>`;
+  selectorContent.innerHTML = `<p class="eyebrow">${escapeHtml(uiText('Результат / ІНК', 'Result / INK'))} · ${escapeHtml(result.badge)}</p><h2>${escapeHtml(result.title)}</h2><p style="color:var(--muted)">${escapeHtml(result.copy)}</p><a class="button button-primary" href="#consultation" id="selector-result">${escapeHtml(uiText('Отримати точний розрахунок', 'Get an exact calculation'))} <span>↗</span></a>`;
   $('#selector-result').addEventListener('click', () => {
     prefillSelectorLead(result);
     dialog.close();
@@ -1002,11 +1048,23 @@ const quickSectionItems = [
   ['consultation', 'Надіслати запит', 'Send an enquiry'],
   ['contacts', 'Контакти', 'Contacts']
 ];
+function syncSectionJumpTriggerState(trigger, pinned = false) {
+  if (!trigger) return;
+  const hint = pinned
+    ? uiText('Меню закріплено · натисніть, щоб закрити', 'Menu pinned · click to close')
+    : uiText('Наведіть, щоб відкрити · натисніть, щоб закріпити меню', 'Hover to open · click to pin the menu');
+  trigger.dataset.hint = hint;
+  trigger.dataset.hintExplicit = 'true';
+  trigger.setAttribute('aria-label', hint);
+  trigger.setAttribute('aria-pressed', String(Boolean(pinned)));
+}
 function closeSectionJumpMenus(except = null) {
   $$('.section-jump.is-open').forEach(menu => {
     if (menu === except) return;
     menu.classList.remove('is-open');
-    $('.section-jump-trigger', menu)?.setAttribute('aria-expanded', 'false');
+    const trigger = $('.section-jump-trigger', menu);
+    trigger?.setAttribute('aria-expanded', 'false');
+    syncSectionJumpTriggerState(trigger, false);
   });
 }
 function setupSectionJumpMenus() {
@@ -1018,7 +1076,7 @@ function setupSectionJumpMenus() {
     const jump = document.createElement('nav');
     jump.className = 'section-jump';
     jump.setAttribute('aria-label', uiText('Швидкий перехід між розділами', 'Quick section navigation'));
-    jump.innerHTML = `<button class="section-jump-trigger" type="button" aria-expanded="false" aria-label="${escapeHtml(uiText('Відкрити меню розділів', 'Open section menu'))}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 18 18 6M9 6h9v9"/></svg></button><div class="section-jump-menu"><strong>${escapeHtml(uiText('Перейти до розділу', 'Go to section'))}</strong><a class="section-jump-top" href="#top"><span>${escapeHtml(uiText('На початок сторінки', 'Back to top'))}</span><i>↑</i></a>${links(id)}</div>`;
+    jump.innerHTML = `<button class="section-jump-trigger" type="button" aria-expanded="false" aria-pressed="false" aria-label="${escapeHtml(uiText('Відкрити меню розділів', 'Open section menu'))}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 18 18 6M9 6h9v9"/></svg></button><div class="section-jump-menu"><strong>${escapeHtml(uiText('Перейти до розділу', 'Go to section'))}</strong><a class="section-jump-top" href="#top"><span>${escapeHtml(uiText('На початок сторінки', 'Back to top'))}</span><i>↑</i></a>${links(id)}</div>`;
     section.append(jump);
     const trigger = $('.section-jump-trigger', jump);
     trigger.addEventListener('click', event => {
@@ -1027,6 +1085,7 @@ function setupSectionJumpMenus() {
       closeSectionJumpMenus(jump);
       jump.classList.toggle('is-open', willOpen);
       trigger.setAttribute('aria-expanded', String(willOpen));
+      syncSectionJumpTriggerState(trigger, willOpen);
     });
     $$('.section-jump-menu a', jump).forEach(link => link.addEventListener('click', () => closeSectionJumpMenus()));
   });
@@ -1034,6 +1093,30 @@ function setupSectionJumpMenus() {
   document.addEventListener('keydown', event => { if (event.key === 'Escape') closeSectionJumpMenus(); });
 }
 setupSectionJumpMenus();
+
+function updateSectionJumpTranslations() {
+  const availableItems = quickSectionItems.filter(([id]) => document.getElementById(id));
+  const links = currentId => availableItems.map(([id, uk, en]) => `<a href="#${id}" ${id === currentId ? 'aria-current="location"' : ''}><span>${escapeHtml(uiText(uk, en))}</span><i>↗</i></a>`).join('');
+  $$('.section-jump').forEach(jump => {
+    const currentId = jump.parentElement?.id || '';
+    jump.setAttribute('aria-label', uiText('Швидкий перехід між розділами', 'Quick section navigation'));
+    const trigger = $('.section-jump-trigger', jump);
+    syncSectionJumpTriggerState(trigger, jump.classList.contains('is-open'));
+    const menu = $('.section-jump-menu', jump);
+    if (!menu) return;
+    menu.innerHTML = `<strong>${escapeHtml(uiText('Перейти до розділу', 'Go to section'))}</strong><a class="section-jump-top" href="#top"><span>${escapeHtml(uiText('На початок сторінки', 'Back to top'))}</span><i>↑</i></a>${links(currentId)}`;
+    $$('a', menu).forEach(link => link.addEventListener('click', () => closeSectionJumpMenus()));
+  });
+}
+
+document.addEventListener('click', event => {
+  const topLink = event.target.closest('a[href="#top"]');
+  if (!topLink) return;
+  event.preventDefault();
+  closeSectionJumpMenus();
+  history.replaceState(null, '', `${location.pathname}${location.search}#top`);
+  window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+});
 
 // Keep the header state tied to the section currently passing through the reading line.
 const sectionNavLinks = $$('.site-header .desktop-nav a[href^="#"]');
