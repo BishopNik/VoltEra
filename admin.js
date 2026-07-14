@@ -328,17 +328,26 @@ function renderReviews() {
       return;
     }
     setBusy(button, true);
-    await api(`/api/reviews/${card.dataset.id}`, { method: 'PATCH', body: JSON.stringify({ reply, status: 'published', verified: true }) });
-    await loadCollection('reviews');
-    await refreshDashboard();
-    renderReviews();
+    try {
+      await api(`/api/reviews/${card.dataset.id}`, { method: 'PATCH', body: JSON.stringify({ reply, status: 'published', verified: true }) });
+      await loadCollection('reviews');
+      await refreshDashboard();
+      renderReviews();
+    } catch (error) {
+      showApiNotice(`Не вдалося зберегти відгук: ${error.message}`);
+    } finally { if (button.isConnected) setBusy(button, false); }
   }));
   $$('.review-hide', list).forEach(button => button.addEventListener('click', async () => {
     const card = button.closest('.moderation-item');
-    await api(`/api/reviews/${card.dataset.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'hidden' }) });
-    await loadCollection('reviews');
-    await refreshDashboard();
-    renderReviews();
+    setBusy(button, true);
+    try {
+      await api(`/api/reviews/${card.dataset.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'hidden' }) });
+      await loadCollection('reviews');
+      await refreshDashboard();
+      renderReviews();
+    } catch (error) {
+      showApiNotice(`Не вдалося змінити статус відгуку: ${error.message}`);
+    } finally { if (button.isConnected) setBusy(button, false); }
   }));
   $$('.review-delete', list).forEach(button => button.addEventListener('click', async () => {
     if (!confirm('Остаточно видалити відгук?')) return;
@@ -368,7 +377,8 @@ function renderQuestions() {
   $$('.question-item').forEach(card => {
     const item = state.questions.find(q => String(q._id) === card.dataset.id);
     $('.question-status', card).value = item.status || 'open';
-    $('.question-save', card).addEventListener('click', async () => {
+    $('.question-save', card).addEventListener('click', async event => {
+      const saveButton = event.currentTarget;
       const answer = $('.question-answer', card).value.trim();
       const communityAnswers = (item.answers || []).filter(entry => entry.role !== 'engineer');
       const payload = {
@@ -376,10 +386,15 @@ function renderQuestions() {
         status: answer ? 'answered' : $('.question-status', card).value,
         answers: answer ? [...communityAnswers, { author: currentAdmin?.name || 'ІНК', role: 'engineer', text: answer, createdAt: new Date().toISOString() }] : communityAnswers
       };
-      await api(`/api/questions/${card.dataset.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
-      await loadCollection('questions');
-      await refreshDashboard();
-      renderQuestions();
+      setBusy(saveButton, true);
+      try {
+        await api(`/api/questions/${card.dataset.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+        await loadCollection('questions');
+        await refreshDashboard();
+        renderQuestions();
+      } catch (error) {
+        showApiNotice(`Не вдалося зберегти відповідь: ${error.message}`);
+      } finally { if (saveButton.isConnected) setBusy(saveButton, false); }
     });
     $('.question-delete', card).addEventListener('click', async () => {
       if (!confirm('Видалити питання з Енергокола?')) return;
@@ -412,7 +427,8 @@ function renderFaqs() {
   $$('.question-item', list).forEach(card => {
     const item = state.faqs.find(faq => String(faq._id) === card.dataset.id);
     $('.faq-admin-status', card).value = item?.status || 'active';
-    $('.faq-admin-save', card).addEventListener('click', async () => {
+    $('.faq-admin-save', card).addEventListener('click', async event => {
+      const saveButton = event.currentTarget;
       const payload = {
         question: $('.faq-admin-question', card).value.trim(),
         answer: $('.faq-admin-answer', card).value.trim(),
@@ -420,9 +436,14 @@ function renderFaqs() {
         status: $('.faq-admin-status', card).value
       };
       if (!payload.question || !payload.answer) return;
-      await api(`/api/faqs/${card.dataset.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
-      await loadCollection('faqs');
-      renderFaqs();
+      setBusy(saveButton, true);
+      try {
+        await api(`/api/faqs/${card.dataset.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+        await loadCollection('faqs');
+        renderFaqs();
+      } catch (error) {
+        showApiNotice(`Не вдалося зберегти FAQ: ${error.message}`);
+      } finally { if (saveButton.isConnected) setBusy(saveButton, false); }
     });
     const move = async (direction, trigger) => {
       const index = sorted.findIndex(faq => String(faq._id) === card.dataset.id);
@@ -463,9 +484,14 @@ function renderProjects() {
     const item = state.projects.find(project => String(project._id) === article.dataset.id);
     select.value = item?.status || 'published';
     select.addEventListener('change', async () => {
-      await api(`/api/projects/${article.dataset.id}`, { method: 'PATCH', body: JSON.stringify({ status: select.value }) });
-      await loadCollection('projects');
-      renderProjects();
+      select.disabled = true;
+      try {
+        await api(`/api/projects/${article.dataset.id}`, { method: 'PATCH', body: JSON.stringify({ status: select.value }) });
+        await loadCollection('projects');
+        renderProjects();
+      } catch (error) {
+        showApiNotice(`Не вдалося змінити статус об’єкта: ${error.message}`);
+      } finally { if (select.isConnected) select.disabled = false; }
     });
   });
   $$('.edit-project', list).forEach(button => button.addEventListener('click', () => openContentDialog('projects', state.projects.find(item => String(item._id) === button.closest('article').dataset.id))));
@@ -578,41 +604,42 @@ function fileToDataUrl(file) {
 form.addEventListener('submit', async event => {
   event.preventDefault();
   if (!form.reportValidity()) return;
-  const data = Object.fromEntries(new FormData(form).entries());
-  if (activeType === 'faqs' && !activeItem) data.order = Math.max(0, ...state.faqs.map(item => Number(item.order || 0))) + 1;
-  if (activeType === 'articles') {
-    const slug = String(data.slug || data.title || '').toLowerCase().trim().replace(/[^a-z0-9а-яіїєґ]+/gi, '-').replace(/^-|-$/g, '');
-    data.slug = slug || `article-${Date.now()}`;
-  }
-  if (activeType === 'questions') {
-    const answer = String(data.answer || '').trim();
-    delete data.answer;
-    data.author = String(data.author || '').trim() || currentAdmin?.name || 'ІНК';
-    data.city = String(data.city || '').trim() || 'Україна';
-    data.status = answer ? 'answered' : 'open';
-    data.likes = 0;
-    data.answers = answer ? [{ author: currentAdmin?.name || 'ІНК', role: 'engineer', text: answer, createdAt: new Date().toISOString() }] : [];
-  }
-  if (activeType === 'users' && !String(data.password || '').trim()) delete data.password;
-  const fileInput = form.querySelector('input[type="file"]');
-  const files = [...(fileInput?.files || [])];
-  const file = files[0];
-  delete data.imageFile;
-  delete data.imageFiles;
-  if (files.length) {
-    const images = [];
-    for (const selectedFile of files) {
-      const upload = await api('/api/uploads', { method: 'POST', body: JSON.stringify({ dataUrl: await fileToDataUrl(selectedFile) }) });
-      images.push(upload.url);
-    }
-    data.images = images;
-    data.image = images[0];
-  } else if (activeItem?.image) {
-    data.image = activeItem.image;
-    if (activeItem.images) data.images = activeItem.images;
-  }
-  const path = activeItem ? `/api/${activeType}/${activeItem._id}` : `/api/${activeType}`;
+  const submitButton = event.submitter || form.querySelector('button[type="submit"]');
+  setBusy(submitButton, true);
   try {
+    const data = Object.fromEntries(new FormData(form).entries());
+    if (activeType === 'faqs' && !activeItem) data.order = Math.max(0, ...state.faqs.map(item => Number(item.order || 0))) + 1;
+    if (activeType === 'articles') {
+      const slug = String(data.slug || data.title || '').toLowerCase().trim().replace(/[^a-z0-9а-яіїєґ]+/gi, '-').replace(/^-|-$/g, '');
+      data.slug = slug || `article-${Date.now()}`;
+    }
+    if (activeType === 'questions') {
+      const answer = String(data.answer || '').trim();
+      delete data.answer;
+      data.author = String(data.author || '').trim() || currentAdmin?.name || 'ІНК';
+      data.city = String(data.city || '').trim() || 'Україна';
+      data.status = answer ? 'answered' : 'open';
+      data.likes = 0;
+      data.answers = answer ? [{ author: currentAdmin?.name || 'ІНК', role: 'engineer', text: answer, createdAt: new Date().toISOString() }] : [];
+    }
+    if (activeType === 'users' && !String(data.password || '').trim()) delete data.password;
+    const fileInput = form.querySelector('input[type="file"]');
+    const files = [...(fileInput?.files || [])];
+    delete data.imageFile;
+    delete data.imageFiles;
+    if (files.length) {
+      const images = [];
+      for (const selectedFile of files) {
+        const upload = await api('/api/uploads', { method: 'POST', body: JSON.stringify({ dataUrl: await fileToDataUrl(selectedFile) }) });
+        images.push(upload.url);
+      }
+      data.images = images;
+      data.image = images[0];
+    } else if (activeItem?.image) {
+      data.image = activeItem.image;
+      if (activeItem.images) data.images = activeItem.images;
+    }
+    const path = activeItem ? `/api/${activeType}/${activeItem._id}` : `/api/${activeType}`;
     await api(path, { method: activeItem ? 'PATCH' : 'POST', body: JSON.stringify(data) });
     await loadCollection(activeType);
     await refreshDashboard();
@@ -620,7 +647,7 @@ form.addEventListener('submit', async event => {
     dialog.close();
   } catch (error) {
     showApiNotice(error.message === 'API_NOT_FOUND' ? 'Маршрут FAQ відсутній у запущеній версії сервера. Перезапустіть npm start або зробіть новий deploy.' : `Помилка збереження: ${error.message}`);
-  }
+  } finally { if (submitButton.isConnected) setBusy(submitButton, false); }
 });
 
 $$('.admin-nav').forEach(button => button.addEventListener('click', () => openView(button.dataset.view)));

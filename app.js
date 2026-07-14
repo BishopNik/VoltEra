@@ -89,7 +89,7 @@ function syncLocalizedLinks(root = document) {
 }
 
 function enhanceClickableHints(root = document) {
-  const noHintSelector = '.dialog-close,.answer-dialog-close,.project-dialog-close,.equipment-dialog-close,.equipment-more-toggle,.gallery-dialog button[aria-label="Закрити"],.site-header .desktop-nav a,.site-header .button-small';
+  const noHintSelector = '.dialog-close,.answer-dialog-close,.project-dialog-close,.equipment-dialog-close,.equipment-more-toggle,.gallery-dialog button[aria-label="Закрити"],.site-header .desktop-nav a,.site-header .button-small,.section-jump-trigger,.section-jump-menu a';
   $$(noHintSelector, root).forEach(element => {
     delete element.dataset.hint;
     element.removeAttribute('title');
@@ -474,6 +474,29 @@ let equipmentReturnY = 0;
 let equipmentRestoreScroll = true;
 let activeEquipmentItem = null;
 let activeEquipmentBrand = 'all';
+let equipmentTitleFitFrame = 0;
+function fitEquipmentCardTitles() {
+  equipmentTitleFitFrame = 0;
+  $$('.equipment-card h3', publicEquipment).forEach(title => {
+    if (title.closest('.equipment-card')?.hidden || !title.clientWidth) return;
+    title.style.fontSize = '';
+    const preferredSize = Number.parseFloat(getComputedStyle(title).fontSize) || 34;
+    if (title.scrollWidth <= title.clientWidth) return;
+    let minimumSize = 14;
+    let maximumSize = preferredSize;
+    for (let step = 0; step < 8; step += 1) {
+      const candidate = (minimumSize + maximumSize) / 2;
+      title.style.fontSize = `${candidate}px`;
+      if (title.scrollWidth <= title.clientWidth) minimumSize = candidate;
+      else maximumSize = candidate;
+    }
+    title.style.fontSize = `${Math.floor(minimumSize * 10) / 10}px`;
+  });
+}
+function scheduleEquipmentTitleFit() {
+  if (equipmentTitleFitFrame) cancelAnimationFrame(equipmentTitleFitFrame);
+  equipmentTitleFitFrame = requestAnimationFrame(fitEquipmentCardTitles);
+}
 function applyEquipmentFilters() {
   const query = (equipmentSearch?.value || '').trim().toLocaleLowerCase();
   const cards = $$('.equipment-card', publicEquipment);
@@ -491,7 +514,9 @@ function applyEquipmentFilters() {
     const haystack = card.textContent.toLocaleLowerCase();
     card.hidden = (activeEquipmentBrand !== 'all' && brand !== activeEquipmentBrand) || (query && !haystack.includes(query));
   });
+  scheduleEquipmentTitleFit();
 }
+window.addEventListener('resize', scheduleEquipmentTitleFit, { passive: true });
 equipmentSearch?.addEventListener('input', applyEquipmentFilters);
 $$('.equipment-filter button').forEach(button => button.addEventListener('click', () => {
   activeEquipmentBrand = button.dataset.brandFilter || 'all';
@@ -951,6 +976,57 @@ answerDialog.addEventListener('close', () => requestAnimationFrame(restoreAnswer
 
 setupScrollHud('.article-grid', 'x');
 setupScrollHud('.topic-list', 'y');
+
+// A compact section directory is available from the top-right corner of every content section.
+const quickSectionItems = [
+  ['systems', 'Енергосистема', 'Energy system'],
+  ['inverters', 'Інвертори', 'Inverters'],
+  ['equipment', 'Обладнання', 'Equipment'],
+  ['calculator', 'Калькулятор', 'Calculator'],
+  ['kits', 'Готові системи', 'System packages'],
+  ['solutions', 'Рішення', 'Solutions'],
+  ['compare', 'Порівняння', 'Comparison'],
+  ['technology', 'Технології', 'Technology'],
+  ['projects', 'Об’єкти', 'Projects'],
+  ['reviews', 'Відгуки', 'Reviews'],
+  ['journal', 'Журнал', 'Journal'],
+  ['energy-circle', 'Енергоколо', 'Community'],
+  ['faq', 'Питання та відповіді', 'FAQ'],
+  ['consultation', 'Надіслати запит', 'Send an enquiry'],
+  ['contacts', 'Контакти', 'Contacts']
+];
+function closeSectionJumpMenus(except = null) {
+  $$('.section-jump.is-open').forEach(menu => {
+    if (menu === except) return;
+    menu.classList.remove('is-open');
+    $('.section-jump-trigger', menu)?.setAttribute('aria-expanded', 'false');
+  });
+}
+function setupSectionJumpMenus() {
+  const availableItems = quickSectionItems.filter(([id]) => document.getElementById(id));
+  const links = (currentId) => availableItems.map(([id, uk, en]) => `<a href="#${id}" ${id === currentId ? 'aria-current="location"' : ''}><span>${escapeHtml(uiText(uk, en))}</span><i>↗</i></a>`).join('');
+  availableItems.forEach(([id]) => {
+    const section = document.getElementById(id);
+    if (!section || $('.section-jump', section)) return;
+    const jump = document.createElement('nav');
+    jump.className = 'section-jump';
+    jump.setAttribute('aria-label', uiText('Швидкий перехід між розділами', 'Quick section navigation'));
+    jump.innerHTML = `<button class="section-jump-trigger" type="button" aria-expanded="false" aria-label="${escapeHtml(uiText('Відкрити меню розділів', 'Open section menu'))}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 18 18 6M9 6h9v9"/></svg></button><div class="section-jump-menu"><strong>${escapeHtml(uiText('Перейти до розділу', 'Go to section'))}</strong>${links(id)}</div>`;
+    section.append(jump);
+    const trigger = $('.section-jump-trigger', jump);
+    trigger.addEventListener('click', event => {
+      event.stopPropagation();
+      const willOpen = !jump.classList.contains('is-open');
+      closeSectionJumpMenus(jump);
+      jump.classList.toggle('is-open', willOpen);
+      trigger.setAttribute('aria-expanded', String(willOpen));
+    });
+    $$('.section-jump-menu a', jump).forEach(link => link.addEventListener('click', () => closeSectionJumpMenus()));
+  });
+  document.addEventListener('click', event => { if (!event.target.closest('.section-jump')) closeSectionJumpMenus(); });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape') closeSectionJumpMenus(); });
+}
+setupSectionJumpMenus();
 
 // Keep the header state tied to the section currently passing through the reading line.
 const sectionNavLinks = $$('.site-header .desktop-nav a[href^="#"]');
