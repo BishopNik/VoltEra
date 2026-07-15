@@ -546,8 +546,11 @@ function openEquipment(item) {
   equipmentReturnY = window.scrollY;
   equipmentRestoreScroll = true;
   const contentPane = equipmentDialog.querySelector(':scope > div');
-  if (contentPane) contentPane.scrollTop = 0;
-  equipmentDialog.scrollTop = 0;
+  const resetDialogScroll = () => {
+    if (contentPane) contentPane.scrollTop = 0;
+    equipmentDialog.scrollTop = 0;
+  };
+  resetDialogScroll();
   const images = Array.isArray(item.images) && item.images.length ? item.images : [item.image || '/assets/projects/home-backup.jpg'];
   const image = images[0];
   const mainImage = $('img', equipmentDialog);
@@ -586,9 +589,10 @@ function openEquipment(item) {
   if (typeof equipmentDialog.showModal === 'function') equipmentDialog.showModal();
   else equipmentDialog.setAttribute('open', '');
   requestAnimationFrame(() => {
-    if (contentPane) contentPane.scrollTop = 0;
-    equipmentDialog.scrollTop = 0;
+    resetDialogScroll();
+    $('.equipment-dialog-close', equipmentDialog)?.focus({ preventScroll:true });
   });
+  window.setTimeout(resetDialogScroll, 80);
   requestAnimationFrame(() => window.scrollTo({ top: equipmentReturnY, left: window.scrollX, behavior: 'auto' }));
 }
 
