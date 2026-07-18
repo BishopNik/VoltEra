@@ -10,11 +10,11 @@
 - Розрахунок автономності, монтаж, запуск і дистанційний сервіс
 
 ## Ключові сторінки
-- https://volt-era.vercel.app/
-- https://volt-era.vercel.app/rishennia/invertor-dlia-domu.html
-- https://volt-era.vercel.app/rishennia/rezervne-zhyvlennia-dlia-biznesu.html
-- https://volt-era.vercel.app/rishennia/soniachni-paneli.html
-- https://volt-era.vercel.app/gallery.html
-- https://volt-era.vercel.app/community.html
+- https://voltares.pp.ua/
+- https://voltares.pp.ua/rishennia/invertor-dlia-domu.html
+- https://voltares.pp.ua/rishennia/rezervne-zhyvlennia-dlia-biznesu.html
+- https://voltares.pp.ua/rishennia/soniachni-paneli.html
+- https://voltares.pp.ua/gallery.html
+- https://voltares.pp.ua/community.html
 
 Контакти: +380676721852, info@ink.energy. Адреса: Львівська область, Солонка, вул. Козацька, 6.

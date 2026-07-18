@@ -41,9 +41,9 @@ if (isEn) {
   document.querySelector('#prev-page').textContent = '← Previous';
   document.querySelector('#next-page').textContent = 'Next →';
   document.querySelector('#ask h2').textContent = 'Ask a question';
-  document.querySelector('#ask label:nth-of-type(1)').childNodes[0].textContent = 'Your name';
-  document.querySelector('#ask label:nth-of-type(2)').childNodes[0].textContent = 'City';
-  document.querySelector('#ask label:nth-of-type(3)').childNodes[0].textContent = 'Question';
+  document.querySelector('#ask input[name="author"]').closest('label').childNodes[0].textContent = 'Your name';
+  document.querySelector('#ask input[name="city"]').closest('label').childNodes[0].textContent = 'City';
+  document.querySelector('#ask textarea[name="title"]').closest('label').childNodes[0].textContent = 'Question';
   document.querySelector('#ask button').textContent = 'Publish →';
   document.querySelector('.page-footer .page-container').textContent = '© 2026 INK · Open Energy Circle';
 }
@@ -68,7 +68,7 @@ function bindQuestion(article, question) {
   const replyForm = article.querySelector('.community-reply-form');
   replyButton.addEventListener('click', () => {
     replyForm.hidden = !replyForm.hidden;
-    if (!replyForm.hidden) replyForm.querySelector('input').focus();
+    if (!replyForm.hidden) replyForm.querySelector('input[name="author"]').focus();
   });
   replyForm.addEventListener('submit', async event => {
     event.preventDefault();
@@ -94,7 +94,7 @@ function render(focusId = '') {
     article.className = 'community-question';
     article.id = String(question._id);
     const answers = Array.isArray(question.answers) ? question.answers : [];
-    article.innerHTML = `<header><span class="page-eyebrow">${answers.length ? text.answered : text.waiting}</span><small>♥ ${Number(question.likes || 0)}</small></header><h2>${escapeHtml(question.title)}</h2><p>${escapeHtml(question.author || text.guest)} · ${escapeHtml(question.city || text.ukraine)}</p><div class="community-actions">${answers.length ? `<button class="answers-toggle" type="button">${text.show}</button>` : `<span>${text.none}</span>`}<button class="reply-toggle" type="button">${text.reply} +</button></div><div class="answers-box" hidden>${answers.map(answerMarkup).join('')}</div><form class="community-reply-form" hidden><label>${text.name}<input name="author" maxlength="80" required></label><label>${text.replyText}<textarea name="text" rows="4" maxlength="2000" required></textarea></label><button class="page-button" type="submit">${text.send}</button><p role="status" aria-live="polite"></p></form>`;
+    article.innerHTML = `<header><span class="page-eyebrow">${answers.length ? text.answered : text.waiting}</span><small>♥ ${Number(question.likes || 0)}</small></header><h2>${escapeHtml(question.title)}</h2><p>${escapeHtml(question.author || text.guest)} · ${escapeHtml(question.city || text.ukraine)}</p><div class="community-actions">${answers.length ? `<button class="answers-toggle" type="button">${text.show}</button>` : `<span>${text.none}</span>`}<button class="reply-toggle" type="button">${text.reply} +</button></div><div class="answers-box" hidden>${answers.map(answerMarkup).join('')}</div><form class="community-reply-form" method="post" action="/api/questions/${encodeURIComponent(question._id)}/answers" hidden><label class="form-trap">Website<input name="website" tabindex="-1" autocomplete="off"></label><label>${text.name}<input name="author" maxlength="80" required></label><label>${text.replyText}<textarea name="text" rows="4" maxlength="2000" required></textarea></label><button class="page-button" type="submit">${text.send}</button><p role="status" aria-live="polite"></p></form>`;
     bindQuestion(article, question);
     list.append(article);
   });

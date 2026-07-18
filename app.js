@@ -74,7 +74,10 @@ const updateSiteLoading = delta => {
     window.setTimeout(alignLocationHash, 350);
   }
 };
-const apiList = async type => {
+const apiCache = new Map();
+const apiList = async (type, { fresh = false } = {}) => {
+  if (!fresh && apiCache.has(type)) return apiCache.get(type);
+  const request = (async () => {
   updateSiteLoading(1);
   try {
     const response = await fetch(`/api/${type}`).catch(() => null);
@@ -82,7 +85,14 @@ const apiList = async type => {
   } finally {
     updateSiteLoading(-1);
   }
+  })();
+  apiCache.set(type, request);
+  const result = await request;
+  if (result === null) apiCache.delete(type);
+  else apiCache.set(type, Promise.resolve(result));
+  return result;
 };
+const invalidateApiCache = type => apiCache.delete(type);
 const loadingMarkup = label => `<div class="section-loader"><i></i><span>${escapeHtml(label)}</span></div>`;
 const emptyMarkup = (title, text) => `<div class="section-empty"><div><strong>${escapeHtml(title)}</strong>${escapeHtml(text)}</div></div>`;
 
@@ -245,6 +255,7 @@ const mobileNav = $('.mobile-nav');
 menuToggle.addEventListener('click', () => {
   const open = menuToggle.getAttribute('aria-expanded') !== 'true';
   menuToggle.setAttribute('aria-expanded', open);
+  menuToggle.setAttribute('aria-label', uiText(open ? 'Закрити меню' : 'Відкрити меню', open ? 'Close menu' : 'Open menu'));
   mobileNav.classList.toggle('is-open', open);
   mobileNav.setAttribute('aria-hidden', !open);
 });
@@ -252,6 +263,7 @@ $$('.mobile-nav a').forEach(a => a.addEventListener('click', () => {
   mobileNav.classList.remove('is-open');
   mobileNav.setAttribute('aria-hidden', 'true');
   menuToggle.setAttribute('aria-expanded', 'false');
+  menuToggle.setAttribute('aria-label', uiText('Відкрити меню', 'Open menu'));
 }));
 
 // Reveal animations
@@ -288,14 +300,19 @@ function updateCalculator() {
   const percentage = (duration - 2) / 22 * 100;
   hours.style.background = `linear-gradient(90deg,var(--acid) ${percentage}%,#30443c ${percentage}%)`;
 }
-appliances.forEach(item => item.addEventListener('click', () => { item.classList.toggle('is-active'); updateCalculator(); }));
+appliances.forEach(item => item.addEventListener('click', () => {
+  item.classList.toggle('is-active');
+  item.setAttribute('aria-pressed', String(item.classList.contains('is-active')));
+  updateCalculator();
+}));
 hours.addEventListener('input', updateCalculator);
 updateCalculator();
 
 // Kit filtering
 $$('.kit-tabs button').forEach(button => button.addEventListener('click', () => {
-  $$('.kit-tabs button').forEach(btn => btn.classList.remove('is-active'));
+  $$('.kit-tabs button').forEach(btn => { btn.classList.remove('is-active'); btn.setAttribute('aria-selected', 'false'); });
   button.classList.add('is-active');
+  button.setAttribute('aria-selected', 'true');
   const filter = button.dataset.filter;
   $$('.kit-card').forEach(card => card.classList.toggle('is-hidden', filter !== 'all' && !card.dataset.category.includes(filter)));
 }));
@@ -321,7 +338,9 @@ function createReview(data) {
   const initials = (data.name || 'ІНК').split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
   const reply = String(data.reply || '').trim();
   const badge = data.verified === true ? `<b>${escapeHtml(uiText('ПЕРЕВІРЕНИЙ ВІДГУК', 'VERIFIED REVIEW'))}</b>` : '';
-  article.innerHTML = `<div class="stars" aria-label="${rating} ${escapeHtml(uiText('з 5', 'out of 5'))}">${'★'.repeat(rating)}${'☆'.repeat(5-rating)}</div><blockquote>«${escapeHtml(localizedContent(data, 'text'))}»</blockquote>${reply ? `<div class="team-reply"><span>↳ ${escapeHtml(uiText('ВІДПОВІДЬ ІНК', 'INK RESPONSE'))}</span><p>${escapeHtml(localizedContent(data, 'reply', reply))}</p></div>` : ''}<footer><div class="avatar">${escapeHtml(initials)}</div><div><strong>${escapeHtml(data.name || uiText('Клієнт ІНК', 'INK client'))}</strong><span>${escapeHtml(data.city || uiText('Україна', 'Ukraine'))}</span></div>${badge}</footer>`;
+  const date = data.createdAt ? new Intl.DateTimeFormat(pageLang() === 'en' ? 'en-GB' : 'uk-UA', {year:'numeric',month:'short'}).format(new Date(data.createdAt)) : '';
+  const reviewMeta = [data.city || uiText('Україна', 'Ukraine'), date].filter(Boolean).join(' · ');
+  article.innerHTML = `<div class="stars" aria-label="${rating} ${escapeHtml(uiText('з 5', 'out of 5'))}">${'★'.repeat(rating)}${'☆'.repeat(5-rating)}</div><blockquote>«${escapeHtml(localizedContent(data, 'text'))}»</blockquote>${reply ? `<div class="team-reply"><span>↳ ${escapeHtml(uiText('ВІДПОВІДЬ ІНК', 'INK RESPONSE'))}</span><p>${escapeHtml(localizedContent(data, 'reply', reply))}</p></div>` : ''}<footer><div class="avatar">${escapeHtml(initials)}</div><div><strong>${escapeHtml(data.name || uiText('Клієнт ІНК', 'INK client'))}</strong><span>${escapeHtml(reviewMeta)}</span></div>${badge}</footer>`;
   reviewTrack.append(article);
   reviews.push(article);
   return article;
@@ -347,7 +366,7 @@ reviewForm.addEventListener('submit', async event => {
   event.preventDefault();
   if (!reviewForm.reportValidity()) return;
   const fields = new FormData(reviewForm);
-  const data = { name: fields.get('reviewName'), city: fields.get('reviewCity'), rating: fields.get('reviewRating'), text: fields.get('reviewText') };
+  const data = { name: fields.get('name'), city: fields.get('city'), rating: fields.get('rating'), text: fields.get('text'), website: fields.get('website') || '' };
   const submit = reviewForm.querySelector('button[type="submit"]');
   submit.disabled = true;
   submit.classList.add('is-sending');
@@ -519,7 +538,11 @@ function applyEquipmentFilters() {
   });
   if (activeEquipmentBrand !== 'all' && !availableBrands.has(activeEquipmentBrand)) {
     activeEquipmentBrand = 'all';
-    $$('.equipment-filter button').forEach(button => button.classList.toggle('is-active', button.dataset.brandFilter === 'all'));
+    $$('.equipment-filter button').forEach(button => {
+      const selected = button.dataset.brandFilter === 'all';
+      button.classList.toggle('is-active', selected);
+      button.setAttribute('aria-pressed', String(selected));
+    });
   }
   cards.forEach(card => {
     const brand = (card.querySelector('span')?.textContent || '').trim().toLocaleLowerCase();
@@ -532,7 +555,11 @@ window.addEventListener('resize', scheduleEquipmentTitleFit, { passive: true });
 equipmentSearch?.addEventListener('input', applyEquipmentFilters);
 $$('.equipment-filter button').forEach(button => button.addEventListener('click', () => {
   activeEquipmentBrand = button.dataset.brandFilter || 'all';
-  $$('.equipment-filter button').forEach(item => item.classList.toggle('is-active', item === button));
+  $$('.equipment-filter button').forEach(item => {
+    const selected = item === button;
+    item.classList.toggle('is-active', selected);
+    item.setAttribute('aria-pressed', String(selected));
+  });
   applyEquipmentFilters();
 }));
 function renderPublicEquipment(item) {
@@ -540,8 +567,27 @@ function renderPublicEquipment(item) {
   const phase = pageLang() === 'en' ? String(item.phase || '—').replace(/фази/gi, 'phases').replace(/фаза/gi, 'phase') : item.phase || '—';
   return `<button class="equipment-card reveal visible" type="button" data-equipment="${escapeHtml(String(item._id || item.model || ''))}" aria-label="${escapeHtml(uiText('Відкрити опис', 'Open details for'))} ${escapeHtml(item.brand || '')} ${escapeHtml(item.model || '')}"><span>${escapeHtml(item.brand || 'ІНК')}</span><h3>${escapeHtml(item.model || uiText('Модель', 'Model'))}</h3><p>${escapeHtml(item.power || '—')} · ${escapeHtml(phase)} · ${escapeHtml(item.voltage || '—')}</p><b><i>${escapeHtml(status)}</i><em>${escapeHtml(uiText('Детальніше ↗', 'Details ↗'))}</em></b></button>`;
 }
-function openEquipment(item) {
+const equipmentDetailCache = new Map();
+async function openEquipment(item) {
   if (!equipmentDialog || !item) return;
+  const itemId = String(item._id || '');
+  if (itemId && !item.description && !item.image && !(Array.isArray(item.images) && item.images.length)) {
+    updateSiteLoading(1);
+    try {
+      let request = equipmentDetailCache.get(itemId);
+      if (!request) {
+        request = fetch(`/api/equipment/${encodeURIComponent(itemId)}`).then(response => response.ok ? response.json() : null).catch(() => null);
+        equipmentDetailCache.set(itemId, request);
+      }
+      const detail = await request;
+      if (detail) {
+        item = {...item, ...detail};
+        equipmentItems.set(itemId, item);
+      } else equipmentDetailCache.delete(itemId);
+    } finally {
+      updateSiteLoading(-1);
+    }
+  }
   activeEquipmentItem = item;
   equipmentReturnY = window.scrollY;
   equipmentRestoreScroll = true;
@@ -618,7 +664,8 @@ $('.equipment-order-form')?.addEventListener('submit', async event => {
     city: fields.city || '',
     object: 'Обладнання',
     need: `Запит по моделі: ${model}`,
-    comment: [`Клієнт надіслав запит із картки моделі ${model}.`, fields.note ? `Нотатка клієнта: ${fields.note}` : '', 'Джерело: картка обладнання.'].filter(Boolean).join(' ')
+    comment: [`Клієнт надіслав запит із картки моделі ${model}.`, fields.note ? `Нотатка клієнта: ${fields.note}` : '', 'Джерело: картка обладнання.'].filter(Boolean).join(' '),
+    website: fields.website || ''
   };
   const submit = $('.equipment-order-submit', form);
   submit.disabled = true;
@@ -672,8 +719,8 @@ async function loadPublicEquipment() {
   if (!Array.isArray(data) || !data.length) {
     publicEquipment.innerHTML = emptyMarkup(uiText('Асортимент оновлюється', 'The range is being updated'), uiText('Моделі стануть доступними після перевірки та схвалення нашими фахівцями.', 'Models will become available after review and approval by our specialists.')); return;
   }
-  publicEquipment.innerHTML = data.slice(0, 9).map(renderPublicEquipment).join('');
-  bindEquipmentCards(data.slice(0, 9));
+  publicEquipment.innerHTML = data.map(renderPublicEquipment).join('');
+  bindEquipmentCards(data);
   applyEquipmentFilters();
   enhanceClickableHints(publicEquipment);
 }
@@ -856,7 +903,7 @@ $('#topic-form').addEventListener('submit', async event => {
   const submit = event.currentTarget.querySelector('button[type="submit"]');
   submit?.classList.add('is-sending');
   if (submit) submit.disabled = true;
-  const response = await fetch('/api/questions', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({author:'Гість',city:'',title:input.value.trim(),body:''}) }).catch(() => null);
+  const response = await fetch('/api/questions', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({author:'Гість',city:'',title:input.value.trim(),website:event.currentTarget.elements.website?.value || ''}) }).catch(() => null);
   submit?.classList.remove('is-sending');
   if (submit) submit.disabled = false;
   if (!response?.ok) return;

@@ -96,6 +96,7 @@
     ['Що змінилося після запуску системи?', 'What changed after the system was commissioned?'],
     ['Опублікувати відгук ↗', 'Publish review ↗'],
     ['Відгук одразу з’явиться на сайті. Позначка «Перевірений» додається лише після підтвердження компанією.', 'Your review appears immediately. The “Verified” badge is added only after company confirmation.'],
+    ['Позначка «Перевірений» додається лише після підтвердження компанією.', 'The “Verified” badge appears only after company confirmation.'],
     ['Приватний будинок', 'Private house'],
     ['Квартира', 'Apartment'],
     ['Офіс', 'Office'],
@@ -112,7 +113,13 @@
     ['Резерв для бізнесу', 'Business backup'],
     ['Технології', 'Technology'],
     ['Калькулятор', 'Calculator'],
+    ['Про Deye →', 'About Deye →'],
+    ['Про Anenji →', 'About Anenji →'],
+    ['Про Easun →', 'About Easun →'],
     ['Питання та відповіді', 'Questions and answers'],
+    ['Орієнтир: базова система з обладнанням і монтажем — від 72 000 ₴. Точний бюджет визначаємо після карти навантажень.', 'Budget guide: a basic system with equipment and installation starts from UAH 72,000. We confirm the exact budget after mapping your loads.'],
+    ['Перемкнути стан електромережі', 'Toggle grid status'],
+    ['Швидкий підбір енергосистеми', 'Quick energy-system selector'],
     ['Паспорт об\'єкта', 'Project details'],
     ['Автономність', 'Runtime'],
     ['Перемикання', 'Switching'],
@@ -351,6 +358,7 @@
       'form.submit': 'Надіслати запит <span>↗</span>',
       'form.reset': 'Очистити',
       'form.required': "* Обов'язкові лише ім'я та телефон.",
+      'form.privacy': 'Натискаючи кнопку, ви погоджуєтесь з <a href="/privacy.html" target="_blank" rel="noopener">політикою конфіденційності</a>.',
       'form.new': 'Новий запит',
       'equipment.form.toggle': 'Обговорити цю модель ↗',
       'equipment.form.request': 'Надіслати запит',
@@ -521,6 +529,7 @@
       'form.submit': 'Send request <span>↗</span>',
       'form.reset': 'Clear',
       'form.required': '* Only name and phone are required.',
+      'form.privacy': 'By submitting, you agree to the <a href="/privacy.html" target="_blank" rel="noopener">privacy policy</a>.',
       'form.new': 'New request',
       'equipment.form.toggle': 'Discuss this model ↗',
       'equipment.form.request': 'Send enquiry',
@@ -665,7 +674,7 @@
     ['circle.eyebrow', '#energy-circle .eyebrow'],
     ['circle.title', '#circle-title', 'html'],
     ['circle.copy', '.circle-intro>p:not(.eyebrow)'],
-    ['circle.label', '#topic-form>label'],
+    ['circle.label', '#topic-form>label:not(.form-trap)'],
     ['circle.placeholder', '#topic-input', 'placeholder'],
     ['circle.hint', '#topic-form small'],
     ['circle.all', '.circle-all-link'],
@@ -678,19 +687,20 @@
     ['consult.copy', '.consult-copy>p:not(.eyebrow)'],
     ['consult.call', '.consult-contact span'],
     ['consult.hours', '.consult-contact small'],
-    ['form.name', '.consult-form .field-row label:nth-child(1)', 'labelText'],
+    ['form.name', '.consult-form label:has(input[name="name"])', 'labelText'],
     ['form.name.placeholder', '.consult-form input[name="name"]', 'placeholder'],
-    ['form.phone', '.consult-form .field-row label:nth-child(2)', 'labelText'],
-    ['form.email', '.consult-form .field-row:nth-child(2) label:nth-child(1)', 'labelText'],
-    ['form.city', '.consult-form .field-row:nth-child(2) label:nth-child(2)', 'labelText'],
+    ['form.phone', '.consult-form label:has(input[name="phone"])', 'labelText'],
+    ['form.email', '.consult-form label:has(input[name="email"])', 'labelText'],
+    ['form.city', '.consult-form label:has(input[name="city"])', 'labelText'],
     ['form.city.placeholder', '.consult-form input[name="city"]', 'placeholder'],
-    ['form.object', '.consult-form>label:nth-of-type(1)', 'labelText'],
+    ['form.object', '.consult-form label:has(select[name="object"])', 'labelText'],
     ['form.need', '.consult-form legend'],
-    ['form.comment', '.consult-form>label:nth-of-type(2)', 'labelText'],
+    ['form.comment', '.consult-form label:has(textarea[name="comment"])', 'labelText'],
     ['form.comment.placeholder', '.consult-form textarea[name="comment"]', 'placeholder'],
     ['form.submit', '.submit-button', 'html'],
     ['form.reset', '.form-reset'],
     ['form.required', '.form-required-note'],
+    ['form.privacy', '.form-privacy', 'html'],
     ['form.new', '.form-success-reset'],
     ['form.name', '.equipment-order-main>.field-row:first-child label:nth-child(1)', 'labelText'],
     ['form.name.placeholder', '.equipment-order-form input[name="name"]', 'placeholder'],
@@ -801,6 +811,17 @@
     document.title = messages['meta.title'];
     const description = document.querySelector('meta[name="description"]');
     if (description) description.content = messages['meta.description'];
+    const publicUrl = lang === 'en' ? 'https://voltares.pp.ua/?lang=en' : 'https://voltares.pp.ua/';
+    const canonical = document.querySelector('link[rel="canonical"]');
+    if (canonical) canonical.href = publicUrl;
+    const openGraphUrl = document.querySelector('meta[property="og:url"]');
+    if (openGraphUrl) openGraphUrl.content = publicUrl;
+    const openGraphTitle = document.querySelector('meta[property="og:title"]');
+    if (openGraphTitle) openGraphTitle.content = messages['meta.title'];
+    const openGraphDescription = document.querySelector('meta[property="og:description"]');
+    if (openGraphDescription) openGraphDescription.content = messages['meta.description'];
+    const openGraphLocale = document.querySelector('meta[property="og:locale"]');
+    if (openGraphLocale) openGraphLocale.content = lang === 'en' ? 'en_US' : 'uk_UA';
     I18N_BINDINGS.forEach(([key, selector, type]) => {
       const value = messages[key] ?? I18N_MESSAGES.uk[key];
       if (value == null) return;

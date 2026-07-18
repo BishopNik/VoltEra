@@ -16,6 +16,15 @@
 body.site-loading:before{content:"";position:fixed;z-index:999;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,transparent,var(--acid),var(--mint),var(--acid),transparent);background-size:220% 100%;animation:site-api-progress .9s linear infinite;box-shadow:0 2px 14px color-mix(in srgb,var(--acid) 28%,transparent)}@keyframes site-api-progress{to{background-position:-220% 0}}
 @media(hover:hover){:where(a[href],button:not(:disabled),[role="button"],summary,select):hover{filter:brightness(1.08)}:where(button:not(:disabled),[role="button"],summary):hover{border-color:color-mix(in srgb,var(--acid) 68%,var(--line));box-shadow:0 8px 24px rgba(0,0,0,.14)}}
 :where(a[href],button,[role="button"],summary,select,input,textarea):focus-visible{outline:3px solid color-mix(in srgb,var(--acid) 75%,white);outline-offset:3px}
+.form-trap{position:absolute!important;left:-10000px!important;top:auto!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important}
+.form-privacy a{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+.brand-details{display:inline-flex;margin:12px 0 0;color:var(--acid);font-size:11px;font-weight:850;text-decoration:underline;text-underline-offset:4px}
+.kit-budget-guide{max-width:900px;margin:16px 0 26px;padding:14px 18px;border-left:3px solid var(--acid);background:color-mix(in srgb,var(--acid) 7%,transparent);color:var(--muted);font-size:14px;line-height:1.55}
+@media(max-width:800px){
+  :where(.menu-toggle,.icon-button,.review-form-close,.project-dialog-close,.equipment-dialog-close,.answer-dialog-close,.dialog-close,.scroll-hud button,.topic-votes button,.faq-pagination button,.section-jump-trigger){min-width:44px;min-height:44px}
+  .kit-tabs button,.equipment-filter button,.language-switcher button{min-width:44px;min-height:44px}
+  .grid-simulator{min-width:44px;min-height:44px}
+}
 /* Denser rhythm: sections remain distinct without oversized empty bands. */
 .section{padding-top:84px;padding-bottom:84px}.section-heading{margin-bottom:44px}
 @media(max-width:1500px) and (min-width:801px){.section{padding-top:70px;padding-bottom:70px}.section-heading{margin-bottom:36px}}

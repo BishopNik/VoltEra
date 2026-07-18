@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
-  <url><loc>https://volt-era.vercel.app/</loc><lastmod>2026-07-12</lastmod><changefreq>weekly</changefreq><priority>1.0</priority><image:image><image:loc>https://volt-era.vercel.app/assets/projects/home-backup.jpg</image:loc><image:title>Система резервного живлення ІНК</image:title></image:image></url>
-  <url><loc>https://volt-era.vercel.app/?lang=en</loc><lastmod>2026-07-12</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://volt-era.vercel.app/rishennia/invertor-dlia-domu.html</loc><lastmod>2026-07-12</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://volt-era.vercel.app/rishennia/rezervne-zhyvlennia-dlia-biznesu.html</loc><lastmod>2026-07-12</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://volt-era.vercel.app/rishennia/soniachni-paneli.html</loc><lastmod>2026-07-12</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://volt-era.vercel.app/articles/5-pryladiv-iaki-zidaiut-avtonomnist.html</loc><lastmod>2026-07-12</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://volt-era.vercel.app/gallery.html</loc><lastmod>2026-07-12</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://volt-era.vercel.app/community.html</loc><lastmod>2026-07-12</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://voltares.pp.ua/</loc><lastmod>2026-07-12</lastmod><changefreq>weekly</changefreq><priority>1.0</priority><image:image><image:loc>https://voltares.pp.ua/assets/projects/home-backup.jpg</image:loc><image:title>Система резервного живлення ІНК</image:title></image:image></url>
+  <url><loc>https://voltares.pp.ua/?lang=en</loc><lastmod>2026-07-12</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://voltares.pp.ua/rishennia/invertor-dlia-domu.html</loc><lastmod>2026-07-12</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://voltares.pp.ua/rishennia/rezervne-zhyvlennia-dlia-biznesu.html</loc><lastmod>2026-07-12</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://voltares.pp.ua/rishennia/soniachni-paneli.html</loc><lastmod>2026-07-12</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://voltares.pp.ua/obladnannia/deye.html</loc><lastmod>2026-07-18</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://voltares.pp.ua/obladnannia/anenji.html</loc><lastmod>2026-07-18</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://voltares.pp.ua/obladnannia/easun.html</loc><lastmod>2026-07-18</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://voltares.pp.ua/obladnannia/lifepo4.html</loc><lastmod>2026-07-18</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://voltares.pp.ua/articles/5-pryladiv-iaki-zidaiut-avtonomnist.html</loc><lastmod>2026-07-12</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://voltares.pp.ua/gallery.html</loc><lastmod>2026-07-12</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://voltares.pp.ua/community.html</loc><lastmod>2026-07-12</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
 </urlset>
