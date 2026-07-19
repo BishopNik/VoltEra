@@ -515,7 +515,7 @@ function renderEquipment() {
   list.innerHTML = state.equipment.map(item => {
     const images = [...new Set([...(Array.isArray(item.images) ? item.images : []), item.image].filter(Boolean))];
     const media = images.length
-      ? `<div class="equipment-admin-media"><img src="${escapeHtml(images[0])}" alt="${escapeHtml(`${item.brand || ''} ${item.model || ''}`.trim())}" loading="lazy"><span>${images.length} ${images.length === 1 ? 'фото' : 'фото'}</span></div>`
+      ? `<button class="equipment-admin-media" type="button" aria-label="Збільшити фото ${escapeHtml(`${item.brand || ''} ${item.model || ''}`.trim())}"><img src="${escapeHtml(images[0])}" alt="${escapeHtml(`${item.brand || ''} ${item.model || ''}`.trim())}" loading="lazy"><span>${images.length} фото</span><i aria-hidden="true">⌕</i></button>`
       : '<div class="equipment-admin-media is-empty"><span>Фото не додано</span></div>';
     const retail = [item.price, item.priceUsd ? `$${Number(item.priceUsd).toLocaleString('en-US')}` : ''].filter(Boolean).join(' · ') || 'не вказано';
     const purchase = item.purchasePrice ? `${Number(item.purchasePrice).toLocaleString('en-US')} ${item.purchaseCurrency || 'USD'}` : 'не вказано';
@@ -527,8 +527,56 @@ function renderEquipment() {
     media.classList.add('is-empty');
     media.querySelector('span').textContent = 'Фото недоступне';
   }, { once:true }));
+  $$('.equipment-admin-media:not(.is-empty)', list).forEach(media => media.addEventListener('click', () => {
+    if (media.classList.contains('is-empty')) return;
+    const item = state.equipment.find(entry => String(entry._id) === media.closest('article').dataset.id);
+    if (item) openEquipmentImageViewer(item);
+  }));
   $$('.edit-equipment', list).forEach(button => button.addEventListener('click', () => openContentDialog('equipment', state.equipment.find(item => String(item._id) === button.closest('article').dataset.id))));
   $$('.delete-equipment', list).forEach(button => button.addEventListener('click', () => removeItem('equipment', button.closest('article').dataset.id)));
+}
+
+const imageDialog = $('#admin-image-dialog');
+const imagePreview = $('#admin-image-preview');
+const imageCounter = $('#admin-image-counter');
+const imageTitle = $('#admin-image-title');
+let imageViewerItems = [];
+let imageViewerIndex = 0;
+
+function updateEquipmentImageViewer() {
+  if (!imageViewerItems.length || !imagePreview) return;
+  imagePreview.src = imageViewerItems[imageViewerIndex];
+  imageCounter.textContent = `${imageViewerIndex + 1} / ${imageViewerItems.length}`;
+  const hasMultiple = imageViewerItems.length > 1;
+  $('.admin-image-prev', imageDialog).disabled = !hasMultiple;
+  $('.admin-image-next', imageDialog).disabled = !hasMultiple;
+  imageDialog.classList.remove('is-zoomed');
+  $('.admin-image-zoom', imageDialog).setAttribute('aria-pressed', 'false');
+  $('.admin-image-zoom', imageDialog).textContent = 'Збільшити';
+}
+
+function openEquipmentImageViewer(item) {
+  imageViewerItems = [...new Set([...(Array.isArray(item.images) ? item.images : []), item.image].filter(Boolean))];
+  if (!imageViewerItems.length || !imageDialog) return;
+  imageViewerIndex = 0;
+  imageTitle.textContent = `${item.brand || ''} ${item.model || ''}`.trim() || 'Обладнання';
+  imagePreview.alt = `Фото ${imageTitle.textContent}`;
+  updateEquipmentImageViewer();
+  imageDialog.showModal();
+}
+
+function moveEquipmentImage(direction) {
+  if (imageViewerItems.length < 2) return;
+  imageViewerIndex = (imageViewerIndex + direction + imageViewerItems.length) % imageViewerItems.length;
+  updateEquipmentImageViewer();
+}
+
+function toggleEquipmentImageZoom() {
+  if (!imageDialog) return;
+  const isZoomed = imageDialog.classList.toggle('is-zoomed');
+  const button = $('.admin-image-zoom', imageDialog);
+  button.setAttribute('aria-pressed', String(isZoomed));
+  button.textContent = isZoomed ? 'Зменшити' : 'Збільшити';
 }
 
 function renderUsers() {
@@ -681,6 +729,18 @@ $('#add-article')?.addEventListener('click', () => openContentDialog('articles')
 $('#add-equipment')?.addEventListener('click', () => openContentDialog('equipment'));
 $('#add-user')?.addEventListener('click', () => openContentDialog('users'));
 $('.dialog-x')?.addEventListener('click', () => dialog.close());
+$('.admin-image-close')?.addEventListener('click', () => imageDialog.close());
+$('.admin-image-prev')?.addEventListener('click', () => moveEquipmentImage(-1));
+$('.admin-image-next')?.addEventListener('click', () => moveEquipmentImage(1));
+$('.admin-image-zoom')?.addEventListener('click', toggleEquipmentImageZoom);
+imagePreview?.addEventListener('click', toggleEquipmentImageZoom);
+imageDialog?.addEventListener('click', event => {
+  if (event.target === imageDialog) imageDialog.close();
+});
+imageDialog?.addEventListener('keydown', event => {
+  if (event.key === 'ArrowLeft') moveEquipmentImage(-1);
+  if (event.key === 'ArrowRight') moveEquipmentImage(1);
+});
 $('.save-settings')?.addEventListener('click', event => {
   event.currentTarget.textContent = 'Збережено ✓';
   setTimeout(() => { event.currentTarget.textContent = 'Зберегти зміни'; }, 1600);
