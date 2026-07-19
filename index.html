@@ -15,7 +15,8 @@
   <link rel="alternate" hreflang="x-default" href="https://voltares.pp.ua/">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="/site.webmanifest">
-  <link rel="stylesheet" href="/styles.css?v=20260713-2"><link rel="stylesheet" href="/ui-overrides.css?v=20260718-4">
+  <link rel="stylesheet" href="/styles.css?v=20260713-2"><link rel="stylesheet" href="/ui-overrides.css?v=20260719-1">
+  <script>if(new URLSearchParams(location.search).get('catalog')==='all'){location.replace('/catalog.html'+(new URLSearchParams(location.search).get('lang')==='en'?'?lang=en':''))}</script>
   <meta property="og:type" content="website">
   <meta property="og:locale" content="uk_UA">
   <meta property="og:site_name" content="ІНК">
@@ -284,7 +285,7 @@
 
   <dialog class="selector-dialog" id="selector-dialog" aria-label="Швидкий підбір енергосистеми"><button class="dialog-close" type="button" aria-label="Закрити">×</button><div class="selector-progress"><i></i></div><div class="selector-content"><p class="eyebrow">AI-підбір / 01</p><h2>Де потрібна енергія?</h2><div class="selector-options"><button type="button" data-answer="Квартира">Квартира <span>→</span></button><button type="button" data-answer="Будинок">Приватний будинок <span>→</span></button><button type="button" data-answer="Бізнес">Бізнес <span>→</span></button></div><p class="selector-hint">3 питання · близько 90 секунд</p></div></dialog>
 
-<script src="/app.js?v=20260718-3" defer></script>
+<script src="/app.js?v=20260719-1" defer></script>
   <script src="/i18n.js?v=20260718-4" defer></script>
   <script>
     if (!['localhost', '127.0.0.1'].includes(location.hostname)) {

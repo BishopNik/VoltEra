@@ -40,6 +40,7 @@ const LEGACY_SAMPLE_IDS = {
 const EQUIPMENT_CATALOG_MIGRATION_ID = 'add-deye-catalog-2026-07-18-v1';
 const EQUIPMENT_IMAGE_NORMALIZATION_ID = 'normalize-equipment-images-2026-07-18-v1';
 const EQUIPMENT_RETAIL_PRICE_MIGRATION_ID = 'set-equipment-retail-prices-2026-07-19-v2';
+const EQUIPMENT_COMMERCE_MIGRATION_ID = 'set-equipment-commerce-fields-2026-07-19-v1';
 const EQUIPMENT_RETAIL_PRICES = Object.freeze({
   'SE-G5.1 Pro-B':'38 900 грн',
   'SE-F5 Pro-C':'38 500 грн',
@@ -59,6 +60,27 @@ const EQUIPMENT_RETAIL_PRICES = Object.freeze({
   'ANJ-LP04-24V-100A-PX':'15 900 грн',
   'ANJ-6200W-48V-W':'13 900 грн',
   'ANJ-4000W-24V-W':'10 900 грн'
+});
+// Purchase values are deliberately kept in the authenticated CRM payload only.
+const EQUIPMENT_COMMERCE = Object.freeze({
+  'SE-G5.1 Pro-B':{priceUsd:880,purchasePrice:800,purchaseCurrency:'USD'},
+  'SE-F5 Pro-C':{priceUsd:870,purchasePrice:780,purchaseCurrency:'USD'},
+  'SUN-6K-SG05LP1-AM2-P':{priceUsd:815,purchasePrice:770,purchaseCurrency:'USD'},
+  'SUN-8K-SG01LP1-EU':{priceUsd:1265,purchasePrice:1100,purchaseCurrency:'USD'},
+  'SUN-10K-SG02LP1-EU-AM3':{priceUsd:1810,purchasePrice:1600,purchaseCurrency:'USD'},
+  'SUN-12K-SG02LP1-EU-AM3':{priceUsd:1875,purchasePrice:1650,purchaseCurrency:'USD'},
+  'SUN-12K-SG05LP3-EU':{priceUsd:1875,purchasePrice:1720,purchaseCurrency:'USD'},
+  'SUN-15K-SG05LP3-EU-SM2':{priceUsd:2260,purchasePrice:1960,purchaseCurrency:'USD'},
+  'SUN-20K-SG05LP3-EU-SM2':{priceUsd:2780,purchasePrice:2550,purchaseCurrency:'USD'},
+  'SUN-30K-SG02HP3-EU-BM3':{priceUsd:3165,purchasePrice:2850,purchaseCurrency:'USD'},
+  'SUN-50K-SG01HP3-EU-BM4':{priceUsd:4640,purchasePrice:4150,purchaseCurrency:'USD'},
+  'SUN-80K-SG02HP3-EU-EM6':{priceUsd:6560,purchasePrice:5950,purchaseCurrency:'USD'},
+  'BOS-G PRO':{priceUsd:880,purchasePrice:770,purchaseCurrency:'USD'},
+  'BOS-G-PDU-2 BMS':{priceUsd:880,purchasePrice:780,purchaseCurrency:'USD'},
+  'Стійка BOS-G PRO на 12 АКБ':{priceUsd:430,purchasePrice:360,purchaseCurrency:'USD'},
+  'ANJ-LP04-24V-100A-PX':{priceUsd:360,purchasePrice:290,purchaseCurrency:'USD'},
+  'ANJ-6200W-48V-W':{priceUsd:315,purchasePrice:240,purchaseCurrency:'USD'},
+  'ANJ-4000W-24V-W':{priceUsd:250,purchasePrice:190,purchaseCurrency:'USD'}
 });
 const LEGACY_EQUIPMENT_IMAGE_PATHS = new Map([
   ['ANJ-LP04-24V-100A-PX','/assets/equipment/anenji-anj-lp04-24v-100a-px.webp'],
@@ -195,6 +217,16 @@ class FileStore {
       this.data._migrations.push(EQUIPMENT_RETAIL_PRICE_MIGRATION_ID);
       changed=true;
     }
+    if(!this.data._migrations.includes(EQUIPMENT_COMMERCE_MIGRATION_ID)){
+      const now=new Date().toISOString();
+      for(const item of this.data.equipment){
+        const commerce=EQUIPMENT_COMMERCE[String(item.model||'').trim()];
+        if(!commerce)continue;
+        Object.assign(item,commerce,{updatedAt:now});
+      }
+      this.data._migrations.push(EQUIPMENT_COMMERCE_MIGRATION_ID);
+      changed=true;
+    }
     for(const review of this.data.reviews||[]){ if(review.status==='waiting'){review.status='published';changed=true;} if(review.verified===undefined){ review.verified=false; review.verifiedBy=''; review.verifiedAt=null; review.audit=[]; changed=true; } if(!Array.isArray(review.audit)){ review.audit=[]; changed=true; } }
     if(changed)await this.persist();
   }
@@ -263,6 +295,15 @@ class MongoStore {
         await equipment.updateMany({model},{$set:{price,updatedAt:now}});
       }
       try{await migrations.updateOne({_id:EQUIPMENT_RETAIL_PRICE_MIGRATION_ID},{$setOnInsert:{completedAt:now}},{upsert:true});}
+      catch(error){if(error?.code!==11000)throw error;}
+    }
+    if(!await migrations.findOne({_id:EQUIPMENT_COMMERCE_MIGRATION_ID})){
+      const equipment=this.db.collection('equipment');
+      const now=new Date().toISOString();
+      for(const [model,commerce] of Object.entries(EQUIPMENT_COMMERCE)){
+        await equipment.updateMany({model},{$set:{...commerce,updatedAt:now}});
+      }
+      try{await migrations.updateOne({_id:EQUIPMENT_COMMERCE_MIGRATION_ID},{$setOnInsert:{completedAt:now}},{upsert:true});}
       catch(error){if(error?.code!==11000)throw error;}
     }
     await this.db.collection('reviews').updateMany({verified:{$exists:false}},{$set:{verified:false,verifiedBy:'',verifiedAt:null,audit:[]}});
@@ -361,12 +402,16 @@ async function body(req,limit=2_500_000){
   throw new Error('UNSUPPORTED_CONTENT_TYPE');
 }
 function compareSafe(a='',b=''){ const left=Buffer.from(String(a)); const right=Buffer.from(String(b)); if(left.length!==right.length)return false; return crypto.timingSafeEqual(left,right); }
-function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','status','manager','checkedBy','viewedAt'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','description','status','images']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
+function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','status','manager','checkedBy','viewedAt'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','status','images']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
 function publicReview(item){ const {audit,viewedAt,verifiedBy,verifiedAt,...safe}=item; return safe; }
 function publicEquipmentSummary(item={}){
-  const {image,images,description,descriptionEn,translations,audit,viewedAt,...summary}=item;
+  const {image,images,description,descriptionEn,translations,audit,viewedAt,purchasePrice,purchaseCurrency,...summary}=item;
   const normalized=normalizedEquipmentImages(item);
   return {...summary,imageCount:normalized.length,thumbnail:normalized[0]||''};
+}
+function publicEquipmentDetail(item={}){
+  const {image,audit,viewedAt,purchasePrice,purchaseCurrency,...detail}=item;
+  return {...detail,images:normalizedEquipmentImages(item)};
 }
 function clientAddress(req){return String(req.headers['x-forwarded-for']||req.socket?.remoteAddress||'unknown').split(',')[0].trim().slice(0,80)}
 function allowRequest(req,res,scope,limit,windowMs){
@@ -558,7 +603,7 @@ async function api(req,res,url){
       if(['projects','articles'].includes(type))items=items.filter(x=>x.status==='published'||x.status==='active');
       if(type==='equipment'){
         items=items.filter(x=>x.status==='active');
-        if(!id)items=items.map(publicEquipmentSummary);
+        items=id?items.map(publicEquipmentDetail):items.map(publicEquipmentSummary);
       }
       if(type==='faqs')items=items.filter(x=>x.status==='active').sort((a,b)=>Number(a.order||0)-Number(b.order||0));
     }
@@ -596,6 +641,11 @@ async function api(req,res,url){
 
 async function serve(req,res,url){
   if(url.pathname==='/admin.html'&&!currentUser(req)){res.writeHead(302,{Location:'/admin-login.html'});return res.end();}
+  if(url.pathname==='/'&&url.searchParams.get('catalog')==='all'){
+    const suffix=url.searchParams.get('lang')==='en'?'?lang=en':'';
+    res.writeHead(302,{Location:`/catalog.html${suffix}`});
+    return res.end();
+  }
   if(url.pathname==='/sitemap.xml'){
     const fixed=['/','/?lang=en','/catalog.html','/catalog.html?lang=en','/rishennia/invertor-dlia-domu.html','/rishennia/rezervne-zhyvlennia-dlia-biznesu.html','/rishennia/soniachni-paneli.html','/obladnannia/deye.html','/obladnannia/anenji.html','/obladnannia/easun.html','/obladnannia/lifepo4.html','/articles/5-pryladiv-iaki-zidaiut-avtonomnist.html','/gallery.html','/community.html'];
     const dynamic=(await store.list('articles')).filter(item=>item.status==='published'&&item.slug).map(item=>({path:`/articles/${encodeURIComponent(item.slug)}.html`,updated:item.updatedAt||item.createdAt}));

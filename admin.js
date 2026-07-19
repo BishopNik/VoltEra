@@ -517,7 +517,9 @@ function renderEquipment() {
     const media = images.length
       ? `<div class="equipment-admin-media"><img src="${escapeHtml(images[0])}" alt="${escapeHtml(`${item.brand || ''} ${item.model || ''}`.trim())}" loading="lazy"><span>${images.length} ${images.length === 1 ? 'фото' : 'фото'}</span></div>`
       : '<div class="equipment-admin-media is-empty"><span>Фото не додано</span></div>';
-    return `<article data-id="${item._id}">${media}<span class="equipment-admin-brand">${escapeHtml(item.brand)}</span><h3>${escapeHtml(item.model)}</h3><p>${escapeHtml(item.power || '—')} · ${escapeHtml(item.phase || '—')} · ${escapeHtml(item.voltage || '—')}</p><div>${statusBadge(item.status || 'active')}<button class="edit-equipment" type="button">Налаштувати</button><button class="delete-equipment danger-link" type="button">Видалити</button></div></article>`;
+    const retail = [item.price, item.priceUsd ? `$${Number(item.priceUsd).toLocaleString('en-US')}` : ''].filter(Boolean).join(' · ') || 'не вказано';
+    const purchase = item.purchasePrice ? `${Number(item.purchasePrice).toLocaleString('en-US')} ${item.purchaseCurrency || 'USD'}` : 'не вказано';
+    return `<article data-id="${item._id}">${media}<span class="equipment-admin-brand">${escapeHtml(item.brand)}</span><h3>${escapeHtml(item.model)}</h3><p>${escapeHtml(item.power || '—')} · ${escapeHtml(item.phase || '—')} · ${escapeHtml(item.voltage || '—')}</p><p class="equipment-admin-pricing"><b>Роздріб:</b> ${escapeHtml(retail)}<br><b>Закупівля:</b> ${escapeHtml(purchase)}</p><div>${statusBadge(item.status || 'active')}<button class="edit-equipment" type="button">Налаштувати</button><button class="delete-equipment danger-link" type="button">Видалити</button></div></article>`;
   }).join('');
   $$('.equipment-admin-media img', list).forEach(image => image.addEventListener('error', () => {
     const media = image.parentElement;
@@ -573,7 +575,7 @@ const configs = {
   faqs: { title: 'короткий FAQ', fields: [['question', 'Питання', 'text', true], ['answer', 'Відповідь', 'textarea', true], ['status', 'Статус', 'select', false, ['active', 'draft']]] },
   projects: { title: "об'єкт", fields: [['title', 'Назва', 'text', true], ['city', 'Локація', 'text'], ['type', 'Тип об’єкта', 'text'], ['description', 'Опис', 'textarea'], ['imageFile', 'Фото об’єкта', 'file'], ['status', 'Статус', 'select', false, ['published', 'draft']]] },
   articles: { title: 'статтю', fields: [['title', 'Назва', 'text', true], ['slug', 'Адреса сторінки (латиницею, без пробілів)', 'text'], ['category', 'Категорія', 'text'], ['excerpt', 'Короткий SEO-опис', 'textarea'], ['body', 'Повний текст статті', 'textarea'], ['imageFiles', 'Фото статті (можна кілька)', 'files'], ['status', 'Статус', 'select', false, ['published', 'draft']]] },
-  equipment: { title: 'модель обладнання', fields: [['brand', 'Бренд', 'text', true], ['model', 'Модель', 'text', true], ['power', 'Потужність', 'text'], ['phase', 'Фази', 'text'], ['voltage', 'Напруга', 'text'], ['price', 'Ціна / діапазон', 'text'], ['description', 'Опис для сайту', 'textarea'], ['imageFiles', 'Фото моделі (можна кілька)', 'files'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] },
+  equipment: { title: 'модель обладнання', fields: [['brand', 'Бренд', 'text', true], ['model', 'Модель', 'text', true], ['power', 'Потужність', 'text'], ['phase', 'Фази', 'text'], ['voltage', 'Напруга', 'text'], ['price', 'Роздрібна ціна, грн', 'text'], ['priceUsd', 'Роздрібна ціна, USD', 'number'], ['purchasePrice', 'Закупівельна ціна (лише CRM)', 'number'], ['purchaseCurrency', 'Валюта закупівлі', 'select', false, ['USD', 'EUR', 'UAH']], ['description', 'Опис для сайту', 'textarea'], ['imageFiles', 'Фото моделі (можна кілька)', 'files'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] },
   users: { title: 'користувача CRM', fields: [['username', "Ім'я користувача", 'text', true], ['password', 'Новий пароль (мінімум 8 символів)', 'password'], ['status', 'Доступ', 'select', false, ['active', 'disabled']]] }
 };
 
@@ -582,7 +584,7 @@ function fieldTemplate([name, label, type, required, options = []], item = {}) {
   if (type === 'select') return `<label>${label}<select name="${name}">${options.map(option => `<option value="${option}" ${item[name] === option ? 'selected' : ''}>${escapeHtml(statusLabels[option]?.[0] || option)}</option>`).join('')}</select></label>`;
   if (type === 'file') return `<label>${label}<input name="${name}" type="file" accept="image/png,image/jpeg,image/webp"><small>${item.image ? `Поточне фото: ${escapeHtml(item.image)}` : 'PNG, JPG або WebP'}</small></label>`;
   if (type === 'files') return `<label>${label}<input name="${name}" type="file" accept="image/png,image/jpeg,image/webp" multiple><small>${item.images?.length ? `Збережено фото: ${item.images.length}` : 'PNG, JPG або WebP; можна вибрати кілька файлів одночасно'}</small></label>`;
-  return `<label>${label}<input name="${name}" type="${type}" value="${escapeHtml(item[name] || '')}" ${required ? 'required' : ''}></label>`;
+  return `<label>${label}<input name="${name}" type="${type}" value="${escapeHtml(item[name] ?? '')}" ${type === 'number' ? 'min="0" step="0.01" inputmode="decimal"' : ''} ${required ? 'required' : ''}></label>`;
 }
 
 function openContentDialog(type, item = null) {

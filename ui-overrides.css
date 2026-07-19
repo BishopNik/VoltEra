@@ -63,3 +63,6 @@ body.site-loading:before{content:"";position:fixed;z-index:999;left:0;right:0;to
 .equipment-image-lightbox-close{position:absolute;z-index:2;top:30px;right:30px;display:grid;place-items:center;width:52px;height:52px;padding:0;border:0;border-radius:50%;background:var(--acid);color:#07110f;font-size:28px;font-weight:950;cursor:pointer;box-shadow:0 12px 30px rgba(0,0,0,.3)}
 .equipment-image-lightbox-close:hover{transform:scale(1.06)}
 @media(max-width:700px){.equipment-image-lightbox{width:calc(100vw - 20px);height:calc(100dvh - 20px);padding:10px;border-radius:18px}.equipment-image-lightbox-close{top:18px;right:18px}}
+/* Wide desktop density, while laptop and mobile sizes stay untouched. */
+@media(min-width:2200px) and (min-height:900px){body{zoom:.78}}
+@media(min-width:3200px) and (min-height:1200px){body{zoom:.7}}

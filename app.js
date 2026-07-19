@@ -1,5 +1,9 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+if (new URLSearchParams(location.search).get('catalog') === 'all') {
+  const suffix = new URLSearchParams(location.search).get('lang') === 'en' ? '?lang=en' : '';
+  location.replace(`/catalog.html${suffix}`);
+}
 const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[char]));
 function renderSimpleMarkdown(value = '') {
   const inline = line => escapeHtml(line)
@@ -605,8 +609,15 @@ function renderPublicEquipment(item) {
   const phase = pageLang() === 'en' ? String(item.phase || '—').replace(/фази/gi, 'phases').replace(/фаза/gi, 'phase') : item.phase || '—';
   const thumbnail = item.thumbnail || (Array.isArray(item.images) ? item.images[0] : '') || item.image || '';
   const image = thumbnail ? `<img class="equipment-card-thumb" src="${escapeHtml(thumbnail)}" alt="${escapeHtml(`${item.brand || ''} ${item.model || ''}`.trim())}" loading="lazy">` : '<span class="equipment-card-thumb equipment-card-thumb-empty" aria-hidden="true">⚡</span>';
-  const price = item.price || uiText('За запитом', 'On request');
+  const price = equipmentPriceLabel(item);
   return `<button class="equipment-card reveal visible" type="button" data-equipment="${escapeHtml(String(item._id || item.model || ''))}" aria-label="${escapeHtml(uiText('Відкрити опис', 'Open details for'))} ${escapeHtml(item.brand || '')} ${escapeHtml(item.model || '')}">${image}<span>${escapeHtml(item.brand || 'ІНК')}</span><h3>${escapeHtml(item.model || uiText('Модель', 'Model'))}</h3><p>${escapeHtml(item.power || '—')} · ${escapeHtml(phase)} · ${escapeHtml(item.voltage || '—')}</p><strong class="equipment-card-price">${escapeHtml(price)}</strong><b><i>${escapeHtml(status)}</i><em>${escapeHtml(uiText('Детальніше ↗', 'Details ↗'))}</em></b></button>`;
+}
+function equipmentPriceLabel(item = {}) {
+  const rawUah = String(item.price || '').trim();
+  const uah = /^\d[\d\s.,]*$/.test(rawUah) ? `${rawUah} грн` : rawUah;
+  const usd = Number(item.priceUsd);
+  const usdLabel = Number.isFinite(usd) && usd > 0 ? `$${Math.round(usd).toLocaleString('en-US')}` : '';
+  return [uah, usdLabel].filter(Boolean).join(' · ') || uiText('За запитом', 'On request');
 }
 const equipmentDetailCache = new Map();
 async function openEquipment(item) {
@@ -662,7 +673,7 @@ async function openEquipment(item) {
   $('.equipment-dialog-copy', equipmentDialog).innerHTML = renderSimpleMarkdown(localizedContent(item, 'description', uiText('Модель використовується в проєктних системах ІНК. Точну сумісність, комплектацію й ціну інженер підтвердить після карти навантажень.', 'This model is used in INK engineered systems. An engineer will confirm exact compatibility, configuration and price after reviewing your load profile.')));
   $('[data-equipment-field="power"]', equipmentDialog).textContent = item.power || '—';
   $('[data-equipment-field="grid"]', equipmentDialog).textContent = [item.phase, item.voltage].filter(Boolean).join(' · ') || '—';
-  $('[data-equipment-field="price"]', equipmentDialog).textContent = item.price || uiText('За запитом', 'On request');
+  $('[data-equipment-field="price"]', equipmentDialog).textContent = equipmentPriceLabel(item);
   const orderForm = $('.equipment-order-form', equipmentDialog);
   const orderStatus = $('.equipment-order-status', equipmentDialog);
   const extraFields = $('.equipment-extra-fields', equipmentDialog);
