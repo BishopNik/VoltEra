@@ -514,6 +514,8 @@ let equipmentData = [];
 let equipmentPage = 0;
 let equipmentReturnY = 0;
 let equipmentRestoreScroll = true;
+let equipmentPageLocked = false;
+let equipmentBodyStyle = null;
 let activeEquipmentItem = null;
 let activeEquipmentBrand = 'all';
 let equipmentTitleFitFrame = 0;
@@ -538,6 +540,38 @@ function fitEquipmentCardTitles() {
 function scheduleEquipmentTitleFit() {
   if (equipmentTitleFitFrame) cancelAnimationFrame(equipmentTitleFitFrame);
   equipmentTitleFitFrame = requestAnimationFrame(fitEquipmentCardTitles);
+}
+function homepageEquipmentOrder(items = []) {
+  const active = items.filter(item => (item.homeMode || 'auto') !== 'hidden');
+  const featured = active.filter(item => item.homeMode === 'featured').sort((a, b) => Number(a.homeOrder || Number.MAX_SAFE_INTEGER) - Number(b.homeOrder || Number.MAX_SAFE_INTEGER));
+  const automatic = active.filter(item => item.homeMode !== 'featured').sort((a, b) => Number(b.views || 0) - Number(a.views || 0) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  return [...featured, ...automatic];
+}
+function lockEquipmentPage() {
+  if (equipmentPageLocked) return;
+  const body = document.body;
+  const scrollbarGap = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+  equipmentBodyStyle = { position:body.style.position, top:body.style.top, left:body.style.left, right:body.style.right, width:body.style.width, overflow:body.style.overflow, paddingRight:body.style.paddingRight };
+  body.style.position = 'fixed';
+  body.style.top = `-${equipmentReturnY}px`;
+  body.style.left = '0';
+  body.style.right = '0';
+  body.style.width = '100%';
+  body.style.overflow = 'hidden';
+  if (scrollbarGap) body.style.paddingRight = `${scrollbarGap}px`;
+  equipmentPageLocked = true;
+}
+function unlockEquipmentPage() {
+  if (!equipmentPageLocked) return;
+  const body = document.body;
+  const root = document.documentElement;
+  const previousScrollBehavior = root.style.scrollBehavior;
+  root.style.scrollBehavior = 'auto';
+  Object.assign(body.style, equipmentBodyStyle || { position:'', top:'', left:'', right:'', width:'', overflow:'', paddingRight:'' });
+  equipmentBodyStyle = null;
+  equipmentPageLocked = false;
+  window.scrollTo({ top:equipmentReturnY, left:window.scrollX, behavior:'auto' });
+  root.style.scrollBehavior = previousScrollBehavior;
 }
 function applyEquipmentFilters() {
   const query = (equipmentSearch?.value || '').trim().toLocaleLowerCase();
@@ -621,6 +655,8 @@ function equipmentPriceLabel(item = {}) {
 const equipmentDetailCache = new Map();
 async function openEquipment(item) {
   if (!equipmentDialog || !item) return;
+  equipmentReturnY = window.scrollY;
+  equipmentRestoreScroll = true;
   const itemId = String(item._id || '');
   if (itemId && !item.description && !item.image && !(Array.isArray(item.images) && item.images.length)) {
     updateSiteLoading(1);
@@ -640,8 +676,6 @@ async function openEquipment(item) {
     }
   }
   activeEquipmentItem = item;
-  equipmentReturnY = window.scrollY;
-  equipmentRestoreScroll = true;
   const contentPane = equipmentDialog.querySelector(':scope > div');
   const resetDialogScroll = () => {
     if (contentPane) contentPane.scrollTop = 0;
@@ -687,6 +721,7 @@ async function openEquipment(item) {
     $('span', moreToggle).textContent = '↓';
   }
   if (orderStatus) orderStatus.textContent = '';
+  lockEquipmentPage();
   if (typeof equipmentDialog.showModal === 'function') equipmentDialog.showModal();
   else equipmentDialog.setAttribute('open', '');
   requestAnimationFrame(() => {
@@ -694,7 +729,7 @@ async function openEquipment(item) {
     $('.equipment-dialog-close', equipmentDialog)?.focus({ preventScroll:true });
   });
   window.setTimeout(resetDialogScroll, 80);
-  requestAnimationFrame(() => window.scrollTo({ top: equipmentReturnY, left: window.scrollX, behavior: 'auto' }));
+  if (itemId) fetch(`/api/equipment/${encodeURIComponent(itemId)}/view`, { method:'POST', keepalive:true }).then(response => response.ok ? response.json() : null).then(result => { if (result?.views !== undefined) item.views = result.views; }).catch(() => null);
 }
 
 function openEquipmentImageLightbox() {
@@ -793,19 +828,22 @@ async function loadPublicEquipment() {
   if (!Array.isArray(data) || !data.length) {
     publicEquipment.innerHTML = emptyMarkup(uiText('Асортимент оновлюється', 'The range is being updated'), uiText('Моделі стануть доступними після перевірки та схвалення нашими фахівцями.', 'Models will become available after review and approval by our specialists.')); return;
   }
-  equipmentData = data;
+  equipmentData = homepageEquipmentOrder(data);
   applyEquipmentFilters();
 }
 function closeEquipmentDialog() {
   if (!equipmentDialog) return;
   if (typeof equipmentDialog.close === 'function') equipmentDialog.close();
-  else equipmentDialog.removeAttribute('open');
+  else {
+    equipmentDialog.removeAttribute('open');
+    unlockEquipmentPage();
+  }
 }
 $('.equipment-dialog-close')?.addEventListener('click', closeEquipmentDialog);
 equipmentDialog?.addEventListener('click', event => { if (event.target === equipmentDialog) equipmentDialog.close(); });
 equipmentDialog?.addEventListener('close', () => {
   if (!equipmentRestoreScroll) return;
-  requestAnimationFrame(() => window.scrollTo({ top: equipmentReturnY, left: window.scrollX, behavior: 'auto' }));
+  unlockEquipmentPage();
 });
 loadPublicEquipment();
 

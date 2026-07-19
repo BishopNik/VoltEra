@@ -42,6 +42,8 @@ const statusLabels = {
   draft: ['Чернетка', 'status-calc'],
   active: ['Активний', 'status-done'],
   review: ['На перевірці', 'status-work'],
+  auto: ['Автоматично', 'status-work'],
+  featured: ['Закріплено', 'status-done'],
   disabled: ['Вимкнений', 'status-calc']
 };
 let currentAdmin = null;
@@ -508,18 +510,55 @@ function renderArticles() {
   $$('.delete-article', list).forEach(button => button.addEventListener('click', () => removeItem('articles', button.closest('div').dataset.id)));
 }
 
+function equipmentHomeOrder(items = []) {
+  const eligible = items.filter(item => item.status === 'active' && (item.homeMode || 'auto') !== 'hidden');
+  const featured = eligible.filter(item => item.homeMode === 'featured').sort((a, b) => Number(a.homeOrder || Number.MAX_SAFE_INTEGER) - Number(b.homeOrder || Number.MAX_SAFE_INTEGER));
+  const automatic = eligible.filter(item => item.homeMode !== 'featured').sort((a, b) => Number(b.views || 0) - Number(a.views || 0) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  return [...featured, ...automatic];
+}
+
+async function moveEquipmentHome(itemId, direction, button) {
+  const featured = state.equipment.filter(item => item.homeMode === 'featured').sort((a, b) => Number(a.homeOrder || Number.MAX_SAFE_INTEGER) - Number(b.homeOrder || Number.MAX_SAFE_INTEGER));
+  const index = featured.findIndex(item => String(item._id) === String(itemId));
+  const targetIndex = index + direction;
+  if (index < 0 || targetIndex < 0 || targetIndex >= featured.length) return;
+  const current = featured[index];
+  const target = featured[targetIndex];
+  const currentOrder = Number(current.homeOrder || index + 1);
+  const targetOrder = Number(target.homeOrder || targetIndex + 1);
+  setBusy(button, true);
+  try {
+    await Promise.all([
+      api(`/api/equipment/${current._id}`, { method:'PATCH', body:JSON.stringify({ homeOrder:targetOrder }) }),
+      api(`/api/equipment/${target._id}`, { method:'PATCH', body:JSON.stringify({ homeOrder:currentOrder }) })
+    ]);
+    await loadCollection('equipment');
+    renderEquipment();
+  } catch (error) {
+    showApiNotice(`Не вдалося змінити позицію: ${error.message}`);
+  } finally { if (button.isConnected) setBusy(button, false); }
+}
+
 function renderEquipment() {
   const list = $('#equipment-list');
   if (!list) return;
   if (!state.equipment.length) { list.innerHTML = emptyState('Каталог порожній', 'Додайте першу модель обладнання.'); return; }
-  list.innerHTML = state.equipment.map(item => {
+  const homeOrder = equipmentHomeOrder(state.equipment);
+  const selectedIds = homeOrder.slice(0, 6).map(item => String(item._id));
+  const featured = homeOrder.filter(item => item.homeMode === 'featured');
+  const ordered = [...homeOrder, ...state.equipment.filter(item => !homeOrder.includes(item))];
+  list.innerHTML = ordered.map(item => {
     const images = [...new Set([...(Array.isArray(item.images) ? item.images : []), item.image].filter(Boolean))];
     const media = images.length
       ? `<button class="equipment-admin-media" type="button" aria-label="Збільшити фото ${escapeHtml(`${item.brand || ''} ${item.model || ''}`.trim())}"><img src="${escapeHtml(images[0])}" alt="${escapeHtml(`${item.brand || ''} ${item.model || ''}`.trim())}" loading="lazy"><span>${images.length} фото</span><i aria-hidden="true">⌕</i></button>`
       : '<div class="equipment-admin-media is-empty"><span>Фото не додано</span></div>';
     const retail = [item.price, item.priceUsd ? `$${Number(item.priceUsd).toLocaleString('en-US')}` : ''].filter(Boolean).join(' · ') || 'не вказано';
     const purchase = item.purchasePrice ? `${Number(item.purchasePrice).toLocaleString('en-US')} ${item.purchaseCurrency || 'USD'}` : 'не вказано';
-    return `<article data-id="${item._id}">${media}<span class="equipment-admin-brand">${escapeHtml(item.brand)}</span><h3>${escapeHtml(item.model)}</h3><p>${escapeHtml(item.power || '—')} · ${escapeHtml(item.phase || '—')} · ${escapeHtml(item.voltage || '—')}</p><p class="equipment-admin-pricing"><b>Роздріб:</b> ${escapeHtml(retail)}<br><b>Закупівля:</b> ${escapeHtml(purchase)}</p><div>${statusBadge(item.status || 'active')}<button class="edit-equipment" type="button">Налаштувати</button><button class="delete-equipment danger-link" type="button">Видалити</button></div></article>`;
+    const mode = item.homeMode || 'auto';
+    const homeIndex = selectedIds.indexOf(String(item._id));
+    const featuredIndex = featured.findIndex(entry => String(entry._id) === String(item._id));
+    const homeLabel = homeIndex >= 0 ? `Головна · №${homeIndex + 1}` : mode === 'hidden' ? 'Не показується на головній' : 'Резерв автопідбору';
+    return `<article data-id="${item._id}">${media}<span class="equipment-admin-brand">${escapeHtml(item.brand)}</span><h3>${escapeHtml(item.model)}</h3><p>${escapeHtml(item.power || '—')} · ${escapeHtml(item.phase || '—')} · ${escapeHtml(item.voltage || '—')}</p><p class="equipment-admin-pricing"><b>Роздріб:</b> ${escapeHtml(retail)}<br><b>Закупівля:</b> ${escapeHtml(purchase)}</p><div class="equipment-admin-home"><span><b>${escapeHtml(homeLabel)}</b><small>${escapeHtml(statusLabels[mode]?.[0] || mode)} · переглядів: ${Number(item.views || 0)}</small></span><span class="equipment-home-arrows"><button class="equipment-home-move" type="button" data-direction="-1" aria-label="Перемістити товар вище" ${mode !== 'featured' || featuredIndex <= 0 ? 'disabled' : ''}>↑</button><button class="equipment-home-move" type="button" data-direction="1" aria-label="Перемістити товар нижче" ${mode !== 'featured' || featuredIndex < 0 || featuredIndex >= featured.length - 1 ? 'disabled' : ''}>↓</button></span></div><div>${statusBadge(item.status || 'active')}<button class="edit-equipment" type="button">Налаштувати</button><button class="delete-equipment danger-link" type="button">Видалити</button></div></article>`;
   }).join('');
   $$('.equipment-admin-media img', list).forEach(image => image.addEventListener('error', () => {
     const media = image.parentElement;
@@ -533,6 +572,7 @@ function renderEquipment() {
     if (item) openEquipmentImageViewer(item);
   }));
   $$('.edit-equipment', list).forEach(button => button.addEventListener('click', () => openContentDialog('equipment', state.equipment.find(item => String(item._id) === button.closest('article').dataset.id))));
+  $$('.equipment-home-move', list).forEach(button => button.addEventListener('click', () => moveEquipmentHome(button.closest('article').dataset.id, Number(button.dataset.direction), button)));
   $$('.delete-equipment', list).forEach(button => button.addEventListener('click', () => removeItem('equipment', button.closest('article').dataset.id)));
 }
 
@@ -623,7 +663,7 @@ const configs = {
   faqs: { title: 'короткий FAQ', fields: [['question', 'Питання', 'text', true], ['answer', 'Відповідь', 'textarea', true], ['status', 'Статус', 'select', false, ['active', 'draft']]] },
   projects: { title: "об'єкт", fields: [['title', 'Назва', 'text', true], ['city', 'Локація', 'text'], ['type', 'Тип об’єкта', 'text'], ['description', 'Опис', 'textarea'], ['imageFile', 'Фото об’єкта', 'file'], ['status', 'Статус', 'select', false, ['published', 'draft']]] },
   articles: { title: 'статтю', fields: [['title', 'Назва', 'text', true], ['slug', 'Адреса сторінки (латиницею, без пробілів)', 'text'], ['category', 'Категорія', 'text'], ['excerpt', 'Короткий SEO-опис', 'textarea'], ['body', 'Повний текст статті', 'textarea'], ['imageFiles', 'Фото статті (можна кілька)', 'files'], ['status', 'Статус', 'select', false, ['published', 'draft']]] },
-  equipment: { title: 'модель обладнання', fields: [['brand', 'Бренд', 'text', true], ['model', 'Модель', 'text', true], ['power', 'Потужність', 'text'], ['phase', 'Фаза / Тип', 'text'], ['voltage', 'Напруга', 'text'], ['price', 'Роздрібна ціна, грн', 'text'], ['priceUsd', 'Роздрібна ціна, USD', 'number'], ['purchasePrice', 'Закупівельна ціна (лише CRM)', 'number'], ['purchaseCurrency', 'Валюта закупівлі', 'select', false, ['USD', 'EUR', 'UAH']], ['description', 'Опис для сайту', 'textarea'], ['imageFiles', 'Фото моделі (можна кілька)', 'files'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] },
+  equipment: { title: 'модель обладнання', fields: [['brand', 'Бренд', 'text', true], ['model', 'Модель', 'text', true], ['power', 'Потужність', 'text'], ['phase', 'Фаза / Тип', 'text'], ['voltage', 'Напруга', 'text'], ['price', 'Роздрібна ціна, грн', 'text'], ['priceUsd', 'Роздрібна ціна, USD', 'number'], ['purchasePrice', 'Закупівельна ціна (лише CRM)', 'number'], ['purchaseCurrency', 'Валюта закупівлі', 'select', false, ['USD', 'EUR', 'UAH']], ['homeMode', 'Показ на головній', 'select', false, ['auto', 'featured', 'hidden']], ['description', 'Опис для сайту', 'textarea'], ['imageFiles', 'Фото моделі (можна кілька)', 'files'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] },
   users: { title: 'користувача CRM', fields: [['username', "Ім'я користувача", 'text', true], ['password', 'Новий пароль (мінімум 8 символів)', 'password'], ['status', 'Доступ', 'select', false, ['active', 'disabled']]] }
 };
 
@@ -684,6 +724,10 @@ form.addEventListener('submit', async event => {
       data.answers = answer ? [{ author: currentAdmin?.name || 'ІНК', role: 'engineer', text: answer, createdAt: new Date().toISOString() }] : [];
     }
     if (activeType === 'users' && !String(data.password || '').trim()) delete data.password;
+    if (activeType === 'equipment') {
+      data.homeMode = ['auto', 'featured', 'hidden'].includes(data.homeMode) ? data.homeMode : 'auto';
+      if (data.homeMode === 'featured' && activeItem?.homeMode !== 'featured') data.homeOrder = Math.max(0, ...state.equipment.filter(item => item.homeMode === 'featured').map(item => Number(item.homeOrder || 0))) + 1;
+    }
     const fileInput = form.querySelector('input[type="file"]');
     const files = [...(fileInput?.files || [])];
     delete data.imageFile;

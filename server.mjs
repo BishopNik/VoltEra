@@ -236,6 +236,7 @@ class FileStore {
   async update(type,id,payload){ const item=this.data[type].find(x=>String(x._id)===id); if(!item)return null; Object.assign(item,payload,{updatedAt:new Date().toISOString()}); if(type==='equipment')delete item.image; delete item._id; item._id=id; await this.persist(); return item; }
   async remove(type,id){ const index=this.data[type].findIndex(x=>String(x._id)===id); if(index<0)return false; this.data[type].splice(index,1); await this.persist(); return true; }
   async markViewed(type){ const now=new Date().toISOString(); (this.data[type]||[]).forEach(item=>{if(!item.viewedAt)item.viewedAt=now;}); await this.persist(); }
+  async incrementEquipmentViews(id){ const item=this.data.equipment.find(entry=>String(entry._id)===String(id)); if(!item)return null; item.views=Number(item.views||0)+1; await this.persist(); return item.views; }
 }
 
 class MongoStore {
@@ -317,6 +318,7 @@ class MongoStore {
   async update(type,id,payload){ const update={...payload,updatedAt:new Date().toISOString()}; delete update._id; const operation={$set:update}; if(type==='equipment')operation.$unset={image:''}; const result=await this.db.collection(type).findOneAndUpdate({_id:this.id(id)},operation,{returnDocument:'after'}); return this.clean(result); }
   async remove(type,id){ return (await this.db.collection(type).deleteOne({_id:this.id(id)})).deletedCount>0; }
   async markViewed(type){ await this.db.collection(type).updateMany({viewedAt:null},{$set:{viewedAt:new Date().toISOString()}}); }
+  async incrementEquipmentViews(id){ const result=await this.db.collection('equipment').findOneAndUpdate({_id:this.id(id),status:'active'},{$inc:{views:1}},{returnDocument:'after',projection:{views:1}}); return result?Number(result.views||0):null; }
   async saveMedia(data,contentType){
     const sha256=crypto.createHash('sha256').update(data).digest('hex');
     const now=new Date().toISOString();
@@ -402,7 +404,7 @@ async function body(req,limit=2_500_000){
   throw new Error('UNSUPPORTED_CONTENT_TYPE');
 }
 function compareSafe(a='',b=''){ const left=Buffer.from(String(a)); const right=Buffer.from(String(b)); if(left.length!==right.length)return false; return crypto.timingSafeEqual(left,right); }
-function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','status','manager','checkedBy','viewedAt'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','status','images']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
+function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','status','manager','checkedBy','viewedAt'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','status','images','homeMode','homeOrder']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
 function publicReview(item){ const {audit,viewedAt,verifiedBy,verifiedAt,...safe}=item; return safe; }
 function publicEquipmentSummary(item={}){
   const {image,images,description,descriptionEn,translations,audit,viewedAt,purchasePrice,purchaseCurrency,...summary}=item;
@@ -593,6 +595,12 @@ async function api(req,res,url){
     const updated=await store.update('questions',answerMatch[1],{answers,status:answers.some(answer=>answer.role==='engineer')?'answered':'discussion'});
     return json(res,201,updated);
   }
+  const equipmentViewMatch=url.pathname.match(/^\/api\/equipment\/([^/]+)\/view$/);
+  if(equipmentViewMatch&&req.method==='POST'){
+    if(!allowRequest(req,res,`equipment-view-${equipmentViewMatch[1]}`,6,24*60*60_000))return;
+    const views=await store.incrementEquipmentViews(equipmentViewMatch[1]);
+    return views===null?json(res,404,{error:'NOT_FOUND'}):json(res,200,{views});
+  }
   const match=url.pathname.match(/^\/api\/(leads|reviews|questions|faqs|projects|articles|equipment)(?:\/([^/]+))?$/); if(!match)return false;
   const [,type,id]=match; const adminUser=await activeSessionUser(req); const isAdmin=Boolean(adminUser);
   if(req.method==='GET'){
@@ -619,6 +627,11 @@ async function api(req,res,url){
       if(!validPublicInput(type,rawInput))return json(res,400,{error:'INVALID_FIELDS'});
     }
     const input=sanitize(type,rawInput);
+    if(type==='equipment'){
+      input.homeMode=['auto','featured','hidden'].includes(input.homeMode)?input.homeMode:'auto';
+      input.homeOrder=Math.max(0,Number(input.homeOrder||0));
+      input.views=0;
+    }
     if(type==='leads')Object.assign(input,{status:input.status||'new',manager:input.manager||'',checkedBy:input.checkedBy||'',viewedAt:null});
     if(type==='reviews')Object.assign(input,{status:'published',reply:'',verified:false,verifiedAt:null,verifiedBy:'',audit:[],viewedAt:null,rating:Number(input.rating||5)});
     if(type==='questions'){
@@ -635,7 +648,7 @@ async function api(req,res,url){
     await sendContactNotification(type,created);
     return json(res,201,created);
   }
-  if(['PATCH','DELETE'].includes(req.method)){ const user=await requireAdmin(req,res); if(!user)return; if(!id)return json(res,400,{error:'ID_REQUIRED'}); if(req.method==='DELETE')return json(res,(await store.remove(type,id))?200:404,{ok:true}); const previous=(await store.list(type)).find(item=>String(item._id)===id); if(!previous)return json(res,404,{error:'NOT_FOUND'}); const input=sanitize(type,await body(req)); if(type==='reviews'){ if(input.verified!==undefined){ input.verified=Boolean(input.verified); input.verifiedAt=input.verified?new Date().toISOString():null; input.verifiedBy=input.verified?user.name:''; } const next={...previous,...input}; input.audit=reviewAudit(previous,next,user); } return json(res,200,await store.update(type,id,input)); }
+  if(['PATCH','DELETE'].includes(req.method)){ const user=await requireAdmin(req,res); if(!user)return; if(!id)return json(res,400,{error:'ID_REQUIRED'}); if(req.method==='DELETE')return json(res,(await store.remove(type,id))?200:404,{ok:true}); const previous=(await store.list(type)).find(item=>String(item._id)===id); if(!previous)return json(res,404,{error:'NOT_FOUND'}); const input=sanitize(type,await body(req)); if(type==='equipment'){ if(input.homeMode!==undefined)input.homeMode=['auto','featured','hidden'].includes(input.homeMode)?input.homeMode:'auto'; if(input.homeOrder!==undefined)input.homeOrder=Math.max(0,Number(input.homeOrder||0)); } if(type==='reviews'){ if(input.verified!==undefined){ input.verified=Boolean(input.verified); input.verifiedAt=input.verified?new Date().toISOString():null; input.verifiedBy=input.verified?user.name:''; } const next={...previous,...input}; input.audit=reviewAudit(previous,next,user); } return json(res,200,await store.update(type,id,input)); }
   return json(res,405,{error:'METHOD_NOT_ALLOWED'});
 }
 
