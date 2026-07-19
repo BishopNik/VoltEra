@@ -38,86 +38,101 @@ const LEGACY_SAMPLE_IDS = {
   equipment: ['e1', 'e2', 'e3']
 };
 const EQUIPMENT_CATALOG_MIGRATION_ID = 'add-deye-catalog-2026-07-18-v1';
+const EQUIPMENT_IMAGE_NORMALIZATION_ID = 'normalize-equipment-images-2026-07-18-v1';
+const LEGACY_EQUIPMENT_IMAGE_PATHS = new Map([
+  ['ANJ-LP04-24V-100A-PX','/assets/equipment/anenji-anj-lp04-24v-100a-px.webp'],
+  ['ANJ-6200W-48V-W','/assets/equipment/anenji-anj-6200w-48v-w.jpg'],
+  ['ANJ-4000W-24V-W','/assets/equipment/anenji-anj-4000w-24v-w.jpg']
+]);
 const REQUESTED_EQUIPMENT = [
   {
     _id:'deye-se-g5-1-pro-b', brand:'DEYE', model:'SE-G5.1 Pro-B', power:'5.12 kWh', phase:'LiFePO₄', voltage:'51.2 V', price:'За запитом', status:'active',
-    image:'/assets/equipment/deye-se-g5-1-pro-b.jpg', images:['/assets/equipment/deye-se-g5-1-pro-b.jpg'],
+    images:['/assets/equipment/deye-se-g5-1-pro-b.jpg'],
     description:'DEYE SE-G5.1 Pro-B — літій-залізо-фосфатний акумулятор 51.2 В, 100 А·год (5.12 кВт·год) для систем резервного та автономного живлення. Оснащений інтелектуальною BMS, має ресурс понад 6000 циклів та підтримує масштабування системи.\n\n## Основні переваги\n\n- LiFePO₄ 51.2 В / 100 А·год\n- Ємність 5.12 кВт·год\n- 6000+ циклів\n- Вбудована BMS\n- Паралельне підключення\n- Висока безпека\n- Для інверторів Deye та інших\n- Для дому й бізнесу'
   },
   {
     _id:'deye-se-f5-pro-c', brand:'DEYE', model:'SE-F5 Pro-C', power:'5.12 kWh', phase:'LiFePO₄', voltage:'51.2 V', price:'За запитом', status:'active',
-    image:'/assets/equipment/deye-se-f5-pro-c.webp', images:['/assets/equipment/deye-se-f5-pro-c.webp'],
+    images:['/assets/equipment/deye-se-f5-pro-c.webp'],
     description:'DEYE SE-F5 Pro-C — сучасна акумуляторна батарея LiFePO₄ 51.2 В, 100 А·год для систем накопичення енергії. Відзначається високою ефективністю, довговічністю та підтримкою паралельного підключення.\n\n## Основні переваги\n\n- LiFePO₄ 51.2 В / 100 А·год\n- Ємність 5.12 кВт·год\n- 6000+ циклів\n- Інтелектуальна BMS\n- Масштабування системи\n- Швидке заряджання\n- Простий монтаж\n- Для домашніх СЕС'
   },
   {
     _id:'deye-sun-6k-sg05lp1-am2-p', brand:'DEYE', model:'SUN-6K-SG05LP1-AM2-P', power:'6 kW', phase:'1 фаза', voltage:'48 V', price:'За запитом', status:'active',
-    image:'/assets/equipment/deye-sun-sg05lp1.png', images:['/assets/equipment/deye-sun-sg05lp1.png'],
+    images:['/assets/equipment/deye-sun-sg05lp1.png'],
     description:'SUN-6K-SG05LP1-AM2-P — гібридний інвертор 6 кВт із підтримкою акумуляторів 48 В, MPPT-контролером та чистою синусоїдою для резервного й автономного живлення.\n\n## Основні переваги\n\n- Потужність 6 кВт\n- MPPT-контролер\n- Чиста синусоїда\n- Робота без АКБ\n- Wi-Fi моніторинг\n- LiFePO₄ Ready\n- Високий ККД\n- Для дому та бізнесу'
   },
   {
     _id:'deye-sun-8k-sg01lp1-eu', brand:'DEYE', model:'SUN-8K-SG01LP1-EU', power:'8 kW', phase:'1 фаза', voltage:'48 V', price:'За запитом', status:'active',
-    image:'/assets/equipment/deye-sun-sg01lp1.png', images:['/assets/equipment/deye-sun-sg01lp1.png'],
+    images:['/assets/equipment/deye-sun-sg01lp1.png'],
     description:'Deye SUN-8K-SG01LP1-EU — однофазний гібридний інвертор 8 кВт для сонячних електростанцій із підтримкою акумуляторів 48 В.\n\n## Основні переваги\n\n- Потужність 8 кВт\n- MPPT-контролер\n- Wi-Fi моніторинг\n- Робота без АКБ\n- Чиста синусоїда\n- LiFePO₄ Ready\n- Високий ККД\n- Резервне живлення'
   },
   {
     _id:'deye-sun-10k-sg02lp1-eu-am3', brand:'DEYE', model:'SUN-10K-SG02LP1-EU-AM3', power:'10 kW', phase:'1 фаза', voltage:'48 V', price:'За запитом', status:'active',
-    image:'/assets/equipment/deye-sun-sg01lp1.png', images:['/assets/equipment/deye-sun-sg01lp1.png'],
+    images:['/assets/equipment/deye-sun-sg01lp1.png'],
     description:'Deye SUN-10K-SG02LP1-EU-AM3 — однофазний гібридний інвертор 10 кВт для ефективних систем резервного та автономного електроживлення.\n\n## Основні переваги\n\n- Потужність 10 кВт\n- MPPT-контролер\n- Підтримка 48 В АКБ\n- Wi-Fi моніторинг\n- Робота без АКБ\n- Чиста синусоїда\n- Висока ефективність\n- Для приватних СЕС'
   },
   {
     _id:'deye-sun-12k-sg02lp1-eu-am3', brand:'DEYE', model:'SUN-12K-SG02LP1-EU-AM3', power:'12 kW', phase:'1 фаза', voltage:'48 V', price:'За запитом', status:'active',
-    image:'/assets/equipment/deye-sun-sg01lp1.png', images:['/assets/equipment/deye-sun-sg01lp1.png'],
+    images:['/assets/equipment/deye-sun-sg01lp1.png'],
     description:'Deye SUN-12K-SG02LP1-EU-AM3 — потужний однофазний гібридний інвертор 12 кВт із підтримкою сонячних панелей та акумуляторів LiFePO₄.\n\n## Основні переваги\n\n- Потужність 12 кВт\n- MPPT-контролер\n- Wi-Fi керування\n- Робота без АКБ\n- LiFePO₄ Ready\n- Чиста синусоїда\n- Високий ККД\n- Для великих будинків'
   },
   {
     _id:'deye-sun-12k-sg05lp3-eu', brand:'DEYE', model:'SUN-12K-SG05LP3-EU', power:'12 kW', phase:'3 фази', voltage:'48 V', price:'За запитом', status:'active',
-    image:'/assets/equipment/deye-sun-sg05lp3.png', images:['/assets/equipment/deye-sun-sg05lp3.png'],
+    images:['/assets/equipment/deye-sun-sg05lp3.png'],
     description:'Deye SUN-12K-SG05LP3-EU — трифазний гібридний інвертор 12 кВт для сучасних сонячних електростанцій та резервного живлення.\n\n## Основні переваги\n\n- Потужність 12 кВт\n- Трифазний\n- MPPT-контролер\n- Робота без АКБ\n- Wi-Fi моніторинг\n- LiFePO₄ Ready\n- Чиста синусоїда\n- Для дому й бізнесу'
   },
   {
     _id:'deye-sun-15k-sg05lp3-eu-sm2', brand:'DEYE', model:'SUN-15K-SG05LP3-EU-SM2', power:'15 kW', phase:'3 фази', voltage:'48 V', price:'За запитом', status:'active',
-    image:'/assets/equipment/deye-sun-sg05lp3-14-20.png', images:['/assets/equipment/deye-sun-sg05lp3-14-20.png'],
+    images:['/assets/equipment/deye-sun-sg05lp3-14-20.png'],
     description:'Deye SUN-15K-SG05LP3-EU-SM2 — трифазний гібридний інвертор 15 кВт для комерційних та приватних сонячних електростанцій.\n\n## Основні переваги\n\n- Потужність 15 кВт\n- Трифазний\n- MPPT-контролер\n- Wi-Fi керування\n- Робота без АКБ\n- LiFePO₄ Ready\n- Високий ККД\n- Для бізнесу'
   },
   {
     _id:'deye-sun-20k-sg05lp3-eu-sm2', brand:'DEYE', model:'SUN-20K-SG05LP3-EU-SM2', power:'20 kW', phase:'3 фази', voltage:'48 V', price:'За запитом', status:'active',
-    image:'/assets/equipment/deye-sun-sg05lp3-14-20.png', images:['/assets/equipment/deye-sun-sg05lp3-14-20.png'],
+    images:['/assets/equipment/deye-sun-sg05lp3-14-20.png'],
     description:'Deye SUN-20K-SG05LP3-EU-SM2 — трифазний гібридний інвертор 20 кВт для потужних систем накопичення та генерації електроенергії.\n\n## Основні переваги\n\n- Потужність 20 кВт\n- Трифазний\n- MPPT-контролер\n- Wi-Fi моніторинг\n- LiFePO₄ Ready\n- Робота без АКБ\n- Чиста синусоїда\n- Для підприємств'
   },
   {
     _id:'deye-sun-30k-sg02hp3-eu-bm3', brand:'DEYE', model:'SUN-30K-SG02HP3-EU-BM3', power:'30 kW', phase:'3 фази', voltage:'HV', price:'За запитом', status:'active',
-    image:'/assets/equipment/deye-sun-30k-sg02hp3.png', images:['/assets/equipment/deye-sun-30k-sg02hp3.png'],
+    images:['/assets/equipment/deye-sun-30k-sg02hp3.png'],
     description:'Deye SUN-30K-SG02HP3-EU-BM3 — високовольтний трифазний гібридний інвертор 30 кВт для комерційних сонячних електростанцій.\n\n## Основні переваги\n\n- Потужність 30 кВт\n- Високовольтні АКБ\n- MPPT-контролер\n- Wi-Fi моніторинг\n- Високий ККД\n- Трифазний\n- Для комерційних СЕС\n- Надійний захист'
   },
   {
     _id:'deye-sun-50k-sg01hp3-eu-bm4', brand:'DEYE', model:'SUN-50K-SG01HP3-EU-BM4', power:'50 kW', phase:'3 фази', voltage:'HV', price:'За запитом', status:'active',
-    image:'/assets/equipment/deye-sun-50k-sg01hp3.jpg', images:['/assets/equipment/deye-sun-50k-sg01hp3.jpg'],
+    images:['/assets/equipment/deye-sun-50k-sg01hp3.jpg'],
     description:'Deye SUN-50K-SG01HP3-EU-BM4 — високовольтний гібридний інвертор 50 кВт для великих комерційних та промислових об’єктів.\n\n## Основні переваги\n\n- Потужність 50 кВт\n- Високовольтні АКБ\n- Трифазний\n- MPPT-контролер\n- Високий ККД\n- Wi-Fi/Ethernet\n- Для промисловості\n- Максимальна надійність'
   },
   {
     _id:'deye-sun-80k-sg02hp3-eu-em6', brand:'DEYE', model:'SUN-80K-SG02HP3-EU-EM6', power:'80 kW', phase:'3 фази', voltage:'HV', price:'За запитом', status:'active',
-    image:'/assets/equipment/deye-sun-80k-sg02hp3.png', images:['/assets/equipment/deye-sun-80k-sg02hp3.png'],
+    images:['/assets/equipment/deye-sun-80k-sg02hp3.png'],
     description:'Deye SUN-80K-SG02HP3-EU-EM6 — високопродуктивний трифазний інвертор 80 кВт для промислових систем накопичення енергії.\n\n## Основні переваги\n\n- Потужність 80 кВт\n- Високовольтні АКБ\n- MPPT-контролер\n- Високий ККД\n- Трифазний\n- Розширений моніторинг\n- Для великих СЕС\n- Промислове застосування'
   },
   {
     _id:'deye-bos-g-pro', brand:'DEYE', model:'BOS-G PRO', power:'5.12 kWh', phase:'LiFePO₄ HV', voltage:'51.2 V', price:'За запитом', status:'active',
-    image:'/assets/equipment/deye-bos-g-pro.jpg', images:['/assets/equipment/deye-bos-g-pro.jpg'],
+    images:['/assets/equipment/deye-bos-g-pro.jpg'],
     description:'Deye BOS-G PRO — високовольтний модульний акумулятор LiFePO₄ 51.2 В, 100 А·год для професійних систем накопичення енергії.\n\n## Основні переваги\n\n- LiFePO₄ 51.2 В / 100 А·год\n- Високовольтна система\n- 6000+ циклів\n- Вбудована BMS\n- Модульне розширення\n- Висока безпека\n- Для комерційних СЕС\n- Простий монтаж'
   },
   {
     _id:'deye-bos-g-pdu-2', brand:'DEYE', model:'BOS-G-PDU-2 BMS', power:'100 A', phase:'BMS', voltage:'200–1000 V', price:'За запитом', status:'active',
-    image:'/assets/equipment/deye-bos-g-pdu-2.jpg', images:['/assets/equipment/deye-bos-g-pdu-2.jpg'],
+    images:['/assets/equipment/deye-bos-g-pdu-2.jpg'],
     description:'BMS Deye BOS-G-PDU-2 — система керування високовольтними акумуляторами з робочою напругою 200–1000 В та струмом 100 А, що забезпечує безпечну та стабільну роботу батарейних систем.\n\n## Основні переваги\n\n- Діапазон 200–1000 В\n- Струм до 100 А\n- Контроль батарей\n- Балансування комірок\n- Захист системи\n- CAN та RS485\n- Проста інтеграція\n- Висока надійність'
   },
   {
     _id:'deye-bos-g-rack-12', brand:'DEYE', model:'Стійка BOS-G PRO на 12 АКБ', power:'До 12 модулів', phase:'BOS-G PRO', voltage:'HV', price:'За запитом', status:'active',
-    image:'/assets/equipment/deye-bos-g-rack-clean.jpg', images:['/assets/equipment/deye-bos-g-rack-clean.jpg'],
+    images:['/assets/equipment/deye-bos-g-rack-clean.jpg'],
     description:'Стійка Deye призначена для встановлення до 12 високовольтних акумуляторних модулів BOS-G PRO. Забезпечує надійне розміщення, вентиляцію та зручне обслуговування системи.\n\n## Основні переваги\n\n- До 12 акумуляторів\n- Міцна конструкція\n- Простий монтаж\n- Зручне обслуговування\n- Ефективне охолодження\n- Компактне розміщення\n- Для систем BOS-G PRO\n- Професійне виконання'
   }
 ];
 
 const mime = { '.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.svg':'image/svg+xml','.xml':'application/xml; charset=utf-8','.txt':'text/plain; charset=utf-8','.webmanifest':'application/manifest+json' };
 const requestBuckets = new Map();
+
+function normalizedEquipmentImages(item={}){
+  const replacement=LEGACY_EQUIPMENT_IMAGE_PATHS.get(String(item.model||''));
+  const source=[...(Array.isArray(item.images)?item.images:[]),item.image]
+    .filter(value=>typeof value==='string'&&value.trim())
+    .map(value=>value.trim());
+  const links=[...new Set(source.filter(value=>!value.startsWith('data:image/')))];
+  return replacement&&(!links.length||source.some(value=>value.startsWith('data:image/')))?[replacement]:links;
+}
 
 if (IS_PRODUCTION && !SECRET_KEY) throw new Error('SECRET_KEY_REQUIRED');
 if (IS_PRODUCTION && !process.env.MONGODB_URI) throw new Error('MONGODB_URI_REQUIRED');
@@ -139,13 +154,22 @@ class FileStore {
       this.data._migrations.push(EQUIPMENT_CATALOG_MIGRATION_ID);
       changed=true;
     }
+    if(!this.data._migrations.includes(EQUIPMENT_IMAGE_NORMALIZATION_ID)){
+      for(const item of this.data.equipment){
+        const images=normalizedEquipmentImages(item);
+        if(images.length)item.images=images;
+        if('image' in item)delete item.image;
+      }
+      this.data._migrations.push(EQUIPMENT_IMAGE_NORMALIZATION_ID);
+      changed=true;
+    }
     for(const review of this.data.reviews||[]){ if(review.status==='waiting'){review.status='published';changed=true;} if(review.verified===undefined){ review.verified=false; review.verifiedBy=''; review.verifiedAt=null; review.audit=[]; changed=true; } if(!Array.isArray(review.audit)){ review.audit=[]; changed=true; } }
     if(changed)await this.persist();
   }
   async persist(){ const tmp=`${this.file}.tmp`; await fs.writeFile(tmp,JSON.stringify(this.data,null,2)); await fs.rename(tmp,this.file); }
   async list(type){ return [...(this.data[type]||[])].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))); }
   async create(type,payload){ const now=new Date().toISOString(); const item={...payload,_id:crypto.randomUUID(),createdAt:now,updatedAt:now}; if(['leads','reviews','questions'].includes(type)&&item.viewedAt===undefined)item.viewedAt=null; this.data[type].push(item); await this.persist(); return item; }
-  async update(type,id,payload){ const item=this.data[type].find(x=>String(x._id)===id); if(!item)return null; Object.assign(item,payload,{updatedAt:new Date().toISOString()}); delete item._id; item._id=id; await this.persist(); return item; }
+  async update(type,id,payload){ const item=this.data[type].find(x=>String(x._id)===id); if(!item)return null; Object.assign(item,payload,{updatedAt:new Date().toISOString()}); if(type==='equipment')delete item.image; delete item._id; item._id=id; await this.persist(); return item; }
   async remove(type,id){ const index=this.data[type].findIndex(x=>String(x._id)===id); if(index<0)return false; this.data[type].splice(index,1); await this.persist(); return true; }
   async markViewed(type){ const now=new Date().toISOString(); (this.data[type]||[]).forEach(item=>{if(!item.viewedAt)item.viewedAt=now;}); await this.persist(); }
 }
@@ -155,6 +179,7 @@ class MongoStore {
   async init(){
     for(const name of COLLECTIONS) await this.db.collection(name).createIndex({createdAt:-1});
     await this.db.collection('users').createIndex({username:1},{unique:true});
+    await this.db.collection('media').createIndex({sha256:1},{unique:true});
     // Remove only the old demo documents. MongoDB is no longer populated from
     // data/db.json, so content deleted in CRM stays deleted after a deployment.
     const migrations=this.db.collection('_migrations');
@@ -185,6 +210,20 @@ class MongoStore {
         if(error?.code!==11000)throw error;
       }
     }
+    if(!await migrations.findOne({_id:EQUIPMENT_IMAGE_NORMALIZATION_ID})){
+      const equipment=this.db.collection('equipment');
+      const items=await equipment.find({},{projection:{model:1,image:1,images:1}}).toArray();
+      const now=new Date().toISOString();
+      for(const item of items){
+        const images=normalizedEquipmentImages(item);
+        // Keep an unknown legacy Base64 record intact rather than deleting its
+        // only image. Known legacy models are replaced with versioned assets.
+        if(!images.length)continue;
+        await equipment.updateOne({_id:item._id},{$set:{images,updatedAt:now},$unset:{image:''}});
+      }
+      try{await migrations.updateOne({_id:EQUIPMENT_IMAGE_NORMALIZATION_ID},{$setOnInsert:{completedAt:now}},{upsert:true});}
+      catch(error){if(error?.code!==11000)throw error;}
+    }
     await this.db.collection('reviews').updateMany({verified:{$exists:false}},{$set:{verified:false,verifiedBy:'',verifiedAt:null,audit:[]}});
     await this.db.collection('reviews').updateMany({audit:{$exists:false}},{$set:{audit:[]}});
     await this.db.collection('reviews').updateMany({status:'waiting'},{$set:{status:'published',updatedAt:new Date().toISOString()}});
@@ -193,9 +232,17 @@ class MongoStore {
   clean(doc){ if(!doc)return doc; return {...doc,_id:String(doc._id)}; }
   async list(type){ return (await this.db.collection(type).find({}).sort({createdAt:-1}).toArray()).map(x=>this.clean(x)); }
   async create(type,payload){ const now=new Date().toISOString(); const item={...payload,createdAt:now,updatedAt:now}; if(['leads','reviews','questions'].includes(type)&&item.viewedAt===undefined)item.viewedAt=null; const result=await this.db.collection(type).insertOne(item); return this.clean({...item,_id:result.insertedId}); }
-  async update(type,id,payload){ const update={...payload,updatedAt:new Date().toISOString()}; delete update._id; const result=await this.db.collection(type).findOneAndUpdate({_id:this.id(id)},{$set:update},{returnDocument:'after'}); return this.clean(result); }
+  async update(type,id,payload){ const update={...payload,updatedAt:new Date().toISOString()}; delete update._id; const operation={$set:update}; if(type==='equipment')operation.$unset={image:''}; const result=await this.db.collection(type).findOneAndUpdate({_id:this.id(id)},operation,{returnDocument:'after'}); return this.clean(result); }
   async remove(type,id){ return (await this.db.collection(type).deleteOne({_id:this.id(id)})).deletedCount>0; }
   async markViewed(type){ await this.db.collection(type).updateMany({viewedAt:null},{$set:{viewedAt:new Date().toISOString()}}); }
+  async saveMedia(data,contentType){
+    const sha256=crypto.createHash('sha256').update(data).digest('hex');
+    const now=new Date().toISOString();
+    await this.db.collection('media').updateOne({sha256},{$setOnInsert:{data,contentType,sha256,createdAt:now}},{upsert:true});
+    const media=await this.db.collection('media').findOne({sha256},{projection:{_id:1}});
+    return String(media._id);
+  }
+  async getMedia(id){ return this.db.collection('media').findOne({_id:this.id(id)}); }
 }
 
 async function createStore(){
@@ -273,12 +320,12 @@ async function body(req,limit=2_500_000){
   throw new Error('UNSUPPORTED_CONTENT_TYPE');
 }
 function compareSafe(a='',b=''){ const left=Buffer.from(String(a)); const right=Buffer.from(String(b)); if(left.length!==right.length)return false; return crypto.timingSafeEqual(left,right); }
-function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','status','manager','checkedBy','viewedAt'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','description','status','image','images']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
+function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','status','manager','checkedBy','viewedAt'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','description','status','images']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
 function publicReview(item){ const {audit,viewedAt,verifiedBy,verifiedAt,...safe}=item; return safe; }
 function publicEquipmentSummary(item={}){
   const {image,images,description,descriptionEn,translations,audit,viewedAt,...summary}=item;
-  const imageCount=Array.isArray(images)?images.filter(Boolean).length:(image?1:0);
-  return {...summary,imageCount};
+  const normalized=normalizedEquipmentImages(item);
+  return {...summary,imageCount:normalized.length,thumbnail:normalized[0]||''};
 }
 function clientAddress(req){return String(req.headers['x-forwarded-for']||req.socket?.remoteAddress||'unknown').split(',')[0].trim().slice(0,80)}
 function allowRequest(req,res,scope,limit,windowMs){
@@ -372,7 +419,40 @@ async function api(req,res,url){
   if(url.pathname==='/api/integrations/status'){ if(!await requireAdmin(req,res))return; const contact=await getContactApiStatus(); return json(res,200,{contactApi:contact.available,contactApiConfigured:contact.configured,notifications:contact.available,route:contact.route}); }
   if(url.pathname==='/api/dashboard'){ if(!await requireAdmin(req,res))return; const result={}; for(const type of COLLECTIONS){const items=await store.list(type);const hasUnread=['leads','reviews','questions'].includes(type);result[type]={total:items.length,unread:hasUnread?items.filter(x=>!x.viewedAt).length:0};} return json(res,200,result); }
   if(url.pathname==='/api/admin/mark-viewed'&&req.method==='POST'){ if(!await requireAdmin(req,res))return; const input=await body(req); if(!COLLECTIONS.has(input.type))return json(res,400,{error:'INVALID_TYPE'}); await store.markViewed(input.type); return json(res,200,{ok:true}); }
-  if(url.pathname==='/api/uploads'&&req.method==='POST'){ if(!await requireAdmin(req,res))return; const input=await body(req,6_000_000); if(!/^data:image\/(png|jpeg|webp);base64,/.test(input.dataUrl||''))return json(res,400,{error:'INVALID_IMAGE'}); if(process.env.VERCEL)return json(res,201,{url:input.dataUrl}); const ext=input.dataUrl.match(/^data:image\/(png|jpeg|webp)/)[1].replace('jpeg','jpg'); const filename=`${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${ext}`; await fs.mkdir(path.join(ROOT,'uploads'),{recursive:true}); await fs.writeFile(path.join(ROOT,'uploads',filename),Buffer.from(input.dataUrl.split(',')[1],'base64')); return json(res,201,{url:`/uploads/${filename}`}); }
+  const mediaMatch=url.pathname.match(/^\/api\/media\/([a-zA-Z0-9_-]+)$/);
+  if(mediaMatch&&req.method==='GET'){
+    if(typeof store.getMedia!=='function')return json(res,404,{error:'NOT_FOUND'});
+    const media=await store.getMedia(mediaMatch[1]);
+    if(!media)return json(res,404,{error:'NOT_FOUND'});
+    const binary=media.data;
+    const bytes=Buffer.isBuffer(binary)
+      ?binary
+      :binary?.buffer
+        ?Buffer.from(binary.buffer).subarray(0,Number(binary.position)||binary.buffer.length)
+        :Buffer.from(binary||[]);
+    securityHeaders(res);
+    res.writeHead(200,{'Content-Type':media.contentType||'application/octet-stream','Content-Length':String(bytes.length),'Cache-Control':'public, max-age=31536000, immutable','X-Content-Type-Options':'nosniff'});
+    return res.end(bytes);
+  }
+  if(url.pathname==='/api/uploads'&&req.method==='POST'){
+    if(!await requireAdmin(req,res))return;
+    const input=await body(req,6_000_000);
+    const match=String(input.dataUrl||'').match(/^data:image\/(png|jpeg|webp);base64,(.+)$/);
+    if(!match)return json(res,400,{error:'INVALID_IMAGE'});
+    const contentType=`image/${match[1]}`;
+    const bytes=Buffer.from(match[2],'base64');
+    if(!bytes.length||bytes.length>4_500_000)return json(res,400,{error:'INVALID_IMAGE_SIZE'});
+    if(process.env.VERCEL){
+      if(typeof store.saveMedia!=='function')return json(res,503,{error:'MEDIA_STORE_UNAVAILABLE'});
+      const id=await store.saveMedia(bytes,contentType);
+      return json(res,201,{url:`/api/media/${id}`});
+    }
+    const ext=match[1].replace('jpeg','jpg');
+    const filename=`${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${ext}`;
+    await fs.mkdir(path.join(ROOT,'uploads'),{recursive:true});
+    await fs.writeFile(path.join(ROOT,'uploads',filename),bytes);
+    return json(res,201,{url:`/uploads/${filename}`});
+  }
   const userMatch=url.pathname.match(/^\/api\/users(?:\/([^/]+))?$/);
   if(userMatch){
     const admin=await requireAdmin(req,res); if(!admin)return;

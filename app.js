@@ -500,7 +500,15 @@ loadProjects();
 const publicEquipment = $('#public-equipment');
 const equipmentDialog = $('#equipment-dialog');
 const equipmentSearch = $('#equipment-search');
+const equipmentPrev = $('#equipment-prev');
+const equipmentNext = $('#equipment-next');
+const equipmentPageLabel = $('#equipment-page-label');
+const equipmentAllLink = $('#equipment-all-link');
 const equipmentItems = new Map();
+const equipmentPageSize = 6;
+const equipmentShowAll = new URLSearchParams(window.location.search).get('catalog') === 'all';
+let equipmentData = [];
+let equipmentPage = 0;
 let equipmentReturnY = 0;
 let equipmentRestoreScroll = true;
 let activeEquipmentItem = null;
@@ -530,8 +538,7 @@ function scheduleEquipmentTitleFit() {
 }
 function applyEquipmentFilters() {
   const query = (equipmentSearch?.value || '').trim().toLocaleLowerCase();
-  const cards = $$('.equipment-card', publicEquipment);
-  const availableBrands = new Set(cards.map(card => (card.querySelector('span')?.textContent || '').trim().toLocaleLowerCase()));
+  const availableBrands = new Set(equipmentData.map(item => String(item.brand || '').trim().toLocaleLowerCase()).filter(Boolean));
   $$('.equipment-filter button').forEach(button => {
     const brand = button.dataset.brandFilter || 'all';
     button.hidden = brand !== 'all' && !availableBrands.has(brand);
@@ -544,16 +551,44 @@ function applyEquipmentFilters() {
       button.setAttribute('aria-pressed', String(selected));
     });
   }
-  cards.forEach(card => {
-    const brand = (card.querySelector('span')?.textContent || '').trim().toLocaleLowerCase();
-    const haystack = card.textContent.toLocaleLowerCase();
-    card.hidden = (activeEquipmentBrand !== 'all' && brand !== activeEquipmentBrand) || (query && !haystack.includes(query));
+  const filtered = equipmentData.filter(item => {
+    const brand = String(item.brand || '').trim().toLocaleLowerCase();
+    const haystack = [item.brand, item.model, item.power, item.phase, item.voltage].filter(Boolean).join(' ').toLocaleLowerCase();
+    return (activeEquipmentBrand === 'all' || brand === activeEquipmentBrand) && (!query || haystack.includes(query));
   });
+  const pageCount = Math.max(1, Math.ceil(filtered.length / equipmentPageSize));
+  equipmentPage = Math.min(Math.max(0, equipmentPage), pageCount - 1);
+  const visibleItems = equipmentShowAll ? filtered : filtered.slice(equipmentPage * equipmentPageSize, (equipmentPage + 1) * equipmentPageSize);
+  if (publicEquipment) {
+    publicEquipment.innerHTML = visibleItems.length
+      ? visibleItems.map(renderPublicEquipment).join('')
+      : emptyMarkup(uiText('Нічого не знайдено', 'Nothing found'), uiText('Змініть бренд або пошуковий запит.', 'Try another brand or search query.'));
+    bindEquipmentCards(visibleItems);
+    enhanceClickableHints(publicEquipment);
+  }
+  if (equipmentPageLabel) equipmentPageLabel.textContent = equipmentShowAll
+    ? uiText(`${filtered.length} моделей`, `${filtered.length} models`)
+    : `${equipmentPage + 1} / ${pageCount}`;
+  if (equipmentPrev) {
+    equipmentPrev.hidden = equipmentShowAll;
+    equipmentPrev.disabled = equipmentPage === 0;
+  }
+  if (equipmentNext) {
+    equipmentNext.hidden = equipmentShowAll;
+    equipmentNext.disabled = equipmentPage >= pageCount - 1;
+  }
+  if (equipmentAllLink) {
+    equipmentAllLink.href = equipmentShowAll ? '/#equipment' : '/?catalog=all#equipment';
+    equipmentAllLink.textContent = equipmentShowAll
+      ? uiText('До добірки ←', 'Back to featured products ←')
+      : uiText('Увесь каталог ↗', 'Full catalogue ↗');
+  }
   scheduleEquipmentTitleFit();
 }
 window.addEventListener('resize', scheduleEquipmentTitleFit, { passive: true });
-equipmentSearch?.addEventListener('input', applyEquipmentFilters);
+equipmentSearch?.addEventListener('input', () => { equipmentPage = 0; applyEquipmentFilters(); });
 $$('.equipment-filter button').forEach(button => button.addEventListener('click', () => {
+  equipmentPage = 0;
   activeEquipmentBrand = button.dataset.brandFilter || 'all';
   $$('.equipment-filter button').forEach(item => {
     const selected = item === button;
@@ -562,10 +597,21 @@ $$('.equipment-filter button').forEach(button => button.addEventListener('click'
   });
   applyEquipmentFilters();
 }));
+equipmentPrev?.addEventListener('click', () => {
+  if (equipmentPage <= 0) return;
+  equipmentPage -= 1;
+  applyEquipmentFilters();
+});
+equipmentNext?.addEventListener('click', () => {
+  equipmentPage += 1;
+  applyEquipmentFilters();
+});
 function renderPublicEquipment(item) {
   const status = item.status === 'active' ? uiText('Активний', 'Active') : uiText('На перевірці', 'Under review');
   const phase = pageLang() === 'en' ? String(item.phase || '—').replace(/фази/gi, 'phases').replace(/фаза/gi, 'phase') : item.phase || '—';
-  return `<button class="equipment-card reveal visible" type="button" data-equipment="${escapeHtml(String(item._id || item.model || ''))}" aria-label="${escapeHtml(uiText('Відкрити опис', 'Open details for'))} ${escapeHtml(item.brand || '')} ${escapeHtml(item.model || '')}"><span>${escapeHtml(item.brand || 'ІНК')}</span><h3>${escapeHtml(item.model || uiText('Модель', 'Model'))}</h3><p>${escapeHtml(item.power || '—')} · ${escapeHtml(phase)} · ${escapeHtml(item.voltage || '—')}</p><b><i>${escapeHtml(status)}</i><em>${escapeHtml(uiText('Детальніше ↗', 'Details ↗'))}</em></b></button>`;
+  const thumbnail = item.thumbnail || (Array.isArray(item.images) ? item.images[0] : '') || item.image || '';
+  const image = thumbnail ? `<img class="equipment-card-thumb" src="${escapeHtml(thumbnail)}" alt="${escapeHtml(`${item.brand || ''} ${item.model || ''}`.trim())}" loading="lazy">` : '<span class="equipment-card-thumb equipment-card-thumb-empty" aria-hidden="true">⚡</span>';
+  return `<button class="equipment-card reveal visible" type="button" data-equipment="${escapeHtml(String(item._id || item.model || ''))}" aria-label="${escapeHtml(uiText('Відкрити опис', 'Open details for'))} ${escapeHtml(item.brand || '')} ${escapeHtml(item.model || '')}">${image}<span>${escapeHtml(item.brand || 'ІНК')}</span><h3>${escapeHtml(item.model || uiText('Модель', 'Model'))}</h3><p>${escapeHtml(item.power || '—')} · ${escapeHtml(phase)} · ${escapeHtml(item.voltage || '—')}</p><b><i>${escapeHtml(status)}</i><em>${escapeHtml(uiText('Детальніше ↗', 'Details ↗'))}</em></b></button>`;
 }
 const equipmentDetailCache = new Map();
 async function openEquipment(item) {
@@ -719,10 +765,8 @@ async function loadPublicEquipment() {
   if (!Array.isArray(data) || !data.length) {
     publicEquipment.innerHTML = emptyMarkup(uiText('Асортимент оновлюється', 'The range is being updated'), uiText('Моделі стануть доступними після перевірки та схвалення нашими фахівцями.', 'Models will become available after review and approval by our specialists.')); return;
   }
-  publicEquipment.innerHTML = data.map(renderPublicEquipment).join('');
-  bindEquipmentCards(data);
+  equipmentData = data;
   applyEquipmentFilters();
-  enhanceClickableHints(publicEquipment);
 }
 function closeEquipmentDialog() {
   if (!equipmentDialog) return;

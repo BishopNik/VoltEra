@@ -15,7 +15,7 @@
   <link rel="alternate" hreflang="x-default" href="https://voltares.pp.ua/">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="/site.webmanifest">
-  <link rel="stylesheet" href="/styles.css?v=20260713-2"><link rel="stylesheet" href="/ui-overrides.css?v=20260718-3">
+  <link rel="stylesheet" href="/styles.css?v=20260713-2"><link rel="stylesheet" href="/ui-overrides.css?v=20260718-4">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="uk_UA">
   <meta property="og:site_name" content="ІНК">
@@ -155,6 +155,12 @@
           <button class="equipment-card" type="button"><span>ANENJI</span><h3>ANJ-6200W-48V</h3><p>6.2 kW · 1 фаза · 48 V</p><b><i>Активний</i><em>Детальніше ↗</em></b></button>
           <button class="equipment-card" type="button"><span>EASUN</span><h3>iSolar SMV IV 5.6K</h3><p>5.6 kW · 1 фаза · 48 V</p><b><i>Активний</i><em>Детальніше ↗</em></b></button>
         </div>
+        <nav class="equipment-catalog-controls" aria-label="Сторінки каталогу">
+          <button id="equipment-prev" type="button" aria-label="Попередні товари" title="Попередні товари">←</button>
+          <span id="equipment-page-label" aria-live="polite">1 / 1</span>
+          <button id="equipment-next" type="button" aria-label="Наступні товари" title="Наступні товари">→</button>
+          <a id="equipment-all-link" href="/?catalog=all#equipment">Увесь каталог ↗</a>
+        </nav>
       </div>
     </section>
 
@@ -277,8 +283,8 @@
 
   <dialog class="selector-dialog" id="selector-dialog" aria-label="Швидкий підбір енергосистеми"><button class="dialog-close" type="button" aria-label="Закрити">×</button><div class="selector-progress"><i></i></div><div class="selector-content"><p class="eyebrow">AI-підбір / 01</p><h2>Де потрібна енергія?</h2><div class="selector-options"><button type="button" data-answer="Квартира">Квартира <span>→</span></button><button type="button" data-answer="Будинок">Приватний будинок <span>→</span></button><button type="button" data-answer="Бізнес">Бізнес <span>→</span></button></div><p class="selector-hint">3 питання · близько 90 секунд</p></div></dialog>
 
-<script src="/app.js?v=20260718-2" defer></script>
-  <script src="/i18n.js?v=20260718-3" defer></script>
+<script src="/app.js?v=20260718-3" defer></script>
+  <script src="/i18n.js?v=20260718-4" defer></script>
   <script>
     if (!['localhost', '127.0.0.1'].includes(location.hostname)) {
       const analytics = document.createElement('script');

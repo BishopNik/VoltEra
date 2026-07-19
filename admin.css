@@ -121,6 +121,20 @@ td span{font-size:12px}
   .question-toolbar-actions>*{flex:1;text-align:center}
 }
 
+/* Compact equipment cards: image has a clean white canvas without a grey top strip. */
+.equipment-grid{grid-template-columns:repeat(3,minmax(220px,1fr));gap:14px}
+.equipment-grid article{padding:16px;overflow:hidden}
+.equipment-admin-media{position:relative;display:grid!important;place-items:center;height:138px;margin:-2px -2px 14px!important;padding:0!important;overflow:hidden;border:0!important;border-radius:14px;background:#fff;box-shadow:inset 0 0 0 1px var(--line)}
+.equipment-admin-media img{display:block;width:100%;height:100%;padding:7px;object-fit:contain;object-position:center;background:#fff}
+.equipment-admin-media>span{position:absolute;right:8px;bottom:8px;padding:4px 8px;border-radius:999px;background:#26322e;color:#fff;font-size:10px;font-weight:800;line-height:1.2}
+.equipment-admin-media.is-empty{border:1px dashed var(--line)!important;background:#fafaf7;box-shadow:none}
+.equipment-admin-media.is-empty>span{position:static;background:transparent;color:var(--muted)}
+.equipment-grid article>.equipment-admin-brand{font-size:19px}
+.equipment-grid h3{margin:12px 0 4px;font-size:18px;line-height:1.2}
+.equipment-grid article>div:last-child{margin-top:13px;padding-top:12px}
+@media(max-width:1100px){.equipment-grid{grid-template-columns:repeat(2,minmax(220px,1fr))}}
+@media(max-width:700px){.equipment-grid{grid-template-columns:1fr}.equipment-admin-media{height:155px}}
+
 /* Final readable scale for laptop/13-inch CRM use. */
 body{font-size:16px}
 .admin-nav{font-size:15px}

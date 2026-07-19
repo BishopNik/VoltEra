@@ -645,11 +645,15 @@ form.addEventListener('submit', async event => {
         images.push(upload.url);
       }
       data.images = images;
-      data.image = images[0];
-    } else if (activeItem?.image) {
-      data.image = activeItem.image;
-      if (activeItem.images) data.images = activeItem.images;
+      if (activeType !== 'equipment') data.image = images[0];
+    } else if (activeItem) {
+      const existingImages = [...new Set([...(Array.isArray(activeItem.images) ? activeItem.images : []), activeItem.image].filter(Boolean))];
+      if (existingImages.length) {
+        data.images = existingImages;
+        if (activeType !== 'equipment') data.image = existingImages[0];
+      }
     }
+    if (activeType === 'equipment') delete data.image;
     const path = activeItem ? `/api/${activeType}/${activeItem._id}` : `/api/${activeType}`;
     await api(path, { method: activeItem ? 'PATCH' : 'POST', body: JSON.stringify(data) });
     await loadCollection(activeType);

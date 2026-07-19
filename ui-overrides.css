@@ -38,3 +38,17 @@ body.site-loading:before{content:"";position:fixed;z-index:999;left:0;right:0;to
 .site-header .desktop-nav a[href="#equipment"]:before{content:none}
 .site-header .desktop-nav a[href="#equipment"].is-active{border-color:color-mix(in srgb,var(--acid) 48%,var(--line));background:color-mix(in srgb,var(--acid) 9%,transparent)}
 @media(max-width:1380px) and (min-width:1101px){.site-header .nav-wrap{width:calc(100% - 24px);gap:14px}.site-header .brand{min-width:90px}.site-header .brand:before{width:90px}.site-header .desktop-nav{gap:12px}.site-header .desktop-nav a{font-size:11px}.site-header .nav-actions{gap:7px}.site-header .button-small{padding:11px 14px}.site-header .phone-menu{display:none}}
+
+/* Six-product catalogue preview with compact, real product thumbnails. */
+.equipment-public-grid .equipment-card{min-height:360px;padding:18px 18px 72px}
+.equipment-public-grid .equipment-card-thumb{display:block;width:100%;height:126px;margin:0 0 14px;padding:7px;border:0;border-radius:15px;background:#fff;object-fit:contain;object-position:center;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--line) 76%,transparent)}
+.equipment-public-grid .equipment-card-thumb-empty{display:grid;place-items:center;color:var(--acid);font-size:34px}
+.equipment-public-grid .equipment-card h3{margin:14px 0 8px}
+.equipment-public-grid .equipment-card>b{left:18px;right:18px;bottom:16px}
+.equipment-catalog-controls{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:24px}
+.equipment-catalog-controls button{display:grid;place-items:center;width:48px;height:48px;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--panel);color:var(--ink);font-size:23px;cursor:pointer;transition:transform .2s,border-color .2s,background .2s}
+.equipment-catalog-controls button:hover:not(:disabled){transform:translateY(-2px);border-color:var(--acid);background:color-mix(in srgb,var(--acid) 12%,var(--panel))}
+.equipment-catalog-controls button:disabled{opacity:.34;cursor:default}
+.equipment-catalog-controls>span{min-width:64px;color:var(--muted);font:800 11px monospace;text-align:center}
+.equipment-catalog-controls>a{display:inline-flex;align-items:center;min-height:48px;margin-left:8px;padding:0 20px;border:1px solid color-mix(in srgb,var(--acid) 50%,var(--line));border-radius:999px;color:var(--ink);font-size:13px;font-weight:850;text-decoration:none}
+@media(max-width:800px){.equipment-public-grid .equipment-card{min-height:350px;padding:16px 16px 70px}.equipment-public-grid .equipment-card-thumb{height:142px}.equipment-public-grid .equipment-card>b{left:16px;right:16px}.equipment-catalog-controls{flex-wrap:wrap}.equipment-catalog-controls>a{flex-basis:100%;justify-content:center;margin-left:0}}
