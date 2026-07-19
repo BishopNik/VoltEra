@@ -504,9 +504,9 @@ const equipmentPrev = $('#equipment-prev');
 const equipmentNext = $('#equipment-next');
 const equipmentPageLabel = $('#equipment-page-label');
 const equipmentAllLink = $('#equipment-all-link');
+const equipmentImageLightbox = $('#equipment-image-lightbox');
 const equipmentItems = new Map();
 const equipmentPageSize = 6;
-const equipmentShowAll = new URLSearchParams(window.location.search).get('catalog') === 'all';
 let equipmentData = [];
 let equipmentPage = 0;
 let equipmentReturnY = 0;
@@ -558,7 +558,7 @@ function applyEquipmentFilters() {
   });
   const pageCount = Math.max(1, Math.ceil(filtered.length / equipmentPageSize));
   equipmentPage = Math.min(Math.max(0, equipmentPage), pageCount - 1);
-  const visibleItems = equipmentShowAll ? filtered : filtered.slice(equipmentPage * equipmentPageSize, (equipmentPage + 1) * equipmentPageSize);
+  const visibleItems = filtered.slice(equipmentPage * equipmentPageSize, (equipmentPage + 1) * equipmentPageSize);
   if (publicEquipment) {
     publicEquipment.innerHTML = visibleItems.length
       ? visibleItems.map(renderPublicEquipment).join('')
@@ -566,22 +566,16 @@ function applyEquipmentFilters() {
     bindEquipmentCards(visibleItems);
     enhanceClickableHints(publicEquipment);
   }
-  if (equipmentPageLabel) equipmentPageLabel.textContent = equipmentShowAll
-    ? uiText(`${filtered.length} моделей`, `${filtered.length} models`)
-    : `${equipmentPage + 1} / ${pageCount}`;
+  if (equipmentPageLabel) equipmentPageLabel.textContent = `${equipmentPage + 1} / ${pageCount}`;
   if (equipmentPrev) {
-    equipmentPrev.hidden = equipmentShowAll;
     equipmentPrev.disabled = equipmentPage === 0;
   }
   if (equipmentNext) {
-    equipmentNext.hidden = equipmentShowAll;
     equipmentNext.disabled = equipmentPage >= pageCount - 1;
   }
   if (equipmentAllLink) {
-    equipmentAllLink.href = equipmentShowAll ? '/#equipment' : '/?catalog=all#equipment';
-    equipmentAllLink.textContent = equipmentShowAll
-      ? uiText('До добірки ←', 'Back to featured products ←')
-      : uiText('Увесь каталог ↗', 'Full catalogue ↗');
+    equipmentAllLink.href = pageLang() === 'en' ? '/catalog.html?lang=en' : '/catalog.html';
+    equipmentAllLink.textContent = uiText('Увесь каталог ↗', 'Full catalogue ↗');
   }
   scheduleEquipmentTitleFit();
 }
@@ -611,7 +605,8 @@ function renderPublicEquipment(item) {
   const phase = pageLang() === 'en' ? String(item.phase || '—').replace(/фази/gi, 'phases').replace(/фаза/gi, 'phase') : item.phase || '—';
   const thumbnail = item.thumbnail || (Array.isArray(item.images) ? item.images[0] : '') || item.image || '';
   const image = thumbnail ? `<img class="equipment-card-thumb" src="${escapeHtml(thumbnail)}" alt="${escapeHtml(`${item.brand || ''} ${item.model || ''}`.trim())}" loading="lazy">` : '<span class="equipment-card-thumb equipment-card-thumb-empty" aria-hidden="true">⚡</span>';
-  return `<button class="equipment-card reveal visible" type="button" data-equipment="${escapeHtml(String(item._id || item.model || ''))}" aria-label="${escapeHtml(uiText('Відкрити опис', 'Open details for'))} ${escapeHtml(item.brand || '')} ${escapeHtml(item.model || '')}">${image}<span>${escapeHtml(item.brand || 'ІНК')}</span><h3>${escapeHtml(item.model || uiText('Модель', 'Model'))}</h3><p>${escapeHtml(item.power || '—')} · ${escapeHtml(phase)} · ${escapeHtml(item.voltage || '—')}</p><b><i>${escapeHtml(status)}</i><em>${escapeHtml(uiText('Детальніше ↗', 'Details ↗'))}</em></b></button>`;
+  const price = item.price || uiText('За запитом', 'On request');
+  return `<button class="equipment-card reveal visible" type="button" data-equipment="${escapeHtml(String(item._id || item.model || ''))}" aria-label="${escapeHtml(uiText('Відкрити опис', 'Open details for'))} ${escapeHtml(item.brand || '')} ${escapeHtml(item.model || '')}">${image}<span>${escapeHtml(item.brand || 'ІНК')}</span><h3>${escapeHtml(item.model || uiText('Модель', 'Model'))}</h3><p>${escapeHtml(item.power || '—')} · ${escapeHtml(phase)} · ${escapeHtml(item.voltage || '—')}</p><strong class="equipment-card-price">${escapeHtml(price)}</strong><b><i>${escapeHtml(status)}</i><em>${escapeHtml(uiText('Детальніше ↗', 'Details ↗'))}</em></b></button>`;
 }
 const equipmentDetailCache = new Map();
 async function openEquipment(item) {
@@ -648,6 +643,10 @@ async function openEquipment(item) {
   const mainImage = $('img', equipmentDialog);
   mainImage.src = image;
   mainImage.alt = `${item.brand || ''} ${item.model || ''}`.trim();
+  mainImage.tabIndex = 0;
+  mainImage.setAttribute('role', 'button');
+  mainImage.setAttribute('aria-label', uiText('Збільшити фото товару', 'Enlarge product photo'));
+  mainImage.title = uiText('Натисніть, щоб збільшити фото', 'Click to enlarge the photo');
   let gallery = $('.equipment-dialog-gallery', equipmentDialog);
   if (!gallery) {
     gallery = document.createElement('div');
@@ -687,6 +686,25 @@ async function openEquipment(item) {
   window.setTimeout(resetDialogScroll, 80);
   requestAnimationFrame(() => window.scrollTo({ top: equipmentReturnY, left: window.scrollX, behavior: 'auto' }));
 }
+
+function openEquipmentImageLightbox() {
+  if (!equipmentImageLightbox || !equipmentDialog) return;
+  const source = $('img', equipmentDialog);
+  const target = $('img', equipmentImageLightbox);
+  if (!source?.src || !target) return;
+  target.src = source.src;
+  target.alt = source.alt;
+  if (typeof equipmentImageLightbox.showModal === 'function') equipmentImageLightbox.showModal();
+  else equipmentImageLightbox.setAttribute('open', '');
+}
+$(':scope > img', equipmentDialog)?.addEventListener('click', openEquipmentImageLightbox);
+$(':scope > img', equipmentDialog)?.addEventListener('keydown', event => {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  event.preventDefault();
+  openEquipmentImageLightbox();
+});
+$('.equipment-image-lightbox-close')?.addEventListener('click', () => equipmentImageLightbox?.close());
+equipmentImageLightbox?.addEventListener('click', event => { if (event.target === equipmentImageLightbox) equipmentImageLightbox.close(); });
 
 $('.equipment-more-toggle')?.addEventListener('click', event => {
   const button = event.currentTarget;

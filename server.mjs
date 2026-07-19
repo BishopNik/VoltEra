@@ -39,6 +39,27 @@ const LEGACY_SAMPLE_IDS = {
 };
 const EQUIPMENT_CATALOG_MIGRATION_ID = 'add-deye-catalog-2026-07-18-v1';
 const EQUIPMENT_IMAGE_NORMALIZATION_ID = 'normalize-equipment-images-2026-07-18-v1';
+const EQUIPMENT_RETAIL_PRICE_MIGRATION_ID = 'set-equipment-retail-prices-2026-07-19-v2';
+const EQUIPMENT_RETAIL_PRICES = Object.freeze({
+  'SE-G5.1 Pro-B':'38 900 грн',
+  'SE-F5 Pro-C':'38 500 грн',
+  'SUN-6K-SG05LP1-AM2-P':'35 900 грн',
+  'SUN-8K-SG01LP1-EU':'55 900 грн',
+  'SUN-10K-SG02LP1-EU-AM3':'79 900 грн',
+  'SUN-12K-SG02LP1-EU-AM3':'82 900 грн',
+  'SUN-12K-SG05LP3-EU':'82 900 грн',
+  'SUN-15K-SG05LP3-EU-SM2':'99 900 грн',
+  'SUN-20K-SG05LP3-EU-SM2':'122 900 грн',
+  'SUN-30K-SG02HP3-EU-BM3':'139 900 грн',
+  'SUN-50K-SG01HP3-EU-BM4':'204 900 грн',
+  'SUN-80K-SG02HP3-EU-EM6':'289 900 грн',
+  'BOS-G PRO':'38 900 грн',
+  'BOS-G-PDU-2 BMS':'38 900 грн',
+  'Стійка BOS-G PRO на 12 АКБ':'18 900 грн',
+  'ANJ-LP04-24V-100A-PX':'15 900 грн',
+  'ANJ-6200W-48V-W':'13 900 грн',
+  'ANJ-4000W-24V-W':'10 900 грн'
+});
 const LEGACY_EQUIPMENT_IMAGE_PATHS = new Map([
   ['ANJ-LP04-24V-100A-PX','/assets/equipment/anenji-anj-lp04-24v-100a-px.webp'],
   ['ANJ-6200W-48V-W','/assets/equipment/anenji-anj-6200w-48v-w.jpg'],
@@ -46,77 +67,77 @@ const LEGACY_EQUIPMENT_IMAGE_PATHS = new Map([
 ]);
 const REQUESTED_EQUIPMENT = [
   {
-    _id:'deye-se-g5-1-pro-b', brand:'DEYE', model:'SE-G5.1 Pro-B', power:'5.12 kWh', phase:'LiFePO₄', voltage:'51.2 V', price:'За запитом', status:'active',
+    _id:'deye-se-g5-1-pro-b', brand:'DEYE', model:'SE-G5.1 Pro-B', power:'5.12 kWh', phase:'LiFePO₄', voltage:'51.2 V', price:EQUIPMENT_RETAIL_PRICES['SE-G5.1 Pro-B'], status:'active',
     images:['/assets/equipment/deye-se-g5-1-pro-b.jpg'],
     description:'DEYE SE-G5.1 Pro-B — літій-залізо-фосфатний акумулятор 51.2 В, 100 А·год (5.12 кВт·год) для систем резервного та автономного живлення. Оснащений інтелектуальною BMS, має ресурс понад 6000 циклів та підтримує масштабування системи.\n\n## Основні переваги\n\n- LiFePO₄ 51.2 В / 100 А·год\n- Ємність 5.12 кВт·год\n- 6000+ циклів\n- Вбудована BMS\n- Паралельне підключення\n- Висока безпека\n- Для інверторів Deye та інших\n- Для дому й бізнесу'
   },
   {
-    _id:'deye-se-f5-pro-c', brand:'DEYE', model:'SE-F5 Pro-C', power:'5.12 kWh', phase:'LiFePO₄', voltage:'51.2 V', price:'За запитом', status:'active',
+    _id:'deye-se-f5-pro-c', brand:'DEYE', model:'SE-F5 Pro-C', power:'5.12 kWh', phase:'LiFePO₄', voltage:'51.2 V', price:EQUIPMENT_RETAIL_PRICES['SE-F5 Pro-C'], status:'active',
     images:['/assets/equipment/deye-se-f5-pro-c.webp'],
     description:'DEYE SE-F5 Pro-C — сучасна акумуляторна батарея LiFePO₄ 51.2 В, 100 А·год для систем накопичення енергії. Відзначається високою ефективністю, довговічністю та підтримкою паралельного підключення.\n\n## Основні переваги\n\n- LiFePO₄ 51.2 В / 100 А·год\n- Ємність 5.12 кВт·год\n- 6000+ циклів\n- Інтелектуальна BMS\n- Масштабування системи\n- Швидке заряджання\n- Простий монтаж\n- Для домашніх СЕС'
   },
   {
-    _id:'deye-sun-6k-sg05lp1-am2-p', brand:'DEYE', model:'SUN-6K-SG05LP1-AM2-P', power:'6 kW', phase:'1 фаза', voltage:'48 V', price:'За запитом', status:'active',
+    _id:'deye-sun-6k-sg05lp1-am2-p', brand:'DEYE', model:'SUN-6K-SG05LP1-AM2-P', power:'6 kW', phase:'1 фаза', voltage:'48 V', price:EQUIPMENT_RETAIL_PRICES['SUN-6K-SG05LP1-AM2-P'], status:'active',
     images:['/assets/equipment/deye-sun-sg05lp1.png'],
     description:'SUN-6K-SG05LP1-AM2-P — гібридний інвертор 6 кВт із підтримкою акумуляторів 48 В, MPPT-контролером та чистою синусоїдою для резервного й автономного живлення.\n\n## Основні переваги\n\n- Потужність 6 кВт\n- MPPT-контролер\n- Чиста синусоїда\n- Робота без АКБ\n- Wi-Fi моніторинг\n- LiFePO₄ Ready\n- Високий ККД\n- Для дому та бізнесу'
   },
   {
-    _id:'deye-sun-8k-sg01lp1-eu', brand:'DEYE', model:'SUN-8K-SG01LP1-EU', power:'8 kW', phase:'1 фаза', voltage:'48 V', price:'За запитом', status:'active',
+    _id:'deye-sun-8k-sg01lp1-eu', brand:'DEYE', model:'SUN-8K-SG01LP1-EU', power:'8 kW', phase:'1 фаза', voltage:'48 V', price:EQUIPMENT_RETAIL_PRICES['SUN-8K-SG01LP1-EU'], status:'active',
     images:['/assets/equipment/deye-sun-sg01lp1.png'],
     description:'Deye SUN-8K-SG01LP1-EU — однофазний гібридний інвертор 8 кВт для сонячних електростанцій із підтримкою акумуляторів 48 В.\n\n## Основні переваги\n\n- Потужність 8 кВт\n- MPPT-контролер\n- Wi-Fi моніторинг\n- Робота без АКБ\n- Чиста синусоїда\n- LiFePO₄ Ready\n- Високий ККД\n- Резервне живлення'
   },
   {
-    _id:'deye-sun-10k-sg02lp1-eu-am3', brand:'DEYE', model:'SUN-10K-SG02LP1-EU-AM3', power:'10 kW', phase:'1 фаза', voltage:'48 V', price:'За запитом', status:'active',
+    _id:'deye-sun-10k-sg02lp1-eu-am3', brand:'DEYE', model:'SUN-10K-SG02LP1-EU-AM3', power:'10 kW', phase:'1 фаза', voltage:'48 V', price:EQUIPMENT_RETAIL_PRICES['SUN-10K-SG02LP1-EU-AM3'], status:'active',
     images:['/assets/equipment/deye-sun-sg01lp1.png'],
     description:'Deye SUN-10K-SG02LP1-EU-AM3 — однофазний гібридний інвертор 10 кВт для ефективних систем резервного та автономного електроживлення.\n\n## Основні переваги\n\n- Потужність 10 кВт\n- MPPT-контролер\n- Підтримка 48 В АКБ\n- Wi-Fi моніторинг\n- Робота без АКБ\n- Чиста синусоїда\n- Висока ефективність\n- Для приватних СЕС'
   },
   {
-    _id:'deye-sun-12k-sg02lp1-eu-am3', brand:'DEYE', model:'SUN-12K-SG02LP1-EU-AM3', power:'12 kW', phase:'1 фаза', voltage:'48 V', price:'За запитом', status:'active',
+    _id:'deye-sun-12k-sg02lp1-eu-am3', brand:'DEYE', model:'SUN-12K-SG02LP1-EU-AM3', power:'12 kW', phase:'1 фаза', voltage:'48 V', price:EQUIPMENT_RETAIL_PRICES['SUN-12K-SG02LP1-EU-AM3'], status:'active',
     images:['/assets/equipment/deye-sun-sg01lp1.png'],
     description:'Deye SUN-12K-SG02LP1-EU-AM3 — потужний однофазний гібридний інвертор 12 кВт із підтримкою сонячних панелей та акумуляторів LiFePO₄.\n\n## Основні переваги\n\n- Потужність 12 кВт\n- MPPT-контролер\n- Wi-Fi керування\n- Робота без АКБ\n- LiFePO₄ Ready\n- Чиста синусоїда\n- Високий ККД\n- Для великих будинків'
   },
   {
-    _id:'deye-sun-12k-sg05lp3-eu', brand:'DEYE', model:'SUN-12K-SG05LP3-EU', power:'12 kW', phase:'3 фази', voltage:'48 V', price:'За запитом', status:'active',
+    _id:'deye-sun-12k-sg05lp3-eu', brand:'DEYE', model:'SUN-12K-SG05LP3-EU', power:'12 kW', phase:'3 фази', voltage:'48 V', price:EQUIPMENT_RETAIL_PRICES['SUN-12K-SG05LP3-EU'], status:'active',
     images:['/assets/equipment/deye-sun-sg05lp3.png'],
     description:'Deye SUN-12K-SG05LP3-EU — трифазний гібридний інвертор 12 кВт для сучасних сонячних електростанцій та резервного живлення.\n\n## Основні переваги\n\n- Потужність 12 кВт\n- Трифазний\n- MPPT-контролер\n- Робота без АКБ\n- Wi-Fi моніторинг\n- LiFePO₄ Ready\n- Чиста синусоїда\n- Для дому й бізнесу'
   },
   {
-    _id:'deye-sun-15k-sg05lp3-eu-sm2', brand:'DEYE', model:'SUN-15K-SG05LP3-EU-SM2', power:'15 kW', phase:'3 фази', voltage:'48 V', price:'За запитом', status:'active',
+    _id:'deye-sun-15k-sg05lp3-eu-sm2', brand:'DEYE', model:'SUN-15K-SG05LP3-EU-SM2', power:'15 kW', phase:'3 фази', voltage:'48 V', price:EQUIPMENT_RETAIL_PRICES['SUN-15K-SG05LP3-EU-SM2'], status:'active',
     images:['/assets/equipment/deye-sun-sg05lp3-14-20.png'],
     description:'Deye SUN-15K-SG05LP3-EU-SM2 — трифазний гібридний інвертор 15 кВт для комерційних та приватних сонячних електростанцій.\n\n## Основні переваги\n\n- Потужність 15 кВт\n- Трифазний\n- MPPT-контролер\n- Wi-Fi керування\n- Робота без АКБ\n- LiFePO₄ Ready\n- Високий ККД\n- Для бізнесу'
   },
   {
-    _id:'deye-sun-20k-sg05lp3-eu-sm2', brand:'DEYE', model:'SUN-20K-SG05LP3-EU-SM2', power:'20 kW', phase:'3 фази', voltage:'48 V', price:'За запитом', status:'active',
+    _id:'deye-sun-20k-sg05lp3-eu-sm2', brand:'DEYE', model:'SUN-20K-SG05LP3-EU-SM2', power:'20 kW', phase:'3 фази', voltage:'48 V', price:EQUIPMENT_RETAIL_PRICES['SUN-20K-SG05LP3-EU-SM2'], status:'active',
     images:['/assets/equipment/deye-sun-sg05lp3-14-20.png'],
     description:'Deye SUN-20K-SG05LP3-EU-SM2 — трифазний гібридний інвертор 20 кВт для потужних систем накопичення та генерації електроенергії.\n\n## Основні переваги\n\n- Потужність 20 кВт\n- Трифазний\n- MPPT-контролер\n- Wi-Fi моніторинг\n- LiFePO₄ Ready\n- Робота без АКБ\n- Чиста синусоїда\n- Для підприємств'
   },
   {
-    _id:'deye-sun-30k-sg02hp3-eu-bm3', brand:'DEYE', model:'SUN-30K-SG02HP3-EU-BM3', power:'30 kW', phase:'3 фази', voltage:'HV', price:'За запитом', status:'active',
+    _id:'deye-sun-30k-sg02hp3-eu-bm3', brand:'DEYE', model:'SUN-30K-SG02HP3-EU-BM3', power:'30 kW', phase:'3 фази', voltage:'HV', price:EQUIPMENT_RETAIL_PRICES['SUN-30K-SG02HP3-EU-BM3'], status:'active',
     images:['/assets/equipment/deye-sun-30k-sg02hp3.png'],
     description:'Deye SUN-30K-SG02HP3-EU-BM3 — високовольтний трифазний гібридний інвертор 30 кВт для комерційних сонячних електростанцій.\n\n## Основні переваги\n\n- Потужність 30 кВт\n- Високовольтні АКБ\n- MPPT-контролер\n- Wi-Fi моніторинг\n- Високий ККД\n- Трифазний\n- Для комерційних СЕС\n- Надійний захист'
   },
   {
-    _id:'deye-sun-50k-sg01hp3-eu-bm4', brand:'DEYE', model:'SUN-50K-SG01HP3-EU-BM4', power:'50 kW', phase:'3 фази', voltage:'HV', price:'За запитом', status:'active',
+    _id:'deye-sun-50k-sg01hp3-eu-bm4', brand:'DEYE', model:'SUN-50K-SG01HP3-EU-BM4', power:'50 kW', phase:'3 фази', voltage:'HV', price:EQUIPMENT_RETAIL_PRICES['SUN-50K-SG01HP3-EU-BM4'], status:'active',
     images:['/assets/equipment/deye-sun-50k-sg01hp3.jpg'],
     description:'Deye SUN-50K-SG01HP3-EU-BM4 — високовольтний гібридний інвертор 50 кВт для великих комерційних та промислових об’єктів.\n\n## Основні переваги\n\n- Потужність 50 кВт\n- Високовольтні АКБ\n- Трифазний\n- MPPT-контролер\n- Високий ККД\n- Wi-Fi/Ethernet\n- Для промисловості\n- Максимальна надійність'
   },
   {
-    _id:'deye-sun-80k-sg02hp3-eu-em6', brand:'DEYE', model:'SUN-80K-SG02HP3-EU-EM6', power:'80 kW', phase:'3 фази', voltage:'HV', price:'За запитом', status:'active',
+    _id:'deye-sun-80k-sg02hp3-eu-em6', brand:'DEYE', model:'SUN-80K-SG02HP3-EU-EM6', power:'80 kW', phase:'3 фази', voltage:'HV', price:EQUIPMENT_RETAIL_PRICES['SUN-80K-SG02HP3-EU-EM6'], status:'active',
     images:['/assets/equipment/deye-sun-80k-sg02hp3.png'],
     description:'Deye SUN-80K-SG02HP3-EU-EM6 — високопродуктивний трифазний інвертор 80 кВт для промислових систем накопичення енергії.\n\n## Основні переваги\n\n- Потужність 80 кВт\n- Високовольтні АКБ\n- MPPT-контролер\n- Високий ККД\n- Трифазний\n- Розширений моніторинг\n- Для великих СЕС\n- Промислове застосування'
   },
   {
-    _id:'deye-bos-g-pro', brand:'DEYE', model:'BOS-G PRO', power:'5.12 kWh', phase:'LiFePO₄ HV', voltage:'51.2 V', price:'За запитом', status:'active',
+    _id:'deye-bos-g-pro', brand:'DEYE', model:'BOS-G PRO', power:'5.12 kWh', phase:'LiFePO₄ HV', voltage:'51.2 V', price:EQUIPMENT_RETAIL_PRICES['BOS-G PRO'], status:'active',
     images:['/assets/equipment/deye-bos-g-pro.jpg'],
     description:'Deye BOS-G PRO — високовольтний модульний акумулятор LiFePO₄ 51.2 В, 100 А·год для професійних систем накопичення енергії.\n\n## Основні переваги\n\n- LiFePO₄ 51.2 В / 100 А·год\n- Високовольтна система\n- 6000+ циклів\n- Вбудована BMS\n- Модульне розширення\n- Висока безпека\n- Для комерційних СЕС\n- Простий монтаж'
   },
   {
-    _id:'deye-bos-g-pdu-2', brand:'DEYE', model:'BOS-G-PDU-2 BMS', power:'100 A', phase:'BMS', voltage:'200–1000 V', price:'За запитом', status:'active',
+    _id:'deye-bos-g-pdu-2', brand:'DEYE', model:'BOS-G-PDU-2 BMS', power:'100 A', phase:'BMS', voltage:'200–1000 V', price:EQUIPMENT_RETAIL_PRICES['BOS-G-PDU-2 BMS'], status:'active',
     images:['/assets/equipment/deye-bos-g-pdu-2.jpg'],
     description:'BMS Deye BOS-G-PDU-2 — система керування високовольтними акумуляторами з робочою напругою 200–1000 В та струмом 100 А, що забезпечує безпечну та стабільну роботу батарейних систем.\n\n## Основні переваги\n\n- Діапазон 200–1000 В\n- Струм до 100 А\n- Контроль батарей\n- Балансування комірок\n- Захист системи\n- CAN та RS485\n- Проста інтеграція\n- Висока надійність'
   },
   {
-    _id:'deye-bos-g-rack-12', brand:'DEYE', model:'Стійка BOS-G PRO на 12 АКБ', power:'До 12 модулів', phase:'BOS-G PRO', voltage:'HV', price:'За запитом', status:'active',
+    _id:'deye-bos-g-rack-12', brand:'DEYE', model:'Стійка BOS-G PRO на 12 АКБ', power:'До 12 модулів', phase:'BOS-G PRO', voltage:'HV', price:EQUIPMENT_RETAIL_PRICES['Стійка BOS-G PRO на 12 АКБ'], status:'active',
     images:['/assets/equipment/deye-bos-g-rack-clean.jpg'],
     description:'Стійка Deye призначена для встановлення до 12 високовольтних акумуляторних модулів BOS-G PRO. Забезпечує надійне розміщення, вентиляцію та зручне обслуговування системи.\n\n## Основні переваги\n\n- До 12 акумуляторів\n- Міцна конструкція\n- Простий монтаж\n- Зручне обслуговування\n- Ефективне охолодження\n- Компактне розміщення\n- Для систем BOS-G PRO\n- Професійне виконання'
   }
@@ -161,6 +182,17 @@ class FileStore {
         if('image' in item)delete item.image;
       }
       this.data._migrations.push(EQUIPMENT_IMAGE_NORMALIZATION_ID);
+      changed=true;
+    }
+    if(!this.data._migrations.includes(EQUIPMENT_RETAIL_PRICE_MIGRATION_ID)){
+      const now=new Date().toISOString();
+      for(const item of this.data.equipment){
+        const price=EQUIPMENT_RETAIL_PRICES[String(item.model||'').trim()];
+        if(!price)continue;
+        item.price=price;
+        item.updatedAt=now;
+      }
+      this.data._migrations.push(EQUIPMENT_RETAIL_PRICE_MIGRATION_ID);
       changed=true;
     }
     for(const review of this.data.reviews||[]){ if(review.status==='waiting'){review.status='published';changed=true;} if(review.verified===undefined){ review.verified=false; review.verifiedBy=''; review.verifiedAt=null; review.audit=[]; changed=true; } if(!Array.isArray(review.audit)){ review.audit=[]; changed=true; } }
@@ -222,6 +254,15 @@ class MongoStore {
         await equipment.updateOne({_id:item._id},{$set:{images,updatedAt:now},$unset:{image:''}});
       }
       try{await migrations.updateOne({_id:EQUIPMENT_IMAGE_NORMALIZATION_ID},{$setOnInsert:{completedAt:now}},{upsert:true});}
+      catch(error){if(error?.code!==11000)throw error;}
+    }
+    if(!await migrations.findOne({_id:EQUIPMENT_RETAIL_PRICE_MIGRATION_ID})){
+      const equipment=this.db.collection('equipment');
+      const now=new Date().toISOString();
+      for(const [model,price] of Object.entries(EQUIPMENT_RETAIL_PRICES)){
+        await equipment.updateMany({model},{$set:{price,updatedAt:now}});
+      }
+      try{await migrations.updateOne({_id:EQUIPMENT_RETAIL_PRICE_MIGRATION_ID},{$setOnInsert:{completedAt:now}},{upsert:true});}
       catch(error){if(error?.code!==11000)throw error;}
     }
     await this.db.collection('reviews').updateMany({verified:{$exists:false}},{$set:{verified:false,verifiedBy:'',verifiedAt:null,audit:[]}});
@@ -556,7 +597,7 @@ async function api(req,res,url){
 async function serve(req,res,url){
   if(url.pathname==='/admin.html'&&!currentUser(req)){res.writeHead(302,{Location:'/admin-login.html'});return res.end();}
   if(url.pathname==='/sitemap.xml'){
-    const fixed=['/','/?lang=en','/rishennia/invertor-dlia-domu.html','/rishennia/rezervne-zhyvlennia-dlia-biznesu.html','/rishennia/soniachni-paneli.html','/obladnannia/deye.html','/obladnannia/anenji.html','/obladnannia/easun.html','/obladnannia/lifepo4.html','/articles/5-pryladiv-iaki-zidaiut-avtonomnist.html','/gallery.html','/community.html'];
+    const fixed=['/','/?lang=en','/catalog.html','/catalog.html?lang=en','/rishennia/invertor-dlia-domu.html','/rishennia/rezervne-zhyvlennia-dlia-biznesu.html','/rishennia/soniachni-paneli.html','/obladnannia/deye.html','/obladnannia/anenji.html','/obladnannia/easun.html','/obladnannia/lifepo4.html','/articles/5-pryladiv-iaki-zidaiut-avtonomnist.html','/gallery.html','/community.html'];
     const dynamic=(await store.list('articles')).filter(item=>item.status==='published'&&item.slug).map(item=>({path:`/articles/${encodeURIComponent(item.slug)}.html`,updated:item.updatedAt||item.createdAt}));
     const entries=[...fixed.map(pathname=>({path:pathname,updated:'2026-07-12'})),...dynamic].filter((item,index,array)=>array.findIndex(other=>other.path===item.path)===index);
     const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${entries.map(item=>`\n  <url><loc>https://voltares.pp.ua${htmlEscape(item.path)}</loc><lastmod>${htmlEscape(String(item.updated||'').slice(0,10))}</lastmod></url>`).join('')}\n</urlset>`;
