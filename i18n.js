@@ -1,8 +1,5 @@
 (() => {
-  const LANGUAGES = {
-    uk: { label: 'UA', htmlLang: 'uk' },
-    en: { label: 'EN', htmlLang: 'en' }
-  };
+  const LANGUAGES = { uk: { label: 'UA', htmlLang: 'uk' } };
 
   // Exact UI copy that is shared by static cards, dialog chrome and form options.
   // Keeping it here prevents page sections from carrying their own ad-hoc translations.
@@ -224,8 +221,8 @@
 
   const I18N_MESSAGES = {
     uk: {
-      'meta.title': 'Інвертори та резервне живлення у Львові й Україні | ІНК',
-      'meta.description': 'Інвертори Deye, Anenji, Easun, LiFePO4 батареї та сонячні системи під ключ. Розрахунок, монтаж і сервіс резервного живлення у Львові та по Україні.',
+      'meta.title': 'Інвертори Deye в Україні та резервне живлення | Voltares',
+      'meta.description': 'Інвертори Deye, Anenji й Easun, LiFePO4 батареї та сонячні системи під ключ в Україні. Підбір, монтаж, ціни й сервіс Voltares / ІНК.',
       'skip.main': 'До основного вмісту',
       'nav.inverters': 'Інвертори',
       'nav.projects': "Об'єкти",
@@ -741,9 +738,8 @@
     ['floating.consult', '.floating-consult span', 'html']
   ];
 
-  const getLangFromUrl = () => new URLSearchParams(location.search).get('lang');
-  const normalizeLang = lang => Object.hasOwn(LANGUAGES, lang || '') ? lang : 'uk';
-  const getCurrentLang = () => normalizeLang(getLangFromUrl() || localStorage.getItem('ink-lang') || 'uk');
+  const normalizeLang = () => 'uk';
+  const getCurrentLang = () => 'uk';
 
   function setLabelText(element, value) {
     const control = element.querySelector('input,select,textarea');
@@ -815,7 +811,7 @@
     document.title = messages['meta.title'];
     const description = document.querySelector('meta[name="description"]');
     if (description) description.content = messages['meta.description'];
-    const publicUrl = lang === 'en' ? 'https://voltares.pp.ua/?lang=en' : 'https://voltares.pp.ua/';
+    const publicUrl = 'https://voltares.pp.ua/';
     const canonical = document.querySelector('link[rel="canonical"]');
     if (canonical) canonical.href = publicUrl;
     const openGraphUrl = document.querySelector('meta[property="og:url"]');
@@ -841,11 +837,10 @@
 
   function setLanguage(lang, updateUrl = true) {
     lang = normalizeLang(lang);
-    localStorage.setItem('ink-lang', lang);
+    localStorage.removeItem('ink-lang');
     if (updateUrl) {
       const url = new URL(location.href);
-      if (lang === 'uk') url.searchParams.delete('lang');
-      else url.searchParams.set('lang', lang);
+      url.searchParams.delete('lang');
       const nextPath = `${url.pathname}${url.search}${url.hash}`;
       history.replaceState(null, '', nextPath);
     }

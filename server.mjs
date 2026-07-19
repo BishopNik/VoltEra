@@ -642,14 +642,13 @@ async function api(req,res,url){
 async function serve(req,res,url){
   if(url.pathname==='/admin.html'&&!currentUser(req)){res.writeHead(302,{Location:'/admin-login.html'});return res.end();}
   if(url.pathname==='/'&&url.searchParams.get('catalog')==='all'){
-    const suffix=url.searchParams.get('lang')==='en'?'?lang=en':'';
-    res.writeHead(302,{Location:`/catalog.html${suffix}`});
+    res.writeHead(302,{Location:'/catalog.html'});
     return res.end();
   }
   if(url.pathname==='/sitemap.xml'){
-    const fixed=['/','/?lang=en','/catalog.html','/catalog.html?lang=en','/rishennia/invertor-dlia-domu.html','/rishennia/rezervne-zhyvlennia-dlia-biznesu.html','/rishennia/soniachni-paneli.html','/obladnannia/deye.html','/obladnannia/anenji.html','/obladnannia/easun.html','/obladnannia/lifepo4.html','/articles/5-pryladiv-iaki-zidaiut-avtonomnist.html','/gallery.html','/community.html'];
+    const fixed=['/','/catalog.html','/rishennia/invertor-dlia-domu.html','/rishennia/rezervne-zhyvlennia-dlia-biznesu.html','/rishennia/soniachni-paneli.html','/obladnannia/deye.html','/obladnannia/anenji.html','/obladnannia/easun.html','/obladnannia/lifepo4.html','/articles/5-pryladiv-iaki-zidaiut-avtonomnist.html','/gallery.html','/community.html'];
     const dynamic=(await store.list('articles')).filter(item=>item.status==='published'&&item.slug).map(item=>({path:`/articles/${encodeURIComponent(item.slug)}.html`,updated:item.updatedAt||item.createdAt}));
-    const entries=[...fixed.map(pathname=>({path:pathname,updated:'2026-07-12'})),...dynamic].filter((item,index,array)=>array.findIndex(other=>other.path===item.path)===index);
+    const entries=[...fixed.map(pathname=>({path:pathname,updated:'2026-07-19'})),...dynamic].filter((item,index,array)=>array.findIndex(other=>other.path===item.path)===index);
     const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${entries.map(item=>`\n  <url><loc>https://voltares.pp.ua${htmlEscape(item.path)}</loc><lastmod>${htmlEscape(String(item.updated||'').slice(0,10))}</lastmod></url>`).join('')}\n</urlset>`;
     res.writeHead(200,{'Content-Type':'application/xml; charset=utf-8','Cache-Control':'public, max-age=300'});return res.end(xml);
   }

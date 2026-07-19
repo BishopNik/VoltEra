@@ -63,6 +63,23 @@ body.site-loading:before{content:"";position:fixed;z-index:999;left:0;right:0;to
 .equipment-image-lightbox-close{position:absolute;z-index:2;top:30px;right:30px;display:grid;place-items:center;width:52px;height:52px;padding:0;border:0;border-radius:50%;background:var(--acid);color:#07110f;font-size:28px;font-weight:950;cursor:pointer;box-shadow:0 12px 30px rgba(0,0,0,.3)}
 .equipment-image-lightbox-close:hover{transform:scale(1.06)}
 @media(max-width:700px){.equipment-image-lightbox{width:calc(100vw - 20px);height:calc(100dvh - 20px);padding:10px;border-radius:18px}.equipment-image-lightbox-close{top:18px;right:18px}}
-/* Wide desktop density, while laptop and mobile sizes stay untouched. */
-@media(min-width:2200px) and (min-height:900px){body{zoom:.78}}
-@media(min-width:3200px) and (min-height:1200px){body{zoom:.7}}
+/* Wide desktop layout. Use the available canvas without browser-style zoom. */
+@media(min-width:1800px){.hero h1{font-size:clamp(68px,4.2vw,86px)}}
+@media(min-width:2200px){
+  :root{--container:1740px}
+  .container{width:min(calc(100% - 96px),var(--container))}
+  .site-header .nav-wrap{width:min(calc(100% - 80px),1840px)}
+  .hero-grid{grid-template-columns:minmax(520px,.82fr) minmax(720px,1.18fr);gap:82px}
+  .energy-stage{min-height:650px}
+  .equipment-public-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .article-grid{grid-auto-columns:minmax(360px,31.5%)}
+  .section{padding-top:94px;padding-bottom:94px}
+}
+@media(min-width:3200px){
+  :root{--container:2180px}
+  .container{width:min(calc(100% - 160px),var(--container))}
+  .site-header .nav-wrap{width:min(calc(100% - 130px),2300px)}
+  .hero-grid{grid-template-columns:minmax(620px,.78fr) minmax(920px,1.22fr);gap:110px}
+  .equipment-public-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .section{padding-top:104px;padding-bottom:104px}
+}

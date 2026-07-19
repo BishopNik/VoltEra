@@ -2,6 +2,12 @@ User-agent: *
 Allow: /
 Disallow: /admin.html
 Disallow: /admin-login.html
+Allow: /api/equipment
+Allow: /api/articles
+Allow: /api/faqs
+Allow: /api/projects
+Allow: /api/reviews
+Allow: /api/questions
 Disallow: /api/
 
 Sitemap: https://voltares.pp.ua/sitemap.xml

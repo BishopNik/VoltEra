@@ -1,8 +1,7 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 if (new URLSearchParams(location.search).get('catalog') === 'all') {
-  const suffix = new URLSearchParams(location.search).get('lang') === 'en' ? '?lang=en' : '';
-  location.replace(`/catalog.html${suffix}`);
+  location.replace('/catalog.html');
 }
 const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[char]));
 function renderSimpleMarkdown(value = '') {
@@ -50,7 +49,7 @@ function renderSimpleMarkdown(value = '') {
   flushList();
   return output.join('');
 }
-const pageLang = () => new URLSearchParams(location.search).get('lang') || localStorage.getItem('ink-lang') || 'uk';
+const pageLang = () => 'uk';
 const uiText = (uk, en) => pageLang() === 'en' ? en : uk;
 let activeRuntimeLanguage = pageLang();
 const localizedContent = (item, key, fallback = '') => {
@@ -58,7 +57,7 @@ const localizedContent = (item, key, fallback = '') => {
   if (pageLang() === 'en') return item[`${key}En`] || item.translations?.en?.[key] || item[key] || fallback;
   return item[key] || fallback;
 };
-const communityHref = () => pageLang() === 'en' ? '/community.html?lang=en' : '/community.html';
+const communityHref = () => '/community.html';
 let pendingSiteRequests = 0;
 let initialHashAligned = false;
 function alignLocationHash() {
@@ -578,7 +577,7 @@ function applyEquipmentFilters() {
     equipmentNext.disabled = equipmentPage >= pageCount - 1;
   }
   if (equipmentAllLink) {
-    equipmentAllLink.href = pageLang() === 'en' ? '/catalog.html?lang=en' : '/catalog.html';
+    equipmentAllLink.href = '/catalog.html';
     equipmentAllLink.textContent = uiText('Увесь каталог ↗', 'Full catalogue ↗');
   }
   scheduleEquipmentTitleFit();

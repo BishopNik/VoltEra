@@ -20,6 +20,17 @@
 @media(max-width:680px){.catalog-shell{width:min(100% - 24px,var(--catalog-max))}.catalog-header-inner{grid-template-columns:auto 1fr;min-height:70px}.catalog-header nav{display:none}.catalog-actions{justify-self:end}.catalog-hero{padding:65px 0 40px}.catalog-hero h1{font-size:clamp(48px,16vw,72px)}.catalog-hero-grid{gap:24px}.catalog-grid{grid-template-columns:1fr}.catalog-card{grid-template-rows:190px auto}.catalog-toolbar{padding:14px}.catalog-product-dialog{width:calc(100vw - 18px);max-height:calc(100dvh - 18px);padding:9px;border-radius:20px}.catalog-product-media{min-height:300px}.catalog-product-copy{padding:25px 18px}.catalog-product-copy dl,.catalog-form-row{grid-template-columns:1fr}.catalog-dialog-close{top:18px;right:18px}.catalog-product-copy h2{margin-right:55px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;transition-duration:.001ms!important}}
 .catalog-card-price{font-size:18px;line-height:1.15}
-/* Wide desktop density, while laptop and mobile sizes stay untouched. */
-@media(min-width:2200px) and (min-height:900px){body{zoom:.78}}
-@media(min-width:3200px) and (min-height:1200px){body{zoom:.7}}
+/* Wide monitors get more columns and breathing room, without scaling the page. */
+@media(min-width:2200px){
+  :root{--catalog-max:1760px}
+  .catalog-shell{width:min(var(--catalog-max),calc(100% - 96px))}
+  .catalog-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .catalog-card h3{font-size:clamp(24px,1.55vw,34px)}
+  .catalog-hero h1{font-size:96px}
+}
+@media(min-width:3200px){
+  :root{--catalog-max:2200px}
+  .catalog-shell{width:min(var(--catalog-max),calc(100% - 160px))}
+  .catalog-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .catalog-hero h1{font-size:104px}
+}
