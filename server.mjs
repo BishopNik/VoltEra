@@ -48,6 +48,7 @@ const EQUIPMENT_RETAIL_PRICE_MIGRATION_ID = 'set-equipment-retail-prices-2026-07
 const EQUIPMENT_COMMERCE_MIGRATION_ID = 'set-equipment-commerce-fields-2026-07-19-v1';
 const PV_CATALOG_MIGRATION_ID = 'add-pv-panels-and-green-protect-2026-07-20-v1';
 const PV_CATALOG_CLEANUP_ID = 'clean-pv-catalog-2026-07-20-v1';
+const GREEN_PROTECT_PURCHASE_MIGRATION_ID = 'set-green-protect-purchase-prices-2026-07-20-v1';
 const EQUIPMENT_RETAIL_PRICES = Object.freeze({
   'SE-G5.1 Pro-B':'38 900 грн',
   'SE-F5 Pro-C':'38 500 грн',
@@ -185,6 +186,7 @@ const REQUESTED_SOLAR_PANELS = [
 
 const etiProduct=(code,name,category,listPrice,spec='')=>({
   _id:`eti-${code}`,code,brand:'ETI',model:name,name,category,listPrice,
+  purchasePrice:Math.round(listPrice*0.65),purchaseCurrency:'UAH',
   price:`${Math.round(listPrice*0.85).toLocaleString('uk-UA')} грн`,priceUsd:0,
   power:spec,phase:category,voltage:'DC',spec,sourceUrl:'https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect',
   images:['/assets/catalog/green-protect.svg'],status:'active'
@@ -295,6 +297,13 @@ class FileStore {
       for(const item of this.data.solarPanels)if(item.code==null)delete item.code;
       this.data._migrations.push(PV_CATALOG_CLEANUP_ID); changed=true;
     }
+    if(!this.data._migrations.includes(GREEN_PROTECT_PURCHASE_MIGRATION_ID)){
+      const now=new Date().toISOString();
+      for(const item of this.data.greenProtect){
+        if(Number(item.listPrice)>0)Object.assign(item,{purchasePrice:Math.round(Number(item.listPrice)*0.65),purchaseCurrency:'UAH',updatedAt:now});
+      }
+      this.data._migrations.push(GREEN_PROTECT_PURCHASE_MIGRATION_ID); changed=true;
+    }
     for(const review of this.data.reviews||[]){ if(review.status==='waiting'){review.status='published';changed=true;} if(review.verified===undefined){ review.verified=false; review.verifiedBy=''; review.verifiedAt=null; review.audit=[]; changed=true; } if(!Array.isArray(review.audit)){ review.audit=[]; changed=true; } }
     if(changed)await this.persist();
   }
@@ -391,6 +400,14 @@ class MongoStore {
       const now=new Date().toISOString();
       await this.db.collection('solarPanels').updateMany({code:null},{$unset:{code:''}});
       try{await migrations.updateOne({_id:PV_CATALOG_CLEANUP_ID},{$setOnInsert:{completedAt:now}},{upsert:true});}
+      catch(error){if(error?.code!==11000)throw error;}
+    }
+    if(!await migrations.findOne({_id:GREEN_PROTECT_PURCHASE_MIGRATION_ID})){
+      const now=new Date().toISOString();
+      for(const source of REQUESTED_GREEN_PROTECT){
+        await this.db.collection('greenProtect').updateMany({code:source.code},{$set:{purchasePrice:source.purchasePrice,purchaseCurrency:'UAH',updatedAt:now}});
+      }
+      try{await migrations.updateOne({_id:GREEN_PROTECT_PURCHASE_MIGRATION_ID},{$setOnInsert:{completedAt:now}},{upsert:true});}
       catch(error){if(error?.code!==11000)throw error;}
     }
     await this.db.collection('reviews').updateMany({verified:{$exists:false}},{$set:{verified:false,verifiedBy:'',verifiedAt:null,audit:[]}});
@@ -524,7 +541,7 @@ async function body(req,limit=2_500_000){
   throw new Error('UNSUPPORTED_CONTENT_TYPE');
 }
 function compareSafe(a='',b=''){ const left=Buffer.from(String(a)); const right=Buffer.from(String(b)); if(left.length!==right.length)return false; return crypto.timingSafeEqual(left,right); }
-function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','status','manager','checkedBy','viewedAt','attribution'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','status','images','homeMode','homeOrder'],solarPanels:['brand','model','power','technology','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','status','images','homeOrder'],greenProtect:['code','brand','model','name','category','spec','power','phase','voltage','listPrice','price','priceUsd','description','sourceUrl','status','images']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
+function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','status','manager','checkedBy','viewedAt','attribution'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','status','images','homeMode','homeOrder'],solarPanels:['brand','model','power','technology','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','status','images','homeOrder'],greenProtect:['code','brand','model','name','category','spec','power','phase','voltage','listPrice','purchasePrice','purchaseCurrency','price','priceUsd','description','sourceUrl','status','images']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
 function sanitizeAttribution(value={}){
   if(!value||typeof value!=='object'||Array.isArray(value))return undefined;
   const allowed=['utm_source','utm_medium','utm_campaign','utm_content','utm_term','gclid','landing_page','referrer'];

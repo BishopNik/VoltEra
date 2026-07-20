@@ -690,7 +690,7 @@ const configs = {
   articles: { title: 'статтю', fields: [['title', 'Назва', 'text', true], ['slug', 'Адреса сторінки (латиницею, без пробілів)', 'text'], ['category', 'Категорія', 'text'], ['excerpt', 'Короткий SEO-опис', 'textarea'], ['body', 'Повний текст статті', 'textarea'], ['imageFiles', 'Фото статті (можна кілька)', 'files'], ['status', 'Статус', 'select', false, ['published', 'draft']]] },
   equipment: { title: 'модель обладнання', fields: [['brand', 'Бренд', 'text', true], ['model', 'Модель', 'text', true], ['power', 'Потужність', 'text'], ['phase', 'Фази / Тип', 'choice', false, ['1 фаза', '3 фази', 'LiFePO₄', 'HV']], ['voltage', 'Напруга', 'text'], ['price', 'Роздрібна ціна, грн', 'text'], ['priceUsd', 'Роздрібна ціна, USD', 'number'], ['purchasePrice', 'Закупівельна ціна (лише CRM)', 'number'], ['purchaseCurrency', 'Валюта закупівлі', 'select', false, ['USD', 'EUR', 'UAH']], ['homeMode', 'Показ на головній', 'select', false, ['auto', 'featured', 'hidden']], ['description', 'Опис для сайту', 'textarea'], ['imageFiles', 'Фото моделі (можна кілька)', 'files'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] },
   solarPanels: { title: 'сонячну панель', fields: [['brand', 'Бренд', 'text', true], ['model', 'Модель', 'text', true], ['power', 'Потужність', 'text', true], ['technology', 'Технологія / тип', 'text'], ['price', 'Роздрібна ціна, грн', 'text'], ['priceUsd', 'Роздрібна ціна, USD', 'number'], ['purchasePrice', 'Закупівельна ціна (лише CRM)', 'number'], ['purchaseCurrency', 'Валюта закупівлі', 'select', false, ['USD', 'EUR', 'UAH']], ['description', 'Короткий опис', 'textarea'], ['imageFiles', 'Фото панелі', 'files'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] },
-  greenProtect: { title: 'компонент Green Protect', fields: [['code', 'Код ETI', 'text', true], ['model', 'Назва', 'text', true], ['category', 'Категорія', 'select', false, ['Автоматичні вимикачі', 'Запобіжники gPV', 'Тримачі запобіжників', 'Захист від перенапруги', 'DC роз’єднувачі', 'Рубильники навантаження']], ['spec', 'Короткі характеристики', 'text'], ['listPrice', 'Ціна прайса ETI, грн', 'number'], ['price', 'Ціна сайту, грн', 'text'], ['sourceUrl', 'Офіційне джерело', 'url'], ['imageFiles', 'Фото (необов’язково)', 'files'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] },
+  greenProtect: { title: 'компонент Green Protect', fields: [['code', 'Код ETI', 'text', true], ['model', 'Назва', 'text', true], ['category', 'Категорія', 'select', false, ['Автоматичні вимикачі', 'Запобіжники gPV', 'Тримачі запобіжників', 'Захист від перенапруги', 'DC роз’єднувачі', 'Рубильники навантаження']], ['spec', 'Короткі характеристики', 'text'], ['listPrice', 'Ціна прайса ETI, грн', 'number'], ['purchasePrice', 'Закупівельна ціна, грн (−35%, лише CRM)', 'number'], ['price', 'Ціна сайту, грн (−15%)', 'text'], ['sourceUrl', 'Офіційне джерело', 'url'], ['imageFiles', 'Фото (необов’язково)', 'files'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] },
   users: { title: 'користувача CRM', fields: [['username', "Ім'я користувача", 'text', true], ['password', 'Новий пароль (мінімум 8 символів)', 'password'], ['status', 'Доступ', 'select', false, ['active', 'disabled']]] }
 };
 
@@ -807,7 +807,11 @@ form.addEventListener('submit', async event => {
     if (activeType === 'solarPanels') data.phase = data.technology || '';
     if (activeType === 'greenProtect') {
       data.brand = 'ETI'; data.name = data.model; data.phase = data.category; data.power = data.spec;
-      if (!String(data.price || '').trim() && Number(data.listPrice) > 0) data.price = `${Math.round(Number(data.listPrice) * 0.85).toLocaleString('uk-UA')} грн`;
+      if (Number(data.listPrice) > 0) {
+        data.purchasePrice = Math.round(Number(data.listPrice) * 0.65);
+        data.purchaseCurrency = 'UAH';
+        if (!String(data.price || '').trim()) data.price = `${Math.round(Number(data.listPrice) * 0.85).toLocaleString('uk-UA')} грн`;
+      }
     }
     const fileInput = form.querySelector('input[type="file"]');
     const files = [...(fileInput?.files || [])];
