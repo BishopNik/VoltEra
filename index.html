@@ -14,7 +14,7 @@
   <link rel="alternate" hreflang="x-default" href="https://voltares.pp.ua/">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="/site.webmanifest">
-  <link rel="stylesheet" href="/styles.css?v=20260713-2"><link rel="stylesheet" href="/ui-overrides.css?v=20260719-3">
+  <link rel="stylesheet" href="/styles.css?v=20260720-1"><link rel="stylesheet" href="/ui-overrides.css?v=20260719-3">
   <script>const q=new URLSearchParams(location.search);if(q.get('catalog')==='all')location.replace('/catalog.html');if(q.has('lang')){q.delete('lang');history.replaceState(null,'',location.pathname+(q.size?`?${q}`:'')+location.hash)}</script>
   <meta property="og:type" content="website">
   <meta property="og:locale" content="uk_UA">
@@ -163,6 +163,14 @@
       </div>
     </section>
 
+    <section class="section catalog-extension" id="solar-panels">
+      <div class="container"><div class="section-heading"><div><span>/ 03.1 — СОНЯЧНІ ПАНЕЛІ</span><h2>Панелі для станції.<br><em>Без випадкового вибору.</em></h2></div><p>Перевірені модулі з актуальною потужністю, технологією та ціною.</p></div><div class="catalog-extension-grid" id="public-solar-panels" aria-live="polite"></div><div class="catalog-extension-actions"><a href="/catalog.html?type=solarPanels">Усі сонячні панелі ↗</a></div></div>
+    </section>
+
+    <section class="section catalog-extension catalog-extension-green" id="green-protect">
+      <div class="container"><div class="section-heading"><div><span>/ 03.2 — GREEN PROTECT</span><h2>Захист для СЕС.<br><em>Компоненти ETI.</em></h2></div><p>Автомати, gPV-запобіжники, роз’єднувачі, рубильники та захист від перенапруги.</p></div><div class="catalog-extension-grid catalog-extension-compact" id="public-green-protect" aria-live="polite"></div><div class="catalog-extension-actions"><a href="/catalog.html?type=greenProtect">Усі комплектуючі ↗</a><a href="https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect" target="_blank" rel="noopener">Офіційний Green Protect ↗</a></div></div>
+    </section>
+
     <section class="section calculator" id="calculator" aria-labelledby="calc-title">
       <div class="container calc-shell reveal">
         <div class="calc-copy"><p class="eyebrow">/ 02 — Energy lab</p><h2 id="calc-title">Скільки свободи<br>вам потрібно?</h2><p>Оберіть, що має працювати під час відключення. Ми порахуємо навантаження, ємність і орієнтовну автономність.</p><div class="calc-note"><span>i</span> Розрахунок попередній. Пускові струми й реальні режими перевірить інженер.</div></div>
@@ -283,7 +291,7 @@
 
   <dialog class="selector-dialog" id="selector-dialog" aria-label="Швидкий підбір енергосистеми"><button class="dialog-close" type="button" aria-label="Закрити">×</button><div class="selector-progress"><i></i></div><div class="selector-content"><p class="eyebrow">AI-підбір / 01</p><h2>Де потрібна енергія?</h2><div class="selector-options"><button type="button" data-answer="Квартира">Квартира <span>→</span></button><button type="button" data-answer="Будинок">Приватний будинок <span>→</span></button><button type="button" data-answer="Бізнес">Бізнес <span>→</span></button></div><p class="selector-hint">3 питання · близько 90 секунд</p></div></dialog>
 
-<script src="/app.js?v=20260719-3" defer></script>
+<script src="/app.js?v=20260720-1" defer></script>
   <script>
     if (!['localhost', '127.0.0.1'].includes(location.hostname)) {
       const analytics = document.createElement('script');

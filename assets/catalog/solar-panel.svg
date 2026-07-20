@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" role="img" aria-labelledby="t d">
+  <title id="t">Сонячна панель</title><desc id="d">Темна двостороння сонячна панель на білому фоні</desc>
+  <rect width="900" height="620" fill="#f8faf8"/>
+  <g transform="translate(135 72) skewY(-4)">
+    <rect width="630" height="450" rx="14" fill="#d8ff52"/>
+    <rect x="9" y="9" width="612" height="432" rx="8" fill="#102a2d"/>
+    <g stroke="#6f9aa0" stroke-width="3" opacity=".82">
+      <path d="M111 9v432M213 9v432M315 9v432M417 9v432M519 9v432"/>
+      <path d="M9 81h612M9 153h612M9 225h612M9 297h612M9 369h612"/>
+    </g>
+    <g fill="#244b50" opacity=".9">
+      <rect x="22" y="22" width="76" height="46" rx="3"/><rect x="124" y="22" width="76" height="46" rx="3"/><rect x="226" y="22" width="76" height="46" rx="3"/><rect x="328" y="22" width="76" height="46" rx="3"/><rect x="430" y="22" width="76" height="46" rx="3"/><rect x="532" y="22" width="76" height="46" rx="3"/>
+    </g>
+  </g>
+  <path d="M690 535h90" stroke="#102a2d" stroke-width="12" stroke-linecap="round"/><path d="M735 522v46" stroke="#102a2d" stroke-width="12" stroke-linecap="round"/>
+</svg>

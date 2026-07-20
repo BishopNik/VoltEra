@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" role="img" aria-labelledby="t d">
+  <title id="t">ETI Green Protect</title><desc id="d">Компонент захисту фотоелектричної станції</desc>
+  <rect width="900" height="620" fill="#f8faf8"/>
+  <g transform="translate(285 75)">
+    <rect x="0" y="0" width="330" height="470" rx="34" fill="#fff" stroke="#d7dfda" stroke-width="8"/>
+    <rect x="0" y="0" width="330" height="92" rx="30" fill="#d8ff52"/>
+    <rect x="0" y="61" width="330" height="31" fill="#d8ff52"/>
+    <text x="34" y="60" font-family="Arial,sans-serif" font-size="42" font-weight="800" fill="#0b251d">ETI</text>
+    <rect x="52" y="142" width="226" height="118" rx="18" fill="#eef2ef" stroke="#cbd5cf" stroke-width="5"/>
+    <circle cx="165" cy="201" r="42" fill="#173f34"/><path d="m148 202 14 14 26-32" fill="none" stroke="#d8ff52" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="56" y="310" width="218" height="19" rx="9" fill="#bcc9c1"/><rect x="56" y="352" width="166" height="19" rx="9" fill="#d5ddd8"/>
+    <path d="M78 470v38M252 470v38" stroke="#24372f" stroke-width="15"/>
+  </g>
+</svg>

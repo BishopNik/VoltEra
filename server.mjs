@@ -33,7 +33,7 @@ const GA4_MEASUREMENT_ID = /^G-[A-Z0-9]+$/i.test(String(process.env.GA4_MEASUREM
 const CLARITY_PROJECT_ID = /^[a-z0-9]+$/i.test(String(process.env.CLARITY_PROJECT_ID||''))?String(process.env.CLARITY_PROJECT_ID):'';
 const GOOGLE_SITE_VERIFICATION = String(process.env.GOOGLE_SITE_VERIFICATION||'').trim().slice(0,200).replace(/[^a-zA-Z0-9_\-.]/g,'');
 const ANALYTICS_DEBUG = /^(1|true|yes)$/i.test(String(process.env.ANALYTICS_DEBUG||''));
-const COLLECTIONS = new Set(['leads','reviews','questions','faqs','projects','articles','equipment','users']);
+const COLLECTIONS = new Set(['leads','reviews','questions','faqs','projects','articles','equipment','solarPanels','greenProtect','users']);
 const LEGACY_SAMPLE_IDS = {
   leads: ['1082', '1081'],
   reviews: ['r1', 'r2', 'r3', 'r4'],
@@ -46,6 +46,8 @@ const EQUIPMENT_CATALOG_MIGRATION_ID = 'add-deye-catalog-2026-07-18-v1';
 const EQUIPMENT_IMAGE_NORMALIZATION_ID = 'normalize-equipment-images-2026-07-18-v1';
 const EQUIPMENT_RETAIL_PRICE_MIGRATION_ID = 'set-equipment-retail-prices-2026-07-19-v2';
 const EQUIPMENT_COMMERCE_MIGRATION_ID = 'set-equipment-commerce-fields-2026-07-19-v1';
+const PV_CATALOG_MIGRATION_ID = 'add-pv-panels-and-green-protect-2026-07-20-v1';
+const PV_CATALOG_CLEANUP_ID = 'clean-pv-catalog-2026-07-20-v1';
 const EQUIPMENT_RETAIL_PRICES = Object.freeze({
   'SE-G5.1 Pro-B':'38 900 грн',
   'SE-F5 Pro-C':'38 500 грн',
@@ -170,6 +172,54 @@ const REQUESTED_EQUIPMENT = [
   }
 ];
 
+const REQUESTED_SOLAR_PANELS = [
+  ['tw-solar-440-bf','TW Solar','TWMND-54HB440W BF','440 W','N-type · двостороння',75.4,3990,90],
+  ['suntech-440-bf','Suntech','STP440S-C54/Nshb BF','440 W','N-type · двостороння',75.4,3990,90],
+  ['sunova-610','Sunova','SS-BG610-66MDH','610 W','Mono · двостороння',99.55,4990,113],
+  ['aiko-610','AIKO','A610-MAH72Mw','610 W','ABC N-type',108.7,5290,120],
+  ['longi-615-bf','LONGi','Hi-MO X10 615W BF','615 W','N-type · двостороння',106.5,5290,120],
+  ['longi-630','LONGi','Hi-MO 7 630W','630 W','N-type',105.8,5290,120],
+  ['tw-solar-640-bf','TW Solar','TWMNH-66HD640W BF','640 W','N-type · двостороння',107.4,5390,122],
+  ['aiko-645-bf','AIKO','A645-MAH78Db BF','645 W','ABC N-type · двостороння',114.65,6290,142]
+].map(([_id,brand,model,power,technology,purchasePrice,price,priceUsd],homeOrder)=>({_id,brand,model,power,technology,phase:technology,voltage:'',purchasePrice,purchaseCurrency:'USD',price:`${price.toLocaleString('uk-UA')} грн`,priceUsd,description:`${brand} ${model} — сонячна панель ${power}. Актуальну наявність, логістику та сумісність зі схемою станції підтвердить інженер.`,images:['/assets/catalog/solar-panel.svg'],status:'active',homeOrder:homeOrder+1}));
+
+const etiProduct=(code,name,category,listPrice,spec='')=>({
+  _id:`eti-${code}`,code,brand:'ETI',model:name,name,category,listPrice,
+  price:`${Math.round(listPrice*0.85).toLocaleString('uk-UA')} грн`,priceUsd:0,
+  power:spec,phase:category,voltage:'DC',spec,sourceUrl:'https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect',
+  images:['/assets/catalog/green-protect.svg'],status:'active'
+});
+const REQUESTED_GREEN_PROTECT = [
+  etiProduct('1903230','ETIMAT P10 DC 2p C 16A','Автоматичні вимикачі',676,'2P · C16 · DC'),
+  etiProduct('1903231','ETIMAT P10 DC 2p C 20A','Автоматичні вимикачі',691.6,'2P · C20 · DC'),
+  etiProduct('1903232','ETIMAT P10 DC 2p C 25A','Автоматичні вимикачі',696.8,'2P · C25 · DC'),
+  etiProduct('1903233','ETIMAT P10 DC 2p C 32A','Автоматичні вимикачі',800.8,'2P · C32 · DC'),
+  etiProduct('1903234','ETIMAT P10 DC 2p C 40A','Автоматичні вимикачі',889.2,'2P · C40 · DC'),
+  etiProduct('1903235','ETIMAT P10 DC 2p C 50A','Автоматичні вимикачі',1097.2,'2P · C50 · DC'),
+  etiProduct('1903236','ETIMAT P10 DC 2p C 63A','Автоматичні вимикачі',1138.8,'2P · C63 · DC'),
+  etiProduct('2625075','CH 10×38 gPV 10A 1000V','Запобіжники gPV',161.2,'10A · 1000V DC'),
+  etiProduct('2625080','CH 10×38 gPV 15A 1000V','Запобіжники gPV',161.2,'15A · 1000V DC'),
+  etiProduct('2625081','CH 10×38 gPV 16A 1000V','Запобіжники gPV',161.2,'16A · 1000V DC'),
+  etiProduct('2625085','CH 10×38 gPV 20A 1000V','Запобіжники gPV',161.2,'20A · 1000V DC'),
+  etiProduct('2625139','CH 10×38 gPV 25A 1000V','Запобіжники gPV',200.2,'25A · 1000V DC'),
+  etiProduct('2540201','EFH 10 1P 25A 1000V DC','Тримачі запобіжників',171.6,'1P · 25A · 1000V'),
+  etiProduct('2540211','EFH 10 1P LED 25A 1000V DC','Тримачі запобіжників',332.8,'1P LED · 25A · 1000V'),
+  etiProduct('2540203','EFH 10 2P 25A 1000V DC','Тримачі запобіжників',343.2,'2P · 25A · 1000V'),
+  etiProduct('2540213','EFH 10 2P LED 25A 1000V DC','Тримачі запобіжників',748.8,'2P LED · 25A · 1000V'),
+  etiProduct('2440735','ETITEC M T2 PV 600/20 Y','Захист від перенапруги',3796,'T2 · 600V DC · 20kA'),
+  etiProduct('2440515','ETITEC M T2 PV 1100/20 Y','Захист від перенапруги',3744,'T2 · 1100V DC · 20kA'),
+  etiProduct('2440580','ETITEC EM T12 PV 1100/6.25 Y','Захист від перенапруги',4888,'T1+T2 · 1100V DC'),
+  etiProduct('2440517','ETITEC M T2 PV 1500/20 Y','Захист від перенапруги',4784,'T2 · 1500V DC · 20kA'),
+  etiProduct('4660060','LS 16 SMA A2 2P 16A DC','DC роз’єднувачі',2028,'2P · 16A DC'),
+  etiProduct('4660063','LS 16 SMA A4 4P 16A DC','DC роз’єднувачі',2288,'4P · 16A DC'),
+  etiProduct('4660061','LS 25 SMA A2 2P 25A DC','DC роз’єднувачі',2340,'2P · 25A DC'),
+  etiProduct('4660064','LS 25 SMA A4 4P 25A DC','DC роз’єднувачі',2964,'4P · 25A DC'),
+  etiProduct('4660062','LS 32 SMA A2 2P 32A DC','DC роз’єднувачі',2782,'2P · 32A DC'),
+  etiProduct('4660065','LS 32 SMA A4 4P 32A DC','DC роз’єднувачі',3276,'4P · 32A DC'),
+  etiProduct('4661854','LBS 160 2P DC1000','Рубильники навантаження',6760,'2P · 160A · 1000V DC'),
+  etiProduct('4661855','LBS 250 2P DC1000','Рубильники навантаження',8216,'2P · 250A · 1000V DC')
+];
+
 const mime = { '.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.svg':'image/svg+xml','.xml':'application/xml; charset=utf-8','.txt':'text/plain; charset=utf-8','.webmanifest':'application/manifest+json' };
 const requestBuckets = new Map();
 
@@ -231,6 +281,19 @@ class FileStore {
       }
       this.data._migrations.push(EQUIPMENT_COMMERCE_MIGRATION_ID);
       changed=true;
+    }
+    if(!this.data._migrations.includes(PV_CATALOG_MIGRATION_ID)){
+      const now=new Date().toISOString();
+      for(const [type,records] of [['solarPanels',REQUESTED_SOLAR_PANELS],['greenProtect',REQUESTED_GREEN_PROTECT]]){
+        const known=new Set(this.data[type].map(item=>String(item._id)));
+        for(const item of records)if(!known.has(String(item._id)))this.data[type].push({...item,createdAt:now,updatedAt:now});
+      }
+      this.data._migrations.push(PV_CATALOG_MIGRATION_ID);
+      changed=true;
+    }
+    if(!this.data._migrations.includes(PV_CATALOG_CLEANUP_ID)){
+      for(const item of this.data.solarPanels)if(item.code==null)delete item.code;
+      this.data._migrations.push(PV_CATALOG_CLEANUP_ID); changed=true;
     }
     for(const review of this.data.reviews||[]){ if(review.status==='waiting'){review.status='published';changed=true;} if(review.verified===undefined){ review.verified=false; review.verifiedBy=''; review.verifiedAt=null; review.audit=[]; changed=true; } if(!Array.isArray(review.audit)){ review.audit=[]; changed=true; } }
     if(changed)await this.persist();
@@ -310,6 +373,24 @@ class MongoStore {
         await equipment.updateMany({model},{$set:{...commerce,updatedAt:now}});
       }
       try{await migrations.updateOne({_id:EQUIPMENT_COMMERCE_MIGRATION_ID},{$setOnInsert:{completedAt:now}},{upsert:true});}
+      catch(error){if(error?.code!==11000)throw error;}
+    }
+    if(!await migrations.findOne({_id:PV_CATALOG_MIGRATION_ID})){
+      const now=new Date().toISOString();
+      for(const [type,records] of [['solarPanels',REQUESTED_SOLAR_PANELS],['greenProtect',REQUESTED_GREEN_PROTECT]]){
+        for(const source of records){
+          const {_id,...item}=source;
+          const identity=item.code?{code:item.code}:{model:item.model};
+          await this.db.collection(type).updateOne(identity,{$setOnInsert:{...item,createdAt:now,updatedAt:now}},{upsert:true});
+        }
+      }
+      try{await migrations.updateOne({_id:PV_CATALOG_MIGRATION_ID},{$setOnInsert:{completedAt:now}},{upsert:true});}
+      catch(error){if(error?.code!==11000)throw error;}
+    }
+    if(!await migrations.findOne({_id:PV_CATALOG_CLEANUP_ID})){
+      const now=new Date().toISOString();
+      await this.db.collection('solarPanels').updateMany({code:null},{$unset:{code:''}});
+      try{await migrations.updateOne({_id:PV_CATALOG_CLEANUP_ID},{$setOnInsert:{completedAt:now}},{upsert:true});}
       catch(error){if(error?.code!==11000)throw error;}
     }
     await this.db.collection('reviews').updateMany({verified:{$exists:false}},{$set:{verified:false,verifiedBy:'',verifiedAt:null,audit:[]}});
@@ -443,7 +524,7 @@ async function body(req,limit=2_500_000){
   throw new Error('UNSUPPORTED_CONTENT_TYPE');
 }
 function compareSafe(a='',b=''){ const left=Buffer.from(String(a)); const right=Buffer.from(String(b)); if(left.length!==right.length)return false; return crypto.timingSafeEqual(left,right); }
-function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','status','manager','checkedBy','viewedAt','attribution'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','status','images','homeMode','homeOrder']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
+function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','status','manager','checkedBy','viewedAt','attribution'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','status','images','homeMode','homeOrder'],solarPanels:['brand','model','power','technology','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','status','images','homeOrder'],greenProtect:['code','brand','model','name','category','spec','power','phase','voltage','listPrice','price','priceUsd','description','sourceUrl','status','images']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
 function sanitizeAttribution(value={}){
   if(!value||typeof value!=='object'||Array.isArray(value))return undefined;
   const allowed=['utm_source','utm_medium','utm_campaign','utm_content','utm_term','gclid','landing_page','referrer'];
@@ -462,6 +543,15 @@ function publicEquipmentSummary(item={}){
 function publicEquipmentDetail(item={}){
   const {image,audit,viewedAt,purchasePrice,purchaseCurrency,...detail}=item;
   return {...detail,images:normalizedEquipmentImages(item)};
+}
+function publicCatalogSummary(item={}){
+  const {image,audit,viewedAt,purchasePrice,purchaseCurrency,listPrice,...summary}=item;
+  const normalized=[...(Array.isArray(item.images)?item.images:[]),image].filter(Boolean);
+  return {...summary,images:normalized,imageCount:normalized.length,thumbnail:normalized[0]||''};
+}
+function publicCatalogDetail(item={}){
+  const {audit,viewedAt,purchasePrice,purchaseCurrency,listPrice,...detail}=item;
+  return detail;
 }
 function clientAddress(req){return String(req.headers['x-forwarded-for']||req.socket?.remoteAddress||'unknown').split(',')[0].trim().slice(0,80)}
 function allowRequest(req,res,scope,limit,windowMs){
@@ -649,7 +739,7 @@ async function api(req,res,url){
     const views=await store.incrementEquipmentViews(equipmentViewMatch[1]);
     return views===null?json(res,404,{error:'NOT_FOUND'}):json(res,200,{views});
   }
-  const match=url.pathname.match(/^\/api\/(leads|reviews|questions|faqs|projects|articles|equipment)(?:\/([^/]+))?$/); if(!match)return false;
+  const match=url.pathname.match(/^\/api\/(leads|reviews|questions|faqs|projects|articles|equipment|solarPanels|greenProtect)(?:\/([^/]+))?$/); if(!match)return false;
   const [,type,id]=match; const adminUser=await activeSessionUser(req); const isAdmin=Boolean(adminUser);
   if(req.method==='GET'){
     if(type==='leads'&&!isAdmin)return json(res,401,{error:'AUTH_REQUIRED'});
@@ -660,6 +750,10 @@ async function api(req,res,url){
       if(type==='equipment'){
         items=items.filter(x=>x.status==='active');
         items=id?items.map(publicEquipmentDetail):items.map(publicEquipmentSummary);
+      }
+      if(['solarPanels','greenProtect'].includes(type)){
+        items=items.filter(x=>x.status==='active');
+        items=id?items.map(publicCatalogDetail):items.map(publicCatalogSummary);
       }
       if(type==='faqs')items=items.filter(x=>x.status==='active').sort((a,b)=>Number(a.order||0)-Number(b.order||0));
     }
@@ -718,7 +812,7 @@ async function serve(req,res,url){
   if(url.pathname==='/sitemap.xml'){
     const fixed=['/','/catalog.html','/faq.html','/calculators.html','/categories/inverters','/categories/batteries','/categories/solar','/rishennia/invertor-dlia-domu.html','/rishennia/rezervne-zhyvlennia-dlia-biznesu.html','/rishennia/soniachni-paneli.html','/obladnannia/deye.html','/obladnannia/anenji.html','/obladnannia/easun.html','/obladnannia/lifepo4.html','/articles/5-pryladiv-iaki-zidaiut-avtonomnist.html','/gallery.html','/community.html'];
     const dynamic=(await store.list('articles')).filter(item=>item.status==='published'&&item.slug).map(item=>({path:`/articles/${encodeURIComponent(item.slug)}.html`,updated:item.updatedAt||item.createdAt}));
-    const products=(await store.list('equipment')).filter(item=>item.status==='active'&&item._id).map(item=>({path:equipmentUrl(item),updated:item.updatedAt||item.createdAt}));
+    const products=(await Promise.all(['equipment','solarPanels','greenProtect'].map(type=>store.list(type)))).flat().filter(item=>item.status==='active'&&item._id).map(item=>({path:equipmentUrl(item),updated:item.updatedAt||item.createdAt}));
     const fixedEntries=await Promise.all(fixed.map(async pathname=>{if(pathname.startsWith('/categories/'))return{path:pathname};const file=path.join(ROOT,pathname==='/'?'index.html':pathname.slice(1));try{return{path:pathname,updated:(await fs.stat(file)).mtime.toISOString()}}catch{return{path:pathname}}}));
     const entries=[...fixedEntries,...dynamic,...products].filter((item,index,array)=>array.findIndex(other=>other.path===item.path)===index);
     const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${entries.map(item=>`\n  <url><loc>${PUBLIC_SITE_URL}${htmlEscape(item.path)}</loc>${item.updated?`<lastmod>${htmlEscape(String(item.updated).slice(0,10))}</lastmod>`:''}</url>`).join('')}\n</urlset>`;
@@ -740,7 +834,7 @@ async function serve(req,res,url){
   const productMatch=url.pathname.match(/^\/products\/([a-zA-Z0-9_-]+)\/?$/);
   if(productMatch){
     if(url.pathname.endsWith('/')){res.writeHead(301,{Location:url.pathname.slice(0,-1)});return res.end()}
-    const equipment=(await store.list('equipment')).filter(product=>product.status==='active');
+    const equipment=(await Promise.all(['equipment','solarPanels','greenProtect'].map(type=>store.list(type)))).flat().filter(product=>product.status==='active');
     const item=equipment.find(product=>String(product._id)===productMatch[1]);
     if(!item)return json(res,404,{error:'NOT_FOUND'});
     const name=`${item.brand||''} ${item.model||''}`.trim();
