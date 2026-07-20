@@ -2,6 +2,9 @@ User-agent: *
 Allow: /
 Disallow: /admin.html
 Disallow: /admin-login.html
+Disallow: /private/
+Disallow: /preview/
+Disallow: /draft/
 Allow: /api/equipment
 Allow: /api/articles
 Allow: /api/faqs

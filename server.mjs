@@ -28,6 +28,11 @@ const ADMIN_USERS = String(process.env.ADMIN_USERS || ADMIN_USER).split(',').map
 const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || '');
 const SECRET_KEY = String(process.env.SECRET_KEY || process.env.SESSION_SECRET || (!IS_PRODUCTION ? crypto.randomBytes(32).toString('hex') : ''));
 const CONTACT_API_URL = String(process.env.CONTACT_API_URL || '').trim();
+const PUBLIC_SITE_URL = /^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(String(process.env.PUBLIC_SITE_URL||''))?String(process.env.PUBLIC_SITE_URL).replace(/\/$/,''):'https://voltares.pp.ua';
+const GA4_MEASUREMENT_ID = /^G-[A-Z0-9]+$/i.test(String(process.env.GA4_MEASUREMENT_ID||''))?String(process.env.GA4_MEASUREMENT_ID).toUpperCase():'';
+const CLARITY_PROJECT_ID = /^[a-z0-9]+$/i.test(String(process.env.CLARITY_PROJECT_ID||''))?String(process.env.CLARITY_PROJECT_ID):'';
+const GOOGLE_SITE_VERIFICATION = String(process.env.GOOGLE_SITE_VERIFICATION||'').trim().slice(0,200).replace(/[^a-zA-Z0-9_\-.]/g,'');
+const ANALYTICS_DEBUG = /^(1|true|yes)$/i.test(String(process.env.ANALYTICS_DEBUG||''));
 const COLLECTIONS = new Set(['leads','reviews','questions','faqs','projects','articles','equipment','users']);
 const LEGACY_SAMPLE_IDS = {
   leads: ['1082', '1081'],
@@ -378,10 +383,43 @@ function securityHeaders(res){
   res.setHeader('X-Frame-Options','DENY');
   if(IS_PRODUCTION)res.setHeader('Strict-Transport-Security','max-age=63072000; includeSubDomains; preload');
   const upgrade=IS_PRODUCTION?'; upgrade-insecure-requests':'';
-  res.setHeader('Content-Security-Policy',`default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: https:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com; connect-src 'self' https://api-contact-tg.a-nikanorov.workers.dev https://vitals.vercel-insights.com; frame-src https://www.google.com https://maps.google.com${upgrade}`);
+  res.setHeader('Content-Security-Policy',`default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: https:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com https://www.googletagmanager.com https://*.clarity.ms; connect-src 'self' https://api-contact-tg.a-nikanorov.workers.dev https://vitals.vercel-insights.com https://www.google-analytics.com https://region1.google-analytics.com https://*.clarity.ms; frame-src https://www.google.com https://maps.google.com${upgrade}`);
 }
 function json(res,status,data,headers={}){ securityHeaders(res); res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',...headers}); res.end(JSON.stringify(data)); }
 function htmlEscape(value=''){return String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));}
+function absoluteUrl(value=''){
+  const source=String(value||'').trim();
+  if(!source)return '';
+  return source.startsWith('http://')||source.startsWith('https://')?source:`https://voltares.pp.ua${source.startsWith('/')?'':'/'}${source}`;
+}
+function priceAmount(value=''){
+  const digits=String(value||'').replace(/[^\d]/g,'');
+  return digits?String(Number(digits)):'';
+}
+function equipmentUrl(item={}){return `/products/${encodeURIComponent(String(item._id||'').trim())}`}
+function jsonLd(value){return JSON.stringify(value).replace(/</g,'\\u003c')}
+const SEO_CATEGORIES=Object.freeze({
+  inverters:{name:'Гібридні інвертори',title:'Гібридні інвертори для дому та бізнесу | Voltares',description:'Однофазні й трифазні гібридні інвертори для резервного живлення та сонячних електростанцій. Порівняння потужності, фаз і напруги АКБ.',intro:'Гібридний інвертор керує мережею, акумулятором і сонячними панелями. Вибір залежить від пікового навантаження, кількості фаз, напруги батареї та майбутнього розширення системи.',match:item=>/фаз/i.test(String(item.phase||''))&&/kw/i.test(String(item.power||''))},
+  batteries:{name:'LiFePO₄ акумулятори',title:'LiFePO4 акумулятори для інвертора | Voltares',description:'LiFePO4 батареї для резервного й автономного живлення: ємність, напруга, BMS, сумісність і модульне розширення системи.',intro:'LiFePO₄ акумулятор обирають за корисною енергією, напругою, струмом BMS і протоколом зв’язку з інвертором. Для точного розрахунку важливий реальний профіль навантаження.',match:item=>/kwh|lifepo|bms|акб/i.test([item.power,item.phase,item.model].join(' '))},
+  solar:{name:'Обладнання для сонячних систем',title:'Обладнання для гібридних сонячних систем | Voltares',description:'Гібридні інвертори та накопичувачі енергії для домашніх і комерційних СЕС. Підбір MPPT, потужності панелей, батареї та резервного контуру.',intro:'Гібридна сонячна система поєднує панелі, інвертор, батарею й захист. До розрахунку входять генерація за орієнтацією даху, MPPT-діапазон, денне споживання та потрібний резерв.',match:item=>/^sun-/i.test(String(item.model||''))}
+});
+function publicHeadMarkup(){return `${GOOGLE_SITE_VERIFICATION?`<meta name="google-site-verification" content="${htmlEscape(GOOGLE_SITE_VERIFICATION)}">`:''}<script defer src="/analytics-config.js"></script><script defer src="/analytics.js?v=20260719-1"></script>`}
+function injectPublicHead(page=''){
+  const source=String(page);
+  if(source.includes('/analytics.js'))return source;
+  return source.replace('</head>',`${publicHeadMarkup()}</head>`);
+}
+function enhanceStaticArticle(page='',pathname=''){
+  const source=String(page);if(!pathname.startsWith('/articles/'))return source;
+  const title=(source.match(/<title>([^<]+)/i)?.[1]||'Стаття Voltares').replace(/\s*\|.*$/,'').trim();
+  const description=source.match(/<meta\s+name="description"\s+content="([^"]+)/i)?.[1]||title;
+  const canonical=source.match(/<link\s+rel="canonical"\s+href="([^"]+)/i)?.[1]||`${PUBLIC_SITE_URL}${pathname}`;
+  const image=`${PUBLIC_SITE_URL}/og-voltera.svg`;
+  const articleSchema={'@context':'https://schema.org','@type':'Article',headline:title,description,url:canonical,inLanguage:'uk-UA',author:{'@id':`${PUBLIC_SITE_URL}/#organization`},publisher:{'@id':`${PUBLIC_SITE_URL}/#organization`}};
+  const breadcrumb={'@context':'https://schema.org','@type':'BreadcrumbList',itemListElement:[{'@type':'ListItem',position:1,name:'Головна',item:`${PUBLIC_SITE_URL}/`},{'@type':'ListItem',position:2,name:'Статті',item:`${PUBLIC_SITE_URL}/#journal`},{'@type':'ListItem',position:3,name:title,item:canonical}]};
+  const extra=`${source.includes('property="og:title"')?'':`<meta property="og:type" content="article"><meta property="og:locale" content="uk_UA"><meta property="og:site_name" content="Voltares"><meta property="og:title" content="${htmlEscape(title)}"><meta property="og:description" content="${htmlEscape(description)}"><meta property="og:url" content="${htmlEscape(canonical)}"><meta property="og:image" content="${image}"><meta name="twitter:card" content="summary_large_image">`}${source.includes('"@type":"Article"')?'':`<script type="application/ld+json">${jsonLd(articleSchema)}</script>`}${source.includes('"@type":"BreadcrumbList"')?'':`<script type="application/ld+json">${jsonLd(breadcrumb)}</script>`}`;
+  return source.replace('</head>',`${extra}</head>`);
+}
 function parseCookies(req){ return Object.fromEntries((req.headers.cookie||'').split(';').filter(Boolean).map(part=>{const i=part.indexOf('=');return [part.slice(0,i).trim(),decodeURIComponent(part.slice(i+1))]})); }
 function signToken(token){ return crypto.createHmac('sha256',SECRET_KEY).update(token).digest('base64url'); }
 function packSessionCookie(session){ const payload=Buffer.from(JSON.stringify(session)).toString('base64url'); return `${payload}.${signToken(payload)}`; }
@@ -404,7 +442,16 @@ async function body(req,limit=2_500_000){
   throw new Error('UNSUPPORTED_CONTENT_TYPE');
 }
 function compareSafe(a='',b=''){ const left=Buffer.from(String(a)); const right=Buffer.from(String(b)); if(left.length!==right.length)return false; return crypto.timingSafeEqual(left,right); }
-function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','status','manager','checkedBy','viewedAt'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','status','images','homeMode','homeOrder']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
+function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','status','manager','checkedBy','viewedAt','attribution'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','status','images','homeMode','homeOrder']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
+function sanitizeAttribution(value={}){
+  if(!value||typeof value!=='object'||Array.isArray(value))return undefined;
+  const allowed=['utm_source','utm_medium','utm_campaign','utm_content','utm_term','gclid','landing_page','referrer'];
+  const cleanOne=source=>Object.fromEntries(allowed.map(key=>[key,String(source?.[key]||'').trim().slice(0,key==='referrer'||key==='landing_page'?500:160)]).filter(([,item])=>item));
+  const first=cleanOne(value.first_source||value);
+  const last=cleanOne(value.last_source||value);
+  const clean={...(Object.keys(first).length?{first_source:first}:{}),...(Object.keys(last).length?{last_source:last}:{})};
+  return Object.keys(clean).length?clean:undefined;
+}
 function publicReview(item){ const {audit,viewedAt,verifiedBy,verifiedAt,...safe}=item; return safe; }
 function publicEquipmentSummary(item={}){
   const {image,images,description,descriptionEn,translations,audit,viewedAt,purchasePrice,purchaseCurrency,...summary}=item;
@@ -627,6 +674,7 @@ async function api(req,res,url){
       if(!validPublicInput(type,rawInput))return json(res,400,{error:'INVALID_FIELDS'});
     }
     const input=sanitize(type,rawInput);
+    if(type==='leads')input.attribution=sanitizeAttribution(input.attribution);
     if(type==='equipment'){
       input.homeMode=['auto','featured','hidden'].includes(input.homeMode)?input.homeMode:'auto';
       input.homeOrder=Math.max(0,Number(input.homeOrder||0));
@@ -654,16 +702,61 @@ async function api(req,res,url){
 
 async function serve(req,res,url){
   if(url.pathname==='/admin.html'&&!currentUser(req)){res.writeHead(302,{Location:'/admin-login.html'});return res.end();}
+  if(url.pathname==='/analytics-config.js'){
+    const config={ga4MeasurementId:GA4_MEASUREMENT_ID,clarityProjectId:CLARITY_PROJECT_ID,debug:ANALYTICS_DEBUG,siteUrl:PUBLIC_SITE_URL};
+    res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-store'});
+    return res.end(`window.VOLTA_ANALYTICS_CONFIG=Object.freeze(${JSON.stringify(config).replace(/</g,'\\u003c')});`);
+  }
+  if(url.pathname==='/catalog'||url.pathname==='/catalog/'){
+    res.writeHead(301,{Location:'/catalog.html'});return res.end();
+  }
   if(url.pathname==='/'&&url.searchParams.get('catalog')==='all'){
     res.writeHead(302,{Location:'/catalog.html'});
     return res.end();
   }
   if(url.pathname==='/sitemap.xml'){
-    const fixed=['/','/catalog.html','/rishennia/invertor-dlia-domu.html','/rishennia/rezervne-zhyvlennia-dlia-biznesu.html','/rishennia/soniachni-paneli.html','/obladnannia/deye.html','/obladnannia/anenji.html','/obladnannia/easun.html','/obladnannia/lifepo4.html','/articles/5-pryladiv-iaki-zidaiut-avtonomnist.html','/gallery.html','/community.html'];
+    const fixed=['/','/catalog.html','/faq.html','/calculators.html','/categories/inverters','/categories/batteries','/categories/solar','/rishennia/invertor-dlia-domu.html','/rishennia/rezervne-zhyvlennia-dlia-biznesu.html','/rishennia/soniachni-paneli.html','/obladnannia/deye.html','/obladnannia/anenji.html','/obladnannia/easun.html','/obladnannia/lifepo4.html','/articles/5-pryladiv-iaki-zidaiut-avtonomnist.html','/gallery.html','/community.html'];
     const dynamic=(await store.list('articles')).filter(item=>item.status==='published'&&item.slug).map(item=>({path:`/articles/${encodeURIComponent(item.slug)}.html`,updated:item.updatedAt||item.createdAt}));
-    const entries=[...fixed.map(pathname=>({path:pathname,updated:'2026-07-19'})),...dynamic].filter((item,index,array)=>array.findIndex(other=>other.path===item.path)===index);
-    const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${entries.map(item=>`\n  <url><loc>https://voltares.pp.ua${htmlEscape(item.path)}</loc><lastmod>${htmlEscape(String(item.updated||'').slice(0,10))}</lastmod></url>`).join('')}\n</urlset>`;
+    const products=(await store.list('equipment')).filter(item=>item.status==='active'&&item._id).map(item=>({path:equipmentUrl(item),updated:item.updatedAt||item.createdAt}));
+    const fixedEntries=await Promise.all(fixed.map(async pathname=>{if(pathname.startsWith('/categories/'))return{path:pathname};const file=path.join(ROOT,pathname==='/'?'index.html':pathname.slice(1));try{return{path:pathname,updated:(await fs.stat(file)).mtime.toISOString()}}catch{return{path:pathname}}}));
+    const entries=[...fixedEntries,...dynamic,...products].filter((item,index,array)=>array.findIndex(other=>other.path===item.path)===index);
+    const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${entries.map(item=>`\n  <url><loc>${PUBLIC_SITE_URL}${htmlEscape(item.path)}</loc>${item.updated?`<lastmod>${htmlEscape(String(item.updated).slice(0,10))}</lastmod>`:''}</url>`).join('')}\n</urlset>`;
     res.writeHead(200,{'Content-Type':'application/xml; charset=utf-8','Cache-Control':'public, max-age=300'});return res.end(xml);
+  }
+  const categoryMatch=url.pathname.match(/^\/categories\/([a-z-]+)\/?$/);
+  if(categoryMatch){
+    if(url.pathname.endsWith('/')){res.writeHead(301,{Location:url.pathname.slice(0,-1)});return res.end()}
+    const category=SEO_CATEGORIES[categoryMatch[1]];
+    if(!category)return json(res,404,{error:'NOT_FOUND'});
+    const items=(await store.list('equipment')).filter(item=>item.status==='active'&&category.match(item));
+    const canonical=`${PUBLIC_SITE_URL}/categories/${categoryMatch[1]}`;
+    const breadcrumb={'@context':'https://schema.org','@type':'BreadcrumbList',itemListElement:[{'@type':'ListItem',position:1,name:'Головна',item:`${PUBLIC_SITE_URL}/`},{'@type':'ListItem',position:2,name:'Каталог',item:`${PUBLIC_SITE_URL}/catalog.html`},{'@type':'ListItem',position:3,name:category.name,item:canonical}]};
+    const collection={'@context':'https://schema.org','@type':'CollectionPage',name:category.name,description:category.description,url:canonical,inLanguage:'uk-UA',mainEntity:{'@type':'ItemList',numberOfItems:items.length,itemListElement:items.map((item,index)=>({'@type':'ListItem',position:index+1,url:`${PUBLIC_SITE_URL}${equipmentUrl(item)}`,name:`${item.brand||''} ${item.model||''}`.trim()}))}};
+    const cards=items.map(item=>{const image=absoluteUrl(normalizedEquipmentImages(item)[0]||'/og-voltera.svg');return`<a class="category-card" href="${equipmentUrl(item)}"><span><img src="${htmlEscape(image)}" alt="${htmlEscape(`${item.brand||''} ${item.model||''}`.trim())}" loading="lazy" width="480" height="480"></span><small>${htmlEscape(item.brand||'Voltares')}</small><h2>${htmlEscape(item.model||'')}</h2><p>${htmlEscape([item.power,item.phase,item.voltage].filter(Boolean).join(' · '))}</p><strong>${htmlEscape(item.price||'Ціна за запитом')}</strong></a>`}).join('');
+    const page=`<!doctype html><html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${htmlEscape(category.title)}</title><meta name="description" content="${htmlEscape(category.description)}"><meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1"><link rel="canonical" href="${canonical}"><link rel="alternate" hreflang="uk-UA" href="${canonical}"><link rel="alternate" hreflang="x-default" href="${canonical}"><meta property="og:type" content="website"><meta property="og:locale" content="uk_UA"><meta property="og:site_name" content="Voltares"><meta property="og:title" content="${htmlEscape(category.title)}"><meta property="og:description" content="${htmlEscape(category.description)}"><meta property="og:url" content="${canonical}"><meta property="og:image" content="${PUBLIC_SITE_URL}/og-voltera.svg"><meta name="twitter:card" content="summary_large_image"><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/content-pages.css?v=20260719-2"><link rel="stylesheet" href="/category-page.css?v=20260719-1"><script type="application/ld+json">${jsonLd(collection)}</script><script type="application/ld+json">${jsonLd(breadcrumb)}</script></head><body><header class="page-header"><div class="page-container"><a class="page-logo" href="/" aria-label="Voltares — головна"></a><nav class="page-nav"><a href="/catalog.html">Каталог</a><a href="/faq.html">FAQ</a><a href="/calculators.html">Калькулятори</a></nav><a class="page-button" href="/#consultation">Консультація</a></div></header><main><nav class="breadcrumbs page-container" aria-label="Хлібні крихти"><a href="/">Головна</a><span>›</span><a href="/catalog.html">Каталог</a><span>›</span><span aria-current="page">${htmlEscape(category.name)}</span></nav><section class="category-hero page-container"><p class="page-eyebrow">Категорія обладнання</p><h1>${htmlEscape(category.name)}</h1><p class="page-lead">${htmlEscape(category.intro)}</p></section><section class="category-products page-container" aria-label="Товари категорії">${cards||'<p>Перевірені моделі готуються до публікації.</p>'}</section><section class="category-guide page-container"><h2>Як підготуватися до вибору</h2><p>Запишіть постійне й пікове навантаження, бажаний час автономності, кількість фаз і дані ввідного щита. Інженер перевірить сумісність компонентів та захист.</p><div><a href="/calculators.html">Розрахувати автономність</a><a href="/faq.html">Відповіді на питання</a><a href="/rishennia/invertor-dlia-domu.html">Рішення для дому</a><a href="/rishennia/soniachni-paneli.html">Гібридна СЕС</a></div></section></main><footer class="page-footer"><div class="page-container">© 2026 Voltares / ІНК</div></footer></body></html>`;
+    res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'public, max-age=300, stale-while-revalidate=86400'});return res.end(injectPublicHead(page));
+  }
+  const productMatch=url.pathname.match(/^\/products\/([a-zA-Z0-9_-]+)\/?$/);
+  if(productMatch){
+    if(url.pathname.endsWith('/')){res.writeHead(301,{Location:url.pathname.slice(0,-1)});return res.end()}
+    const equipment=(await store.list('equipment')).filter(product=>product.status==='active');
+    const item=equipment.find(product=>String(product._id)===productMatch[1]);
+    if(!item)return json(res,404,{error:'NOT_FOUND'});
+    const name=`${item.brand||''} ${item.model||''}`.trim();
+    const canonical=`${PUBLIC_SITE_URL}${equipmentUrl(item)}`;
+    const images=normalizedEquipmentImages(item).map(absoluteUrl);
+    const image=images[0]||'https://voltares.pp.ua/og-voltera.svg';
+    const description=String(item.description||`${name} для систем резервного та автономного живлення.`).split(/\n/)[0].slice(0,240);
+    const amount=priceAmount(item.price);
+    const specs=[['Потужність / ємність',item.power],['Фази / тип',item.phase],['Робоча напруга',item.voltage],['Бренд',item.brand]].filter(([,value])=>value);
+    const productSchema={'@context':'https://schema.org','@type':'Product','@id':`${canonical}#product`,name,description,image,sku:String(item._id),brand:{'@type':'Brand',name:item.brand||'Voltares'},url:canonical,...(amount?{offers:{'@type':'Offer',url:canonical,priceCurrency:'UAH',price:amount,itemCondition:'https://schema.org/NewCondition',seller:{'@id':'https://voltares.pp.ua/#organization'}}}:{})};
+    const breadcrumbSchema={'@context':'https://schema.org','@type':'BreadcrumbList',itemListElement:[{'@type':'ListItem',position:1,name:'Головна',item:'https://voltares.pp.ua/'},{'@type':'ListItem',position:2,name:'Каталог',item:'https://voltares.pp.ua/catalog.html'},{'@type':'ListItem',position:3,name:item.brand||'Обладнання',item:`https://voltares.pp.ua/obladnannia/${String(item.brand||'').toLowerCase()}.html`},{'@type':'ListItem',position:4,name,item:canonical}]};
+    const body=String(item.description||'').split(/\n{2,}/).filter(Boolean).map(block=>/^#{2,3}\s/.test(block)?`<h2>${htmlEscape(block.replace(/^#{2,3}\s+/,''))}</h2>`:/^(?:[-•]\s.+\n?)+$/m.test(block)?`<ul>${block.split(/\n/).filter(Boolean).map(line=>`<li>${htmlEscape(line.replace(/^[-•]\s+/,''))}</li>`).join('')}</ul>`:`<p>${htmlEscape(block).replace(/\n/g,'<br>')}</p>`).join('');
+    const related=equipment.filter(product=>String(product._id)!==String(item._id)&&String(product.brand||'').toLowerCase()===String(item.brand||'').toLowerCase()).slice(0,3);
+    const relatedMarkup=related.map(product=>`<a href="${equipmentUrl(product)}" data-related-product="${htmlEscape(String(product._id))}">${htmlEscape(`${product.brand||''} ${product.model||''}`.trim())}</a>`).join('');
+    const page=`<!doctype html><html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${htmlEscape(name)} — ціна та характеристики | Voltares</title><meta name="description" content="${htmlEscape(description)}"><meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1"><link rel="canonical" href="${canonical}"><link rel="alternate" hreflang="uk-UA" href="${canonical}"><link rel="alternate" hreflang="x-default" href="${canonical}"><meta property="og:type" content="product"><meta property="og:locale" content="uk_UA"><meta property="og:site_name" content="Voltares"><meta property="og:title" content="${htmlEscape(name)} — ціна та характеристики"><meta property="og:description" content="${htmlEscape(description)}"><meta property="og:url" content="${canonical}"><meta property="og:image" content="${htmlEscape(image)}"><meta name="twitter:card" content="summary_large_image"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/content-pages.css?v=20260719-2"><link rel="stylesheet" href="/product-page.css?v=20260719-1"><script type="application/ld+json">${jsonLd(productSchema)}</script><script type="application/ld+json">${jsonLd(breadcrumbSchema)}</script></head><body><header class="page-header"><div class="page-container"><a class="page-logo" href="/" aria-label="Voltares — головна"></a><nav class="page-nav"><a href="/catalog.html">Каталог</a><a href="/faq.html">FAQ</a><a href="/calculators.html">Калькулятори</a></nav><a class="page-button" href="/#consultation">Консультація</a></div></header><main><nav class="breadcrumbs page-container" aria-label="Хлібні крихти"><a href="/">Головна</a><span>›</span><a href="/catalog.html">Каталог</a><span>›</span><a href="/obladnannia/${htmlEscape(String(item.brand||'').toLowerCase())}.html">${htmlEscape(item.brand||'Обладнання')}</a><span>›</span><span aria-current="page">${htmlEscape(item.model||'')}</span></nav><section class="product-hero page-container"><div class="product-media"><img src="${htmlEscape(image)}" alt="${htmlEscape(name)}" width="800" height="800" fetchpriority="high"></div><div class="product-summary"><p class="page-eyebrow">${htmlEscape(item.brand||'Обладнання')} · резервне живлення</p><h1>${htmlEscape(name)}</h1><p class="page-lead">${htmlEscape(description)}</p><strong class="product-price">${htmlEscape(item.price||'Ціна за запитом')}</strong><div class="product-actions"><a class="page-button" href="/#consultation">Підібрати систему →</a><a href="/calculators.html">Розрахувати автономність</a></div></div></section><section class="page-container product-layout"><article class="article-content"><h2>Опис і переваги</h2>${body}<h2>Для кого ця модель</h2><p>${htmlEscape(name)} підходить для проєктів резервного, автономного або сонячного живлення, якщо його параметри відповідають навантаженню, батареї та схемі підключення. Остаточну сумісність має перевірити інженер.</p><h2>Що перевірити перед замовленням</h2><ul><li>пікову й постійну потужність споживачів;</li><li>тип мережі та кількість фаз;</li><li>напругу, BMS і корисну ємність акумулятора;</li><li>умови монтажу, захист і переріз кабелів;</li><li>необхідний час автономної роботи.</li></ul></article><aside class="product-specs"><h2>Характеристики</h2><dl>${specs.map(([label,value])=>`<div><dt>${htmlEscape(label)}</dt><dd>${htmlEscape(value)}</dd></div>`).join('')}</dl><p>Характеристики уточнюються перед комплектацією проєкту.</p></aside></section><section class="page-container related-block"><h2>Корисно перед вибором</h2><div><a href="/rishennia/invertor-dlia-domu.html">Як вибрати інвертор для дому</a><a href="/obladnannia/lifepo4.html">LiFePO₄ акумулятори</a><a href="/calculators.html">Калькулятор автономності</a><a href="/faq.html">Відповіді на часті питання</a><a href="/articles/5-pryladiv-iaki-zidaiut-avtonomnist.html">Що зменшує автономність</a></div></section></main><footer class="page-footer"><div class="page-container">© 2026 Voltares / ІНК · Енергетичні рішення</div></footer></body></html>`;
+    const enrichedPage=page.replace('</div></section></main>',`${relatedMarkup}</div></section></main>`);
+    res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'public, max-age=300, stale-while-revalidate=86400'});return res.end(injectPublicHead(enrichedPage));
   }
   const articleMatch=url.pathname.match(/^\/articles\/([^/]+)\.html$/);
   if(articleMatch&&!existsSync(path.join(ROOT,url.pathname))){
@@ -671,20 +764,32 @@ async function serve(req,res,url){
     const article=(await store.list('articles')).find(item=>item.slug===slug&&(item.status==='published'||item.status==='active'));
     if(!article)return json(res,404,{error:'NOT_FOUND'});
     const images=(Array.isArray(article.images)&&article.images.length?article.images:[article.image]).filter(Boolean);
+    const articleCanonical=`${PUBLIC_SITE_URL}/articles/${encodeURIComponent(slug)}.html`;
+    const articleImage=absoluteUrl(images[0]||'/og-voltera.svg');
+    const articleBreadcrumb={'@context':'https://schema.org','@type':'BreadcrumbList',itemListElement:[{'@type':'ListItem',position:1,name:'Головна',item:`${PUBLIC_SITE_URL}/`},{'@type':'ListItem',position:2,name:'Статті',item:`${PUBLIC_SITE_URL}/#journal`},{'@type':'ListItem',position:3,name:article.title,item:articleCanonical}]};
+    const articleExtraHead=`<link rel="alternate" hreflang="uk-UA" href="${articleCanonical}"><link rel="alternate" hreflang="x-default" href="${articleCanonical}"><meta property="og:type" content="article"><meta property="og:locale" content="uk_UA"><meta property="og:site_name" content="Voltares"><meta property="og:title" content="${htmlEscape(article.title)}"><meta property="og:description" content="${htmlEscape(article.excerpt||article.title)}"><meta property="og:url" content="${articleCanonical}"><meta property="og:image" content="${htmlEscape(articleImage)}"><meta name="twitter:card" content="summary_large_image"><script type="application/ld+json">${jsonLd(articleBreadcrumb)}</script>`;
     const paragraphs=String(article.body||article.excerpt||'').split(/\n{2,}/).filter(Boolean).map(text=>`<p>${htmlEscape(text).replace(/\n/g,'<br>')}</p>`).join('');
     const page=`<!doctype html><html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${htmlEscape(article.title)} | ІНК</title><meta name="description" content="${htmlEscape(article.excerpt||article.title)}"><meta name="robots" content="index,follow,max-image-preview:large"><link rel="canonical" href="https://voltares.pp.ua/articles/${encodeURIComponent(slug)}.html"><link rel="stylesheet" href="/content-pages.css?v=20260718-1"><script type="application/ld+json">${JSON.stringify({'@context':'https://schema.org','@type':'Article',headline:article.title,description:article.excerpt||'',image:images,datePublished:article.createdAt,dateModified:article.updatedAt,author:{'@type':'Organization',name:'ІНК'},publisher:{'@type':'Organization',name:'ІНК',logo:{'@type':'ImageObject',url:'https://voltares.pp.ua/assets/brand/ink-logo-transparent.png'}}}).replace(/</g,'\\u003c')}</script></head><body><header class="page-header"><div class="page-container"><a class="page-logo" href="/" aria-label="ІНК — головна"></a><nav class="page-nav"><a href="/#journal">Журнал</a><a href="/gallery.html">Галерея</a><a href="/#contacts">Контакти</a></nav><a class="page-button" href="/#consultation">Консультація</a></div></header><main><section class="page-hero"><div class="page-container"><p class="page-eyebrow">${htmlEscape(article.category||'Журнал')}</p><h1>${htmlEscape(article.title)}</h1><p class="page-lead">${htmlEscape(article.excerpt||'')}</p></div></section><div class="page-container article-layout"><aside class="article-aside"><a href="/">← На головну</a><a href="/#journal">Інші статті</a></aside><article class="article-content">${images.map(src=>`<img src="${htmlEscape(src)}" alt="${htmlEscape(article.title)}" loading="lazy" style="width:100%;margin:0 0 24px;border-radius:22px">`).join('')}${paragraphs}<a class="page-button" href="/#consultation">Поставити питання →</a></article></div></main><footer class="page-footer"><div class="page-container">© 2026 ІНК · Енергетичні рішення</div></footer></body></html>`;
-    res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'public, max-age=300'});return res.end(page);
+    const enrichedArticle=page.replace('</head>',`${articleExtraHead}</head>`);
+    res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'public, max-age=300'});return res.end(injectPublicHead(enrichedArticle));
   }
   let pathname=url.pathname==='/'?'/index.html':url.pathname;
   const requested=path.resolve(ROOT,`.${decodeURIComponent(pathname)}`);
   if(!requested.startsWith(ROOT)||requested.includes(`${path.sep}.`))return json(res,403,{error:'FORBIDDEN'});
-  try{const stat=await fs.stat(requested);if(stat.isDirectory())pathname=path.join(pathname,'index.html');const file=stat.isDirectory()?path.join(requested,'index.html'):requested;const data=await fs.readFile(file);res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream','Cache-Control':file.endsWith('.html')?'no-cache':'public, max-age=3600'});res.end(data);}catch{json(res,404,{error:'NOT_FOUND'});}
+  try{const stat=await fs.stat(requested);if(stat.isDirectory())pathname=path.join(pathname,'index.html');const file=stat.isDirectory()?path.join(requested,'index.html'):requested;const data=await fs.readFile(file);const payload=file.endsWith('.html')&&!['admin.html','admin-login.html'].includes(path.basename(file))?Buffer.from(injectPublicHead(enhanceStaticArticle(data.toString('utf8'),url.pathname))):data;res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream','Cache-Control':file.endsWith('.html')?'no-cache':'public, max-age=3600'});res.end(payload);}catch{json(res,404,{error:'NOT_FOUND'});}
 }
 
 export async function handleRequest(req,res){
   try{
     securityHeaders(res);
     const url=new URL(req.url,`http://${req.headers.host||'localhost'}`);
+    const requestHost=String(req.headers['x-forwarded-host']||req.headers.host||'').split(',')[0].trim().toLowerCase();
+    if(requestHost.endsWith('.vercel.app')||/^\/(?:admin|api|private|preview|draft)(?:[/.]|$)/.test(url.pathname))res.setHeader('X-Robots-Tag','noindex, nofollow');
+    if(IS_PRODUCTION){
+      const forwardedHost=requestHost;
+      const forwardedProto=String(req.headers['x-forwarded-proto']||'https').split(',')[0].trim().toLowerCase();
+      if(forwardedHost==='www.voltares.pp.ua'||(forwardedHost==='voltares.pp.ua'&&forwardedProto==='http')){res.writeHead(301,{Location:`${PUBLIC_SITE_URL}${url.pathname}${url.search}`});return res.end()}
+    }
     if(url.pathname.startsWith('/api/')){const handled=await api(req,res,url);if(handled===false)json(res,404,{error:'API_NOT_FOUND'});return;}
     await serve(req,res,url);
   }catch(error){

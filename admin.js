@@ -663,13 +663,19 @@ const configs = {
   faqs: { title: 'короткий FAQ', fields: [['question', 'Питання', 'text', true], ['answer', 'Відповідь', 'textarea', true], ['status', 'Статус', 'select', false, ['active', 'draft']]] },
   projects: { title: "об'єкт", fields: [['title', 'Назва', 'text', true], ['city', 'Локація', 'text'], ['type', 'Тип об’єкта', 'text'], ['description', 'Опис', 'textarea'], ['imageFile', 'Фото об’єкта', 'file'], ['status', 'Статус', 'select', false, ['published', 'draft']]] },
   articles: { title: 'статтю', fields: [['title', 'Назва', 'text', true], ['slug', 'Адреса сторінки (латиницею, без пробілів)', 'text'], ['category', 'Категорія', 'text'], ['excerpt', 'Короткий SEO-опис', 'textarea'], ['body', 'Повний текст статті', 'textarea'], ['imageFiles', 'Фото статті (можна кілька)', 'files'], ['status', 'Статус', 'select', false, ['published', 'draft']]] },
-  equipment: { title: 'модель обладнання', fields: [['brand', 'Бренд', 'text', true], ['model', 'Модель', 'text', true], ['power', 'Потужність', 'text'], ['phase', 'Фаза / Тип', 'text'], ['voltage', 'Напруга', 'text'], ['price', 'Роздрібна ціна, грн', 'text'], ['priceUsd', 'Роздрібна ціна, USD', 'number'], ['purchasePrice', 'Закупівельна ціна (лише CRM)', 'number'], ['purchaseCurrency', 'Валюта закупівлі', 'select', false, ['USD', 'EUR', 'UAH']], ['homeMode', 'Показ на головній', 'select', false, ['auto', 'featured', 'hidden']], ['description', 'Опис для сайту', 'textarea'], ['imageFiles', 'Фото моделі (можна кілька)', 'files'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] },
+  equipment: { title: 'модель обладнання', fields: [['brand', 'Бренд', 'text', true], ['model', 'Модель', 'text', true], ['power', 'Потужність', 'text'], ['phase', 'Фази / Тип', 'choice', false, ['1 фаза', '3 фази', 'LiFePO₄', 'HV']], ['voltage', 'Напруга', 'text'], ['price', 'Роздрібна ціна, грн', 'text'], ['priceUsd', 'Роздрібна ціна, USD', 'number'], ['purchasePrice', 'Закупівельна ціна (лише CRM)', 'number'], ['purchaseCurrency', 'Валюта закупівлі', 'select', false, ['USD', 'EUR', 'UAH']], ['homeMode', 'Показ на головній', 'select', false, ['auto', 'featured', 'hidden']], ['description', 'Опис для сайту', 'textarea'], ['imageFiles', 'Фото моделі (можна кілька)', 'files'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] },
   users: { title: 'користувача CRM', fields: [['username', "Ім'я користувача", 'text', true], ['password', 'Новий пароль (мінімум 8 символів)', 'password'], ['status', 'Доступ', 'select', false, ['active', 'disabled']]] }
 };
 
 function fieldTemplate([name, label, type, required, options = []], item = {}) {
   if (type === 'textarea') return `<label>${label}<textarea name="${name}" rows="4" ${required ? 'required' : ''}>${escapeHtml(item[name] || '')}</textarea></label>`;
   if (type === 'select') return `<label>${label}<select name="${name}">${options.map(option => `<option value="${option}" ${item[name] === option ? 'selected' : ''}>${escapeHtml(statusLabels[option]?.[0] || option)}</option>`).join('')}</select></label>`;
+  if (type === 'choice') {
+    const current = String(item[name] || '').trim();
+    const knownValue = options.includes(current);
+    const selected = current ? (knownValue ? current : 'other') : '';
+    return `<label class="choice-custom-field">${label}<select name="${name}Preset" data-choice-name="${name}"><option value="" ${selected ? '' : 'selected'}>${label}</option>${options.map(option => `<option value="${escapeHtml(option)}" ${selected === option ? 'selected' : ''}>${escapeHtml(option)}</option>`).join('')}<option value="other" ${selected === 'other' ? 'selected' : ''}>Інше — вписати вручну</option></select><input name="${name}" type="text" value="${knownValue ? '' : escapeHtml(current)}" placeholder="Вкажіть фази або тип" ${selected === 'other' ? '' : 'hidden disabled'}></label>`;
+  }
   if (type === 'file') return `<label>${label}<input name="${name}" type="file" accept="image/png,image/jpeg,image/webp"><small>${item.image ? `Поточне фото: ${escapeHtml(item.image)}` : 'PNG, JPG або WebP'}</small></label>`;
   if (type === 'files') return `<label>${label}<input name="${name}" type="file" accept="image/png,image/jpeg,image/webp" multiple><small>${item.images?.length ? `Збережено фото: ${item.images.length}` : 'PNG, JPG або WebP; можна вибрати кілька файлів одночасно'}</small></label>`;
   return `<label>${label}<input name="${name}" type="${type}" value="${escapeHtml(item[name] ?? '')}" ${type === 'number' ? 'min="0" step="0.01" inputmode="decimal"' : ''} ${required ? 'required' : ''}></label>`;
@@ -689,6 +695,17 @@ function openContentDialog(type, item = null) {
     password.required = ownPasswordOnly || !item;
     password.placeholder = ownPasswordOnly ? 'Щонайменше 8 символів' : item ? 'Залиште порожнім, щоб не змінювати' : 'Щонайменше 8 символів';
   }
+  $$('[data-choice-name]', form).forEach(select => {
+    const customInput = form.elements[select.dataset.choiceName];
+    const syncChoice = ({ focus = false } = {}) => {
+      const custom = select.value === 'other';
+      customInput.hidden = !custom;
+      customInput.disabled = !custom;
+      if (custom && focus) customInput.focus();
+    };
+    select.addEventListener('change', () => syncChoice({ focus:true }));
+    syncChoice();
+  });
   $('.dialog-cancel', form).addEventListener('click', () => dialog.close());
   dialog.showModal();
 }
@@ -725,6 +742,9 @@ form.addEventListener('submit', async event => {
     }
     if (activeType === 'users' && !String(data.password || '').trim()) delete data.password;
     if (activeType === 'equipment') {
+      const phasePreset = String(data.phasePreset || '').trim();
+      data.phase = phasePreset === 'other' ? String(data.phase || '').trim() : phasePreset;
+      delete data.phasePreset;
       data.homeMode = ['auto', 'featured', 'hidden'].includes(data.homeMode) ? data.homeMode : 'auto';
       if (data.homeMode === 'featured' && activeItem?.homeMode !== 'featured') data.homeOrder = Math.max(0, ...state.equipment.filter(item => item.homeMode === 'featured').map(item => Number(item.homeOrder || 0))) + 1;
     }

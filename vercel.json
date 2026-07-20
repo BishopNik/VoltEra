@@ -4,6 +4,18 @@
     { "source": "/en.html", "destination": "/", "permanent": true }
   ],
   "rewrites": [
+    { "source": "/", "destination": "/api/public-page?path=index" },
+    { "source": "/analytics-config.js", "destination": "/api/analytics-config" },
+    { "source": "/catalog.html", "destination": "/api/public-page?path=catalog" },
+    { "source": "/faq.html", "destination": "/api/public-page?path=faq" },
+    { "source": "/calculators.html", "destination": "/api/public-page?path=calculators" },
+    { "source": "/community.html", "destination": "/api/public-page?path=community" },
+    { "source": "/gallery.html", "destination": "/api/public-page?path=gallery" },
+    { "source": "/privacy.html", "destination": "/api/public-page?path=privacy" },
+    { "source": "/rishennia/:slug.html", "destination": "/api/public-page?section=rishennia&slug=:slug" },
+    { "source": "/obladnannia/:slug.html", "destination": "/api/public-page?section=obladnannia&slug=:slug" },
+    { "source": "/categories/:slug", "destination": "/api/category-page?slug=:slug" },
+    { "source": "/products/:slug", "destination": "/api/product-page?slug=:slug" },
     { "source": "/articles/:slug.html", "destination": "/api/article-page?slug=:slug" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/api/:path*", "destination": "/api/router?path=:path*" }
@@ -18,13 +30,19 @@
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Content-Language", "value": "uk" },
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: https:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com; connect-src 'self' https://api-contact-tg.a-nikanorov.workers.dev https://vitals.vercel-insights.com; frame-src https://www.google.com https://maps.google.com; upgrade-insecure-requests" }
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: https:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com https://www.googletagmanager.com https://*.clarity.ms; connect-src 'self' https://api-contact-tg.a-nikanorov.workers.dev https://vitals.vercel-insights.com https://www.google-analytics.com https://region1.google-analytics.com https://*.clarity.ms; frame-src https://www.google.com https://maps.google.com; upgrade-insecure-requests" }
       ]
     },
     {
       "source": "/(.*)\\.(css|js|png|jpg|jpeg|webp|svg|woff2)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/analytics-config.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" }
       ]
     }
   ]
