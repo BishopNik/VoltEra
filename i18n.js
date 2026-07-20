@@ -386,7 +386,7 @@
       'footer.solutions': 'Рішення',
       'footer.support': 'Підтримка',
       'footer.messengers': 'Месенджери',
-      'footer.rights': '© 2026 ІНК. Усі права захищені.',
+      'footer.rights': '© 2026 І.Н.К. ТОВ. Усі права захищені.',
       'footer.privacy': 'Політика конфіденційності',
       'admin.entry': 'Вхід для команди · Адмін-панель ↗',
       'floating.consult': 'Обговорити<br>вашу систему'
@@ -557,7 +557,7 @@
       'footer.solutions': 'Solutions',
       'footer.support': 'Support',
       'footer.messengers': 'Messengers',
-      'footer.rights': '© 2026 INK. All rights reserved.',
+      'footer.rights': '© 2026 I.N.K. LLC. All rights reserved.',
       'footer.privacy': 'Privacy policy',
       'admin.entry': 'Team login · Admin panel ↗',
       'floating.consult': 'Discuss<br>your system'
