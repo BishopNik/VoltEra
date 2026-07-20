@@ -673,8 +673,8 @@ function fieldTemplate([name, label, type, required, options = []], item = {}) {
   if (type === 'choice') {
     const current = String(item[name] || '').trim();
     const knownValue = options.includes(current);
-    const selected = current ? (knownValue ? current : 'other') : '';
-    return `<label class="choice-custom-field">${label}<select name="${name}Preset" data-choice-name="${name}"><option value="" ${selected ? '' : 'selected'}>${label}</option>${options.map(option => `<option value="${escapeHtml(option)}" ${selected === option ? 'selected' : ''}>${escapeHtml(option)}</option>`).join('')}<option value="other" ${selected === 'other' ? 'selected' : ''}>Інше — вписати вручну</option></select><input name="${name}" type="text" value="${knownValue ? '' : escapeHtml(current)}" placeholder="Вкажіть фази або тип" ${selected === 'other' ? '' : 'hidden disabled'}></label>`;
+    const customOption = current && !knownValue ? `<option value="${escapeHtml(current)}" data-custom-choice selected>${escapeHtml(current)}</option>` : '';
+    return `<label class="choice-custom-field">${label}<input name="${name}Custom" type="text" data-choice-custom value="${knownValue ? '' : escapeHtml(current)}" placeholder="Вкажіть фази або тип" hidden disabled><select name="${name}" data-choice-name="${name}"><option value="" disabled ${current ? '' : 'selected'}>Оберіть значення</option>${options.map(option => `<option value="${escapeHtml(option)}" ${current === option ? 'selected' : ''}>${escapeHtml(option)}</option>`).join('')}${customOption}<option value="__manual__">Інше — вписати вручну</option></select></label>`;
   }
   if (type === 'file') return `<label>${label}<input name="${name}" type="file" accept="image/png,image/jpeg,image/webp"><small>${item.image ? `Поточне фото: ${escapeHtml(item.image)}` : 'PNG, JPG або WebP'}</small></label>`;
   if (type === 'files') return `<label>${label}<input name="${name}" type="file" accept="image/png,image/jpeg,image/webp" multiple><small>${item.images?.length ? `Збережено фото: ${item.images.length}` : 'PNG, JPG або WebP; можна вибрати кілька файлів одночасно'}</small></label>`;
@@ -696,15 +696,43 @@ function openContentDialog(type, item = null) {
     password.placeholder = ownPasswordOnly ? 'Щонайменше 8 символів' : item ? 'Залиште порожнім, щоб не змінювати' : 'Щонайменше 8 символів';
   }
   $$('[data-choice-name]', form).forEach(select => {
-    const customInput = form.elements[select.dataset.choiceName];
-    const syncChoice = ({ focus = false } = {}) => {
-      const custom = select.value === 'other';
-      customInput.hidden = !custom;
-      customInput.disabled = !custom;
-      if (custom && focus) customInput.focus();
+    const customInput = select.parentElement.querySelector('[data-choice-custom]');
+    const setEditing = (editing, { focus = false } = {}) => {
+      customInput.hidden = !editing;
+      customInput.disabled = !editing;
+      select.parentElement.classList.toggle('is-custom', editing);
+      if (editing && focus) customInput.focus();
     };
-    select.addEventListener('change', () => syncChoice({ focus:true }));
-    syncChoice();
+    const updateCustomOption = () => {
+      const value = customInput.value.trim();
+      let option = select.querySelector('[data-custom-choice]');
+      if (!value) {
+        if (option) option.remove();
+        select.value = '__manual__';
+        return;
+      }
+      if (!option) {
+        option = document.createElement('option');
+        option.dataset.customChoice = '';
+        select.insertBefore(option, select.querySelector('option[value="__manual__"]'));
+      }
+      option.value = value;
+      option.textContent = value;
+      option.selected = true;
+    };
+    select.addEventListener('change', () => setEditing(select.value === '__manual__', { focus:true }));
+    customInput.addEventListener('input', updateCustomOption);
+    customInput.addEventListener('keydown', event => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      updateCustomOption();
+      if (customInput.value.trim()) setEditing(false);
+    });
+    customInput.addEventListener('blur', () => {
+      updateCustomOption();
+      if (customInput.value.trim()) setEditing(false);
+    });
+    setEditing(false);
   });
   $('.dialog-cancel', form).addEventListener('click', () => dialog.close());
   dialog.showModal();
@@ -742,9 +770,9 @@ form.addEventListener('submit', async event => {
     }
     if (activeType === 'users' && !String(data.password || '').trim()) delete data.password;
     if (activeType === 'equipment') {
-      const phasePreset = String(data.phasePreset || '').trim();
-      data.phase = phasePreset === 'other' ? String(data.phase || '').trim() : phasePreset;
-      delete data.phasePreset;
+      const manualPhase = String(data.phaseCustom || '').trim();
+      data.phase = String(data.phase || '').trim() === '__manual__' ? manualPhase : String(data.phase || '').trim();
+      delete data.phaseCustom;
       data.homeMode = ['auto', 'featured', 'hidden'].includes(data.homeMode) ? data.homeMode : 'auto';
       if (data.homeMode === 'featured' && activeItem?.homeMode !== 'featured') data.homeOrder = Math.max(0, ...state.equipment.filter(item => item.homeMode === 'featured').map(item => Number(item.homeOrder || 0))) + 1;
     }
