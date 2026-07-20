@@ -788,7 +788,9 @@ export async function handleRequest(req,res){
     if(IS_PRODUCTION){
       const forwardedHost=requestHost;
       const forwardedProto=String(req.headers['x-forwarded-proto']||'https').split(',')[0].trim().toLowerCase();
-      if(forwardedHost==='www.voltares.pp.ua'||(forwardedHost==='voltares.pp.ua'&&forwardedProto==='http')){res.writeHead(301,{Location:`${PUBLIC_SITE_URL}${url.pathname}${url.search}`});return res.end()}
+      if(['voltares.pp.ua','www.voltares.pp.ua'].includes(forwardedHost)&&forwardedProto==='http'){
+        res.writeHead(301,{Location:`https://${forwardedHost}${url.pathname}${url.search}`});return res.end();
+      }
     }
     if(url.pathname.startsWith('/api/')){const handled=await api(req,res,url);if(handled===false)json(res,404,{error:'API_NOT_FOUND'});return;}
     await serve(req,res,url);
