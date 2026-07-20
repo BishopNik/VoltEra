@@ -5,7 +5,7 @@
   const FIRST_SOURCE_KEY='voltares_first_source_v1';
   const SESSION_SOURCE_KEY='voltares_session_source_v1';
   const deniedKeys=new Set(['name','phone','email','message','comment','text','author','city','contact']);
-  const state={consent:null,ga4Loaded:false,clarityLoaded:false,initialTracked:false,lastLeadAt:0,startedForms:new WeakSet(),calculators:new WeakSet(),viewedProducts:new Set(),catalogEngagementTracked:false,lastSearch:'',debug:Boolean(config.debug)};
+  const state={consent:null,ga4Loaded:false,ga4ConsentGranted:false,ga4PageViewSent:false,clarityLoaded:false,initialTracked:false,lastLeadAt:0,startedForms:new WeakSet(),calculators:new WeakSet(),viewedProducts:new Set(),catalogEngagementTracked:false,lastSearch:'',debug:Boolean(config.debug)};
   const safeStorage={get(store,key){try{return store.getItem(key)}catch{return null}},set(store,key,value){try{store.setItem(key,value)}catch{}},remove(store,key){try{store.removeItem(key)}catch{}}};
   const cleanValue=value=>typeof value==='string'?value.slice(0,160):typeof value==='number'&&Number.isFinite(value)?value:typeof value==='boolean'?value:undefined;
   function cleanParams(params={}){
@@ -43,10 +43,26 @@
     if(document.getElementById(id))return;
     const script=document.createElement('script');script.id=id;script.async=true;script.src=src;script.onerror=()=>state.debug&&console.info(`[analytics] blocked: ${id}`);document.head.append(script);
   }
+  function googleConsent(analyticsStorage){
+    return{analytics_storage:analyticsStorage,ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',functionality_storage:'granted',security_storage:'granted'};
+  }
+  function loadGoogleTag(){
+    if(!config.ga4MeasurementId||state.ga4Loaded)return;
+    const granted=state.consent==='accepted';
+    window.dataLayer=window.dataLayer||[];
+    window.gtag=window.gtag||function(){window.dataLayer.push(arguments)};
+    window.gtag('consent','default',{...googleConsent(granted?'granted':'denied'),wait_for_update:500});
+    window.gtag('js',new Date());
+    window.gtag('config',config.ga4MeasurementId,{debug_mode:state.debug,send_page_view:granted,anonymize_ip:true});
+    loadScript(`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(config.ga4MeasurementId)}`,'voltares-ga4');
+    state.ga4Loaded=true;state.ga4ConsentGranted=granted;state.ga4PageViewSent=granted;
+  }
   function loadProviders(){
     if(state.consent!=='accepted')return;
-    if(config.ga4MeasurementId&&!state.ga4Loaded){
-      window.dataLayer=window.dataLayer||[];window.gtag=window.gtag||function(){window.dataLayer.push(arguments)};window.gtag('js',new Date());window.gtag('consent','update',{analytics_storage:'granted'});window.gtag('config',config.ga4MeasurementId,{debug_mode:state.debug,send_page_view:true,anonymize_ip:true});loadScript(`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(config.ga4MeasurementId)}`,'voltares-ga4');state.ga4Loaded=true;
+    loadGoogleTag();
+    if(state.ga4Loaded&&!state.ga4ConsentGranted){
+      window.gtag('consent','update',googleConsent('granted'));state.ga4ConsentGranted=true;
+      if(!state.ga4PageViewSent){window.gtag('event','page_view',cleanParams(pageContext()));state.ga4PageViewSent=true}
     }
     if(config.clarityProjectId&&!state.clarityLoaded){
       window.clarity=window.clarity||function(){(window.clarity.q=window.clarity.q||[]).push(arguments)};loadScript(`https://www.clarity.ms/tag/${encodeURIComponent(config.clarityProjectId)}`,'voltares-clarity');state.clarityLoaded=true;
@@ -92,7 +108,7 @@
     if(document.getElementById('analytics-consent'))return;
     const style=document.createElement('style');style.id='analytics-consent-style';style.textContent=`.analytics-consent{position:fixed;z-index:99999;left:16px;right:16px;bottom:16px;max-width:760px;margin:auto;padding:20px;border:1px solid rgba(255,255,255,.16);border-radius:18px;background:#07110f;color:#f4f2e9;box-shadow:0 18px 60px rgba(0,0,0,.4);font:15px/1.5 system-ui,sans-serif}.analytics-consent[hidden]{display:none}.analytics-consent strong{display:block;font-size:18px;margin-bottom:6px}.analytics-consent p{margin:0 0 14px;color:#c4cbc7}.analytics-consent a{color:#d6a448}.analytics-consent-actions{display:flex;gap:9px;flex-wrap:wrap}.analytics-consent button{border:1px solid #66706b;border-radius:999px;padding:10px 16px;background:transparent;color:inherit;font-weight:700;cursor:pointer}.analytics-consent [data-consent=accept]{background:#d7ff3f;border-color:#d7ff3f;color:#07110f}.analytics-consent-details{margin-top:14px;padding-top:12px;border-top:1px solid #35403b}.analytics-preferences{position:fixed;z-index:9998;left:12px;bottom:12px;padding:8px 11px;border:1px solid rgba(128,128,128,.35);border-radius:999px;background:#07110f;color:#f4f2e9;font:12px system-ui,sans-serif;cursor:pointer}@media(max-width:560px){.analytics-consent{left:10px;right:10px;bottom:10px;padding:17px}.analytics-consent-actions{display:grid;grid-template-columns:1fr 1fr}.analytics-consent [data-consent=manage]{grid-column:1/-1}}`;
     document.head.append(style);
-    const banner=document.createElement('section');banner.id='analytics-consent';banner.className='analytics-consent';banner.setAttribute('role','dialog');banner.setAttribute('aria-label','Налаштування аналітики');banner.innerHTML=`<strong>Аналітика та приватність</strong><p>Необов’язкова аналітика допомагає покращувати сайт. GA4 і Microsoft Clarity завантажаться лише після вашої згоди. <a href="/privacy.html">Докладніше</a>.</p><div class="analytics-consent-actions"><button type="button" data-consent="accept">Прийняти аналітику</button><button type="button" data-consent="decline">Відхилити</button><button type="button" data-consent="manage" aria-expanded="false">Налаштувати</button></div><p class="analytics-consent-details" hidden>Обов’язкові функції сайту працюють завжди. Аналітика вимірює перегляди та взаємодії без передавання імені, телефону, email або тексту повідомлень.</p>`;
+    const banner=document.createElement('section');banner.id='analytics-consent';banner.className='analytics-consent';banner.setAttribute('role','dialog');banner.setAttribute('aria-label','Налаштування аналітики');banner.innerHTML=`<strong>Аналітика та приватність</strong><p>Необов’язкова аналітика допомагає покращувати сайт. Вимірювання GA4 і Microsoft Clarity активуються лише після вашої згоди. <a href="/privacy.html">Докладніше</a>.</p><div class="analytics-consent-actions"><button type="button" data-consent="accept">Прийняти аналітику</button><button type="button" data-consent="decline">Відхилити</button><button type="button" data-consent="manage" aria-expanded="false">Налаштувати</button></div><p class="analytics-consent-details" hidden>До вашого вибору Google Tag працює з analytics_storage=denied без аналітичних cookies. Імена, телефони, email і тексти повідомлень не передаються в аналітику.</p>`;
     document.body.append(banner);
     const preferences=document.createElement('button');preferences.type='button';preferences.className='analytics-preferences';preferences.textContent='Налаштування cookies';preferences.hidden=state.consent===null;document.body.append(preferences);
     banner.addEventListener('click',event=>{const action=event.target.closest('[data-consent]')?.dataset.consent;if(action==='manage'){const details=banner.querySelector('.analytics-consent-details');details.hidden=!details.hidden;event.target.setAttribute('aria-expanded',String(!details.hidden));return}if(action==='accept'||action==='decline')setConsent(action==='accept'?'accepted':'declined')});
@@ -102,7 +118,7 @@
   function setConsent(value){
     const previous=state.consent;state.consent=value;safeStorage.set(localStorage,CONSENT_KEY,value);const banner=document.getElementById('analytics-consent');const preferences=document.querySelector('.analytics-preferences');if(banner)banner.hidden=true;if(preferences)preferences.hidden=false;
     if(value==='accepted')loadProviders();
-    else if(previous==='accepted'){try{window.gtag?.('consent','update',{analytics_storage:'denied'})}catch{}location.reload()}
+    else if(previous==='accepted'){try{window.gtag?.('consent','update',googleConsent('denied'))}catch{}location.reload()}
   }
   function maskForms(root=document){root.querySelectorAll?.('form,input,textarea,select').forEach(element=>element.setAttribute('data-clarity-mask','true'))}
   function bindInteractions(){
@@ -122,5 +138,5 @@
   }
   captureSource();state.consent=safeStorage.get(localStorage,CONSENT_KEY);if(!['accepted','declined'].includes(state.consent))state.consent=null;
   window.voltaAnalytics=Object.freeze({trackEvent,getAttribution,setConsent,getConsent:()=>state.consent});
-  renderConsent();bindInteractions();wrapFetch();if(state.consent==='accepted')loadProviders();
+  loadGoogleTag();renderConsent();bindInteractions();wrapFetch();if(state.consent==='accepted')loadProviders();
 })();

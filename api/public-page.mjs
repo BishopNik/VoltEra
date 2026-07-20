@@ -14,8 +14,10 @@ export default async function handler(req, res) {
   try {
     let page = await fs.readFile(nodePath.join(process.cwd(), relative), 'utf8');
     const verification = String(process.env.GOOGLE_SITE_VERIFICATION || '').trim().slice(0, 200).replace(/[^a-zA-Z0-9_\-.]/g, '');
-    const head = `${verification ? `<meta name="google-site-verification" content="${verification}">` : ''}<script defer src="/analytics-config.js"></script><script defer src="/analytics.js?v=20260719-1"></script>`;
-    if (!page.includes('/analytics.js')) page = page.replace('</head>', `${head}</head>`);
+    const head = [];
+    if (verification && !page.includes('name="google-site-verification"')) head.push(`<meta name="google-site-verification" content="${verification}">`);
+    if (!page.includes('/analytics.js')) head.push('<script defer src="/analytics-config.js"></script><script defer src="/analytics.js?v=20260720-1"></script>');
+    if (head.length) page = page.replace('</head>', `${head.join('')}</head>`);
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=86400' });
     return res.end(page);
   } catch {

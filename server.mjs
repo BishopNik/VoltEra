@@ -403,11 +403,12 @@ const SEO_CATEGORIES=Object.freeze({
   batteries:{name:'LiFePO₄ акумулятори',title:'LiFePO4 акумулятори для інвертора | Voltares',description:'LiFePO4 батареї для резервного й автономного живлення: ємність, напруга, BMS, сумісність і модульне розширення системи.',intro:'LiFePO₄ акумулятор обирають за корисною енергією, напругою, струмом BMS і протоколом зв’язку з інвертором. Для точного розрахунку важливий реальний профіль навантаження.',match:item=>/kwh|lifepo|bms|акб/i.test([item.power,item.phase,item.model].join(' '))},
   solar:{name:'Обладнання для сонячних систем',title:'Обладнання для гібридних сонячних систем | Voltares',description:'Гібридні інвертори та накопичувачі енергії для домашніх і комерційних СЕС. Підбір MPPT, потужності панелей, батареї та резервного контуру.',intro:'Гібридна сонячна система поєднує панелі, інвертор, батарею й захист. До розрахунку входять генерація за орієнтацією даху, MPPT-діапазон, денне споживання та потрібний резерв.',match:item=>/^sun-/i.test(String(item.model||''))}
 });
-function publicHeadMarkup(){return `${GOOGLE_SITE_VERIFICATION?`<meta name="google-site-verification" content="${htmlEscape(GOOGLE_SITE_VERIFICATION)}">`:''}<script defer src="/analytics-config.js"></script><script defer src="/analytics.js?v=20260719-1"></script>`}
 function injectPublicHead(page=''){
   const source=String(page);
-  if(source.includes('/analytics.js'))return source;
-  return source.replace('</head>',`${publicHeadMarkup()}</head>`);
+  const markup=[];
+  if(GOOGLE_SITE_VERIFICATION&&!source.includes('name="google-site-verification"'))markup.push(`<meta name="google-site-verification" content="${htmlEscape(GOOGLE_SITE_VERIFICATION)}">`);
+  if(!source.includes('/analytics.js'))markup.push('<script defer src="/analytics-config.js"></script><script defer src="/analytics.js?v=20260720-1"></script>');
+  return markup.length?source.replace('</head>',`${markup.join('')}</head>`):source;
 }
 function enhanceStaticArticle(page='',pathname=''){
   const source=String(page);if(!pathname.startsWith('/articles/'))return source;

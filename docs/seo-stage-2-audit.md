@@ -32,6 +32,6 @@ Product містить `name`, `description`, `image`, `brand`, `sku`, `url`. Of
 
 ## Обмеження перевірки
 
-GA4, Search Console і Clarity не вважаються підключеними, доки власник не встановить production-ідентифікатори, не виконає deployment і не перевірить події/верифікацію на `voltares.pp.ua`.
+GA4, Search Console і Clarity не вважаються повністю перевіреними, доки власник не встановить production-ідентифікатори, не виконає deployment і не перевірить події/верифікацію на `voltares.pp.ua`.
 
-Production Lighthouse/RUM-порівняння до і після deployment не виконувалося, бо локальні показники не відтворюють CDN, мережу користувача й реальні analytics ID. First-party модуль має розмір близько 15 КБ без стиснення, підключається з `defer`, а зовнішні GA4/Clarity scripts не входять у критичний шлях і завантажуються лише після згоди. Після production deployment потрібно зафіксувати Lighthouse mobile/desktop і перевірити Core Web Vitals у Search Console через 28 днів.
+Production Lighthouse/RUM-порівняння до і після deployment не виконувалося, бо локальні показники не відтворюють CDN, мережу користувача й реальні analytics ID. First-party модуль підключається з `defer`; Google Tag завантажується асинхронно в Consent Mode без аналітичних cookies, а Clarity — лише після згоди. Після production deployment потрібно зафіксувати Lighthouse mobile/desktop і перевірити Core Web Vitals у Search Console через 28 днів.
