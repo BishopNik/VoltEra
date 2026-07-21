@@ -811,7 +811,7 @@
     document.title = messages['meta.title'];
     const description = document.querySelector('meta[name="description"]');
     if (description) description.content = messages['meta.description'];
-    const publicUrl = 'https://voltares.pp.ua/';
+    const publicUrl = 'https://www.voltares.pp.ua/';
     const canonical = document.querySelector('link[rel="canonical"]');
     if (canonical) canonical.href = publicUrl;
     const openGraphUrl = document.querySelector('meta[property="og:url"]');

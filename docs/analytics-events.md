@@ -46,7 +46,7 @@
 У **Project → Settings → Environment Variables** додати окремо для Production (і за потреби Preview):
 
 ```text
-PUBLIC_SITE_URL=https://voltares.pp.ua
+PUBLIC_SITE_URL=https://www.voltares.pp.ua
 GA4_MEASUREMENT_ID=G-XXXXXXXXXX
 GOOGLE_SITE_VERIFICATION=значення_content_із_meta_tag
 CLARITY_PROJECT_ID=xxxxxxxxxx
