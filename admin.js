@@ -281,10 +281,28 @@ async function openView(view) {
   $$('.admin-view').forEach(page => page.classList.toggle('is-active', page.dataset.page === view));
   $('#view-title').textContent = titles[view];
   $('.admin-sidebar').classList.remove('is-open');
+  try {
+    if (view === 'dashboard') await refreshDashboard();
+    else if (collections.includes(view)) { await loadCollection(view); renderByType(view); }
+  } catch (error) { showApiNotice(`Не вдалося оновити розділ: ${error.message}`); }
   if (unreadViews.has(view)) {
     await api('/api/admin/mark-viewed', { method: 'POST', body: JSON.stringify({ type: view }) });
     await refreshDashboard();
   }
+}
+
+let crmPollBusy = false;
+function startCrmPolling() {
+  setInterval(async () => {
+    if (document.hidden || crmPollBusy || pendingApiRequests) return;
+    crmPollBusy = true;
+    try {
+      await Promise.all(['leads', 'reviews', 'questions'].map(loadCollection));
+      const activeView = $('.admin-view.is-active')?.dataset.page;
+      if (['leads', 'reviews', 'questions'].includes(activeView)) renderByType(activeView);
+      await refreshDashboard();
+    } catch {} finally { crmPollBusy = false; }
+  }, 25000);
 }
 
 function renderLeads() {
@@ -669,11 +687,30 @@ function toggleEquipmentImageZoom() {
   button.textContent = isZoomed ? 'Зменшити' : 'Збільшити';
 }
 
+function quotePdfDocument(quote = {}) {
+  const currency = quote.currency || 'UAH';
+  const subtotal = Number(quote.subtotal || (quote.items || []).reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0), 0));
+  const rows = (quote.items || []).map((item, index) => `<tr><td>${index + 1}</td><td><strong>${escapeHtml(item.name || '')}</strong>${item.description ? `<small>${escapeHtml(item.description)}</small>` : ''}</td><td>${escapeHtml(item.quantity || 1)} ${escapeHtml(item.unit || 'шт.')}</td><td>${escapeHtml(formatMoney(item.unitPrice, currency))}</td><td><strong>${escapeHtml(formatMoney(Number(item.quantity || 0) * Number(item.unitPrice || 0), currency))}</strong></td></tr>`).join('');
+  const status = statusLabels[quote.status || 'draft']?.[0] || quote.status || 'Чернетка';
+  return `<!doctype html><html lang="uk"><head><meta charset="utf-8"><title>${escapeHtml(quote.number || 'Комерційна пропозиція')}</title><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{margin:0;color:#10201a;font:13px/1.45 Arial,sans-serif}header{display:flex;justify-content:space-between;gap:24px;padding:22px;border-radius:18px;background:#0c211a;color:#f8f8ef}header b{display:block;color:#d8ef69;font-size:11px;letter-spacing:.12em}header h1{margin:8px 0 4px;font-size:29px}header p{margin:0;color:#b9c8c1}.meta{min-width:190px;text-align:right}.client{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:22px 0;padding:16px;border:1px solid #dce1dc;border-radius:14px}.client p{margin:3px 0}table{width:100%;border-collapse:collapse}th{padding:10px 8px;border-bottom:2px solid #10201a;text-align:left;font-size:10px;text-transform:uppercase}td{padding:11px 8px;border-bottom:1px solid #dce1dc;vertical-align:top}td:first-child{width:28px;color:#74817b}td:nth-child(3),td:nth-child(4),td:nth-child(5){white-space:nowrap;text-align:right}td small{display:block;margin-top:3px;color:#74817b}.total{display:flex;justify-content:flex-end;gap:25px;margin-top:18px;padding:16px;border-radius:12px;background:#f0f2ed;font-size:18px}.note{margin-top:18px;padding:15px;border-left:4px solid #d8ef69;background:#f7f8f4}.footer{margin-top:28px;padding-top:12px;border-top:1px solid #dce1dc;color:#74817b;font-size:11px}@media print{.no-print{display:none}}</style></head><body><header><div><b>VOLTARES / І.Н.К. ТОВ</b><h1>Комерційна пропозиція</h1><p>${escapeHtml(quote.number || '')}</p></div><div class="meta"><p>${escapeHtml(status)}</p>${quote.validUntil ? `<p>Дійсна до: ${escapeHtml(quote.validUntil)}</p>` : ''}<p>${escapeHtml(formatDate(quote.createdAt))}</p></div></header><section class="client"><div><strong>Клієнт</strong><p>${escapeHtml(quote.customerName || 'Не вказано')}</p>${quote.company ? `<p>${escapeHtml(quote.company)}</p>` : ''}</div><div><strong>Контакти</strong>${quote.phone ? `<p>${escapeHtml(quote.phone)}</p>` : ''}${quote.email ? `<p>${escapeHtml(quote.email)}</p>` : ''}${quote.city ? `<p>${escapeHtml(quote.city)}</p>` : ''}</div></section><table><thead><tr><th>№</th><th>Позиція</th><th>Кількість</th><th>Ціна</th><th>Сума</th></tr></thead><tbody>${rows || '<tr><td colspan="5">Позиції ще не додані</td></tr>'}</tbody></table><div class="total"><span>Разом</span><strong>${escapeHtml(formatMoney(subtotal, currency))}</strong></div>${quote.note ? `<div class="note"><strong>Примітка</strong><p>${escapeHtml(quote.note)}</p></div>` : ''}<div class="footer">Voltares · І.Н.К. ТОВ · +38 067 672 18 52 · ink.torg@gmail.com</div></body></html>`;
+}
+
+function saveQuoteAsPdf(quote) {
+  const popup = window.open('about:blank', '_blank');
+  if (!popup) { showApiNotice('Браузер заблокував вікно PDF. Дозвольте спливні вікна для CRM.'); return; }
+  popup.opener = null;
+  popup.document.open();
+  popup.document.write(quotePdfDocument(quote));
+  popup.document.close();
+  popup.focus();
+  setTimeout(() => popup.print(), 250);
+}
+
 function renderQuotes() {
   const list = $('#quote-list');
   if (!list) return;
   if (!state.quotes.length) { list.innerHTML = emptyState('Пропозицій ще немає', 'Створіть першу пропозицію з товарів каталогу або власних позицій.'); return; }
-  list.innerHTML = state.quotes.map(quote => `<article data-id="${escapeHtml(String(quote._id))}"><header><div><span class="view-caption">${escapeHtml(quote.number || 'КП')}</span><h3>${escapeHtml(quote.customerName || quote.company || 'Клієнт')}</h3><p>${escapeHtml([quote.company, quote.email, quote.phone].filter(Boolean).join(' · '))}</p></div><label class="quote-status-control"><span>Статус КП</span><select class="quote-status"><option value="draft">Чернетка</option><option value="sent">Надіслано</option><option value="accepted">Підтверджено клієнтом</option><option value="completed">Реалізовано</option><option value="declined">Відхилено</option></select></label></header><ul>${(quote.items || []).slice(0, 5).map(item => `<li><span>${escapeHtml(item.name)}</span><b>${escapeHtml(item.quantity)} ${escapeHtml(item.unit || 'шт.')} · ${escapeHtml(formatMoney(Number(item.quantity) * Number(item.unitPrice), quote.currency))}</b></li>`).join('')}${(quote.items || []).length > 5 ? `<li><span>Ще ${(quote.items || []).length - 5} позицій</span></li>` : ''}</ul><footer><strong>${escapeHtml(formatMoney(quote.subtotal, quote.currency))}</strong><small class="email-delivery ${quote.emailStatus === 'sent' ? 'is-sent' : ''}">${quote.emailStatus === 'sent' ? `Надіслано ${formatDate(quote.sentAt)}` : quote.emailStatus === 'failed' ? `Помилка email: ${escapeHtml(quote.emailError || '')}` : 'Ще не надсилалось'}</small><div><button class="secondary-admin quote-edit" type="button">Редагувати</button><button class="primary-admin quote-send" type="button">${quote.emailStatus === 'sent' ? 'Надіслати повторно' : 'Надіслати'}</button><button class="secondary-admin danger-admin quote-delete" type="button">Видалити</button></div></footer></article>`).join('');
+  list.innerHTML = state.quotes.map(quote => `<article data-id="${escapeHtml(String(quote._id))}"><header><div><span class="view-caption">${escapeHtml(quote.number || 'КП')}</span><h3>${escapeHtml(quote.customerName || quote.company || 'Клієнт')}</h3><p>${escapeHtml([quote.company, quote.email, quote.phone].filter(Boolean).join(' · '))}</p></div><label class="quote-status-control"><span>Статус КП</span><select class="quote-status"><option value="draft">Чернетка</option><option value="sent">Надіслано</option><option value="accepted">Підтверджено клієнтом</option><option value="completed">Реалізовано</option><option value="declined">Відхилено</option></select></label></header><ul>${(quote.items || []).slice(0, 5).map(item => `<li><span>${escapeHtml(item.name)}</span><b>${escapeHtml(item.quantity)} ${escapeHtml(item.unit || 'шт.')} · ${escapeHtml(formatMoney(Number(item.quantity) * Number(item.unitPrice), quote.currency))}</b></li>`).join('')}${(quote.items || []).length > 5 ? `<li><span>Ще ${(quote.items || []).length - 5} позицій</span></li>` : ''}</ul><footer><strong>${escapeHtml(formatMoney(quote.subtotal, quote.currency))}</strong><small class="email-delivery ${quote.emailStatus === 'sent' ? 'is-sent' : ''}">${quote.emailStatus === 'sent' ? `Надіслано ${formatDate(quote.sentAt)}` : quote.emailStatus === 'failed' ? `Помилка email: ${escapeHtml(quote.emailError || '')}` : 'Ще не надсилалось'}</small><div><button class="secondary-admin quote-pdf" type="button">Зберегти PDF</button><button class="secondary-admin quote-edit" type="button">Редагувати</button><button class="primary-admin quote-send" type="button">${quote.emailStatus === 'sent' ? 'Надіслати повторно' : 'Надіслати'}</button><button class="secondary-admin danger-admin quote-delete" type="button">Видалити</button></div></footer></article>`).join('');
   $$('.quote-status', list).forEach(select => {
     const quote = state.quotes.find(item => String(item._id) === select.closest('article').dataset.id);
     select.value = quote?.status || 'draft';
@@ -684,6 +721,7 @@ function renderQuotes() {
       finally { if (select.isConnected) select.disabled = false; }
     });
   });
+  $$('.quote-pdf', list).forEach(button => button.addEventListener('click', () => saveQuoteAsPdf(state.quotes.find(item => String(item._id) === button.closest('article').dataset.id))));
   $$('.quote-edit', list).forEach(button => button.addEventListener('click', () => openQuoteDialog(state.quotes.find(item => String(item._id) === button.closest('article').dataset.id))));
   $$('.quote-send', list).forEach(button => button.addEventListener('click', async () => {
     setBusy(button, true);
@@ -846,7 +884,7 @@ $('#quote-add-custom')?.addEventListener('click', addQuoteCustomItem);
 quoteField('currency')?.addEventListener('change', event => convertQuoteCurrency(event.currentTarget.value));
 $('.quote-dialog-close')?.addEventListener('click', () => quoteDialog.close());
 $('.quote-dialog-cancel')?.addEventListener('click', () => quoteDialog.close());
-quoteDialog?.addEventListener('click', event => { if (event.target === quoteDialog) quoteDialog.close(); });
+quoteDialog?.addEventListener('cancel', event => event.preventDefault());
 quoteForm?.addEventListener('submit', async event => {
   event.preventDefault();
   const action = event.submitter?.dataset.quoteAction || 'save'; const button = event.submitter;
@@ -1134,7 +1172,7 @@ api('/api/auth/me')
     if (userRole) userRole.textContent = currentAdmin?.role === 'admin' ? 'Основний адміністратор' : 'Співробітник компанії';
     if (addUser) addUser.hidden = currentAdmin?.role !== 'admin';
     if (usersHelp && currentAdmin?.role !== 'admin') usersHelp.textContent = 'Ви бачите склад команди, але можете змінити пароль лише власного акаунта. Керування іншими обліковими записами доступне основному адміністратору.';
-    return loadAll();
+    return loadAll().then(startCrmPolling);
   })
   .catch(error => {
     if (error.message !== 'AUTH_REQUIRED') {

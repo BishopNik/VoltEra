@@ -221,7 +221,7 @@ $('.catalog-enquiry-form').addEventListener('submit', async event => {
 
 $('.catalog-cart-trigger').addEventListener('click', () => { renderCart(); cartDialog.showModal(); });
 $('.catalog-cart-close').addEventListener('click', () => cartDialog.close());
-cartDialog.addEventListener('click', event => { if (event.target === cartDialog) cartDialog.close(); });
+cartDialog.addEventListener('cancel', event => event.preventDefault());
 $('#catalog-cart-items').addEventListener('click', event => {
   const button = event.target.closest('button[data-action]'); if (!button) return;
   const index = Number(button.closest('[data-index]').dataset.index); const item = cart[index]; if (!item) return;
@@ -241,7 +241,9 @@ $('.catalog-cart-form').addEventListener('submit', async event => {
   submit.classList.remove('is-loading');
   if (response?.ok) {
     cart = []; saveCart(); form.reset();
-    formStatus.textContent = result.emailCopySent ? 'Комплект надіслано. Копія вже у вашій пошті.' : 'Комплект прийнято, але копію не вдалося надіслати. Інженер усе одно отримав заявку.';
+    const requestNumber = result._id ? ` №${String(result._id).slice(-8)}` : '';
+    formStatus.textContent = result.emailCopySent ? `Заявку${requestNumber} збережено. Копія вже у вашій пошті.` : `Заявку${requestNumber} збережено, але копію не вдалося надіслати. Інженер усе одно отримав її.`;
+    setTimeout(() => { if (cartDialog.open) cartDialog.close(); }, 1400);
   } else {
     submit.disabled = false;
     formStatus.textContent = result.error === 'EMAIL_REQUIRED_FOR_CART' ? 'Вкажіть коректний email для копії запиту.' : 'Не вдалося надіслати комплект. Перевірте поля та спробуйте ще раз.';
