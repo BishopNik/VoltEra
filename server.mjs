@@ -49,6 +49,7 @@ const EQUIPMENT_COMMERCE_MIGRATION_ID = 'set-equipment-commerce-fields-2026-07-1
 const PV_CATALOG_MIGRATION_ID = 'add-pv-panels-and-green-protect-2026-07-20-v1';
 const PV_CATALOG_CLEANUP_ID = 'clean-pv-catalog-2026-07-20-v1';
 const GREEN_PROTECT_PURCHASE_MIGRATION_ID = 'set-green-protect-purchase-prices-2026-07-20-v1';
+const PV_CATALOG_MEDIA_MIGRATION_ID = 'set-pv-catalog-media-and-usage-2026-07-21-v2';
 const EQUIPMENT_RETAIL_PRICES = Object.freeze({
   'SE-G5.1 Pro-B':'38 900 грн',
   'SE-F5 Pro-C':'38 500 грн',
@@ -174,22 +175,33 @@ const REQUESTED_EQUIPMENT = [
 ];
 
 const REQUESTED_SOLAR_PANELS = [
-  ['tw-solar-440-bf','TW Solar','TWMND-54HB440W BF','440 W','N-type · двостороння',75.4,3990,90],
-  ['suntech-440-bf','Suntech','STP440S-C54/Nshb BF','440 W','N-type · двостороння',75.4,3990,90],
-  ['sunova-610','Sunova','SS-BG610-66MDH','610 W','Mono · двостороння',99.55,4990,113],
-  ['aiko-610','AIKO','A610-MAH72Mw','610 W','ABC N-type',108.7,5290,120],
-  ['longi-615-bf','LONGi','Hi-MO X10 615W BF','615 W','N-type · двостороння',106.5,5290,120],
-  ['longi-630','LONGi','Hi-MO 7 630W','630 W','N-type',105.8,5290,120],
-  ['tw-solar-640-bf','TW Solar','TWMNH-66HD640W BF','640 W','N-type · двостороння',107.4,5390,122],
-  ['aiko-645-bf','AIKO','A645-MAH78Db BF','645 W','ABC N-type · двостороння',114.65,6290,142]
-].map(([_id,brand,model,power,technology,purchasePrice,price,priceUsd],homeOrder)=>({_id,brand,model,power,technology,phase:technology,voltage:'',purchasePrice,purchaseCurrency:'USD',price:`${price.toLocaleString('uk-UA')} грн`,priceUsd,description:`${brand} ${model} — сонячна панель ${power}. Актуальну наявність, логістику та сумісність зі схемою станції підтвердить інженер.`,images:['/assets/catalog/solar-panel.svg'],status:'active',homeOrder:homeOrder+1}));
+  ['tw-solar-440-bf','TW Solar','TWMND-54HB440W BF','440 W','N-type · двостороння',75.4,3990,90,'https://static.tildacdn.one/stor6161-6136-4830-a362-336632633732/37745904.jpg','https://soncedar.org/equipment/solar_panel/tproduct/331143915-702966801902-tw-solar-tongwei-440-vt-monokristalchna','дахових і наземних домашніх СЕС'],
+  ['suntech-440-bf','Suntech','STP440S-C54/Nshb BF','440 W','N-type · двостороння',75.4,3990,90,'https://static.wixstatic.com/media/264abb_2d650a535d064493a3f0c9db305f897e~mv2.png/v1/fit/w_500,h_500,q_90/file.png','https://www.suntech-power.com/wp-content/uploads/download/product-specification/EN_STP420-440S-C54-Nshb.pdf','дахових і наземних домашніх СЕС'],
+  ['sunova-610','Sunova','SS-BG610-66MDH','610 W','Mono · двостороння',99.55,4990,113,'https://www.meugerador.com.br/cdn/shop/files/Painel_Solar_Sunova_610W_Bifacial_Frame_Aluminio_Diagonal.png?v=1779799728','https://www.sunova-solar.com/attached/file/en/datasheet/L-Series/Tangra%20L%20Pro%20HD%20%28610-630%29-66MDH-G11-30mm.pdf','великих дахових, наземних і комерційних СЕС'],
+  ['aiko-610','AIKO','A610-MAH72Mw','610 W','ABC N-type',108.7,5290,120,'https://www.solarics.de/cdn/shop/files/Solarics_3f77f80f-1375-4413-ae80-03002e471859.png?v=1709740257','https://www.solarics.de/products/aiko-solarmodul-aiko-a610-mah72mw','дахових, наземних і комерційних СЕС'],
+  ['longi-615-bf','LONGi','Hi-MO X10 615W BF','615 W','N-type · двостороння',106.5,5290,120,'https://static.longi.com/Images_412x612_11869e6bbf.png','https://www.longi.com/en/products/modules/hi-mo-7/','великих дахових, наземних і комерційних СЕС'],
+  ['longi-630','LONGi','Hi-MO 7 630W','630 W','N-type',105.8,5290,120,'https://static.longi.com/Images_412x612_11869e6bbf.png','https://www.longi.com/en/products/modules/hi-mo-7/','наземних і промислових СЕС'],
+  ['tw-solar-640-bf','TW Solar','TWMNH-66HD640W BF','640 W','N-type · двостороння',107.4,5390,122,'https://vinur.com.ua/image/catalog/product/7063/sonyachna-batareya-640vt-n-type-dual-glass-bifacial-twmnh-66hd640-cable-400-200-mm-tongwei-jpg-1.jpg','https://vinur.com.ua/ua/products/solnechnie-batarei/komplektuyushie/solnechnye-paneli/twmnh-66hd640','наземних і промислових СЕС'],
+  ['aiko-645-bf','AIKO','A645-MAH78Db BF','645 W','ABC N-type · двостороння',114.65,6290,142,'https://aikosolar.com/wp-content/uploads/2024/11/Polaris-1N-Plus-66-Dual-Glass-635W-665W-detail.jpg','https://aikosolar.com/en/products/stellar-1nplus66-dual-glass/','наземних, комерційних і промислових СЕС']
+].map(([_id,brand,model,power,technology,purchasePrice,price,priceUsd,image,sourceUrl,usage],homeOrder)=>({_id,brand,model,power,technology,phase:technology,voltage:'',purchasePrice,purchaseCurrency:'USD',price:`${price.toLocaleString('uk-UA')} грн`,priceUsd,description:`${brand} ${model} — сонячна панель ${power} для ${usage}. Панель можна придбати окремо або разом із комплектом для підключення.`,sourceUrl,images:[image],status:'active',homeOrder:homeOrder+1}));
 
+const etiProductId=code=>String(code).padStart(9,'0');
+const etiUsage=category=>({
+  'Автоматичні вимикачі':'захисту DC-ліній сонячної станції від перевантаження та короткого замикання',
+  'Запобіжники gPV':'захисту фотоелектричних стрінгів від надструму та короткого замикання',
+  'Тримачі запобіжників':'встановлення та безпечної заміни gPV-запобіжників у DC-щиті',
+  'Захист від перенапруги':'захисту інвертора й DC-ліній СЕС від імпульсних та грозових перенапруг',
+  'DC роз’єднувачі':'ручного безпечного відключення сонячних панелей від інвертора',
+  'Рубильники навантаження':'комутації та ізоляції високострумових DC-ліній сонячної станції'
+}[category]||'побудови та захисту електричних кіл сонячної станції');
 const etiProduct=(code,name,category,listPrice,spec='')=>({
   _id:`eti-${code}`,code,brand:'ETI',model:name,name,category,listPrice,
   purchasePrice:Math.round(listPrice*0.65),purchaseCurrency:'UAH',
   price:`${Math.round(listPrice*0.85).toLocaleString('uk-UA')} грн`,priceUsd:0,
-  power:spec,phase:category,voltage:'DC',spec,sourceUrl:'https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect',
-  images:['/assets/catalog/green-protect.svg'],status:'active'
+  power:spec,phase:category,voltage:'DC',spec,
+  description:`${name} використовується для ${etiUsage(category)}. Компонент можна придбати окремо у потрібній кількості.`,
+  sourceUrl:`https://www.eti.ua/produktsiya-ua/${etiProductId(code)}`,
+  images:[`https://www.eti.ua/media/eti/images/product_db/idents/${etiProductId(code)}/en-GB/photo/${etiProductId(code)}_Photo.webp`],status:'active'
 });
 const REQUESTED_GREEN_PROTECT = [
   etiProduct('1903230','ETIMAT P10 DC 2p C 16A','Автоматичні вимикачі',676,'2P · C16 · DC'),
@@ -304,6 +316,16 @@ class FileStore {
       }
       this.data._migrations.push(GREEN_PROTECT_PURCHASE_MIGRATION_ID); changed=true;
     }
+    if(!this.data._migrations.includes(PV_CATALOG_MEDIA_MIGRATION_ID)){
+      const now=new Date().toISOString();
+      for(const [type,records] of [['solarPanels',REQUESTED_SOLAR_PANELS],['greenProtect',REQUESTED_GREEN_PROTECT]]){
+        for(const source of records){
+          const item=this.data[type].find(entry=>source.code?String(entry.code)===String(source.code):String(entry.model)===String(source.model));
+          if(item)Object.assign(item,{images:source.images,description:source.description,sourceUrl:source.sourceUrl,updatedAt:now});
+        }
+      }
+      this.data._migrations.push(PV_CATALOG_MEDIA_MIGRATION_ID); changed=true;
+    }
     for(const review of this.data.reviews||[]){ if(review.status==='waiting'){review.status='published';changed=true;} if(review.verified===undefined){ review.verified=false; review.verifiedBy=''; review.verifiedAt=null; review.audit=[]; changed=true; } if(!Array.isArray(review.audit)){ review.audit=[]; changed=true; } }
     if(changed)await this.persist();
   }
@@ -408,6 +430,17 @@ class MongoStore {
         await this.db.collection('greenProtect').updateMany({code:source.code},{$set:{purchasePrice:source.purchasePrice,purchaseCurrency:'UAH',updatedAt:now}});
       }
       try{await migrations.updateOne({_id:GREEN_PROTECT_PURCHASE_MIGRATION_ID},{$setOnInsert:{completedAt:now}},{upsert:true});}
+      catch(error){if(error?.code!==11000)throw error;}
+    }
+    if(!await migrations.findOne({_id:PV_CATALOG_MEDIA_MIGRATION_ID})){
+      const now=new Date().toISOString();
+      for(const [type,records] of [['solarPanels',REQUESTED_SOLAR_PANELS],['greenProtect',REQUESTED_GREEN_PROTECT]]){
+        for(const source of records){
+          const identity=source.code?{code:source.code}:{model:source.model};
+          await this.db.collection(type).updateMany(identity,{$set:{images:source.images,description:source.description,sourceUrl:source.sourceUrl,updatedAt:now}});
+        }
+      }
+      try{await migrations.updateOne({_id:PV_CATALOG_MEDIA_MIGRATION_ID},{$setOnInsert:{completedAt:now}},{upsert:true});}
       catch(error){if(error?.code!==11000)throw error;}
     }
     await this.db.collection('reviews').updateMany({verified:{$exists:false}},{$set:{verified:false,verifiedBy:'',verifiedAt:null,audit:[]}});
@@ -541,7 +574,7 @@ async function body(req,limit=2_500_000){
   throw new Error('UNSUPPORTED_CONTENT_TYPE');
 }
 function compareSafe(a='',b=''){ const left=Buffer.from(String(a)); const right=Buffer.from(String(b)); if(left.length!==right.length)return false; return crypto.timingSafeEqual(left,right); }
-function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','status','manager','checkedBy','viewedAt','attribution'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','status','images','homeMode','homeOrder'],solarPanels:['brand','model','power','technology','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','status','images','homeOrder'],greenProtect:['code','brand','model','name','category','spec','power','phase','voltage','listPrice','purchasePrice','purchaseCurrency','price','priceUsd','description','sourceUrl','status','images']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
+function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','status','manager','checkedBy','viewedAt','attribution'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','status','images','homeMode','homeOrder'],solarPanels:['brand','model','power','technology','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','sourceUrl','status','images','homeOrder'],greenProtect:['code','brand','model','name','category','spec','power','phase','voltage','listPrice','purchasePrice','purchaseCurrency','price','priceUsd','description','sourceUrl','status','images']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
 function sanitizeAttribution(value={}){
   if(!value||typeof value!=='object'||Array.isArray(value))return undefined;
   const allowed=['utm_source','utm_medium','utm_campaign','utm_content','utm_term','gclid','landing_page','referrer'];

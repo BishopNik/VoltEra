@@ -704,7 +704,7 @@ async function openEquipment(item) {
     $$('button', gallery).forEach(item => item.classList.toggle('is-active', item === button));
   }));
   $('h2', equipmentDialog).textContent = `${item.brand || 'ІНК'} ${item.model || ''}`.trim();
-  $('.equipment-dialog-copy', equipmentDialog).innerHTML = renderSimpleMarkdown(localizedContent(item, 'description', uiText('Модель використовується в проєктних системах ІНК. Точну сумісність, комплектацію й ціну інженер підтвердить після карти навантажень.', 'This model is used in INK engineered systems. An engineer will confirm exact compatibility, configuration and price after reviewing your load profile.')));
+  $('.equipment-dialog-copy', equipmentDialog).innerHTML = renderSimpleMarkdown(localizedContent(item, 'description', uiText('Товар можна придбати окремо. Його призначення та основні характеристики вказані в картці.', 'This product can be purchased separately. Its purpose and key specifications are shown in the product card.')));
   $('[data-equipment-field="power"]', equipmentDialog).textContent = item.power || '—';
   $('[data-equipment-field="grid"]', equipmentDialog).textContent = [item.phase, item.voltage].filter(Boolean).join(' · ') || '—';
   $('[data-equipment-field="price"]', equipmentDialog).textContent = equipmentPriceLabel(item);
