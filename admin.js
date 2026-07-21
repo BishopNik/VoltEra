@@ -760,7 +760,7 @@ function quoteProductOptions() {
 function renderQuoteDraftItems() {
   const list = $('#quote-items');
   if (!list) return;
-  list.innerHTML = quoteDraftItems.length ? quoteDraftItems.map((item, index) => `<article data-index="${index}" class="${item.kind === 'custom' ? 'is-custom' : ''}"><div class="quote-line-order"><button class="quote-drag-handle" type="button" draggable="true" aria-label="Перетягнути позицію ${index + 1}" title="Перетягніть, щоб змінити порядок">↕</button><span class="quote-line-number">${String(index + 1).padStart(2, '0')}</span><button class="quote-line-move" type="button" data-direction="-1" aria-label="Перемістити позицію вище" title="Перемістити вище" ${index === 0 ? 'disabled' : ''}>↑</button><button class="quote-line-move" type="button" data-direction="1" aria-label="Перемістити позицію нижче" title="Перемістити нижче" ${index === quoteDraftItems.length - 1 ? 'disabled' : ''}>↓</button></div><div class="quote-line-fields"><label>Назва<input data-field="name" value="${escapeHtml(item.name || '')}" placeholder="Товар або робота"></label><label>Опис<input data-field="description" value="${escapeHtml(item.description || '')}" placeholder="Необов’язкове уточнення"></label></div><label>Кількість<input data-field="quantity" type="number" min="0.01" step="0.01" value="${escapeHtml(item.quantity || 1)}"></label><label>Од.<input data-field="unit" value="${escapeHtml(item.unit || 'шт.')}" maxlength="20"></label><label>Ціна за од.<input data-field="unitPrice" type="number" min="0" step="0.01" value="${escapeHtml(item.unitPrice || 0)}"></label><strong data-line-total>${escapeHtml(formatMoney(Number(item.quantity || 0) * Number(item.unitPrice || 0), quoteField('currency')?.value || 'UAH'))}</strong><button class="quote-line-remove" type="button" aria-label="Видалити позицію">×</button></article>`).join('') : '<div class="empty-state"><strong>Чернетка поки порожня</strong>Її вже можна зберегти або додати товар із каталогу чи довільний рядок.</div>';
+  list.innerHTML = quoteDraftItems.length ? quoteDraftItems.map((item, index) => `<article data-index="${index}" class="${item.kind === 'custom' ? 'is-custom' : ''}"><div class="quote-line-order"><button class="quote-drag-handle" type="button" draggable="true" aria-label="Перетягнути позицію ${index + 1}" title="Перетягніть, щоб змінити порядок">↕</button><span class="quote-line-number">${String(index + 1).padStart(2, '0')}</span><button class="quote-line-move" type="button" data-direction="-1" aria-label="Перемістити позицію вище" title="Перемістити вище" ${index === 0 ? 'disabled' : ''}>↑</button><button class="quote-line-move" type="button" data-direction="1" aria-label="Перемістити позицію нижче" title="Перемістити нижче" ${index === quoteDraftItems.length - 1 ? 'disabled' : ''}>↓</button></div><div class="quote-line-fields"><label>Назва<input data-field="name" value="${escapeHtml(item.name || '')}" placeholder="Товар або робота"></label><label>Опис<input data-field="description" value="${escapeHtml(item.description || '')}" placeholder="Необов’язкове уточнення"></label></div><label>Кількість<input data-field="quantity" type="number" min="1" step="1" inputmode="numeric" value="${escapeHtml(Math.max(1, Math.round(Number(item.quantity) || 1)))}"></label><label>Од.<input data-field="unit" value="${escapeHtml(item.unit || 'шт.')}" maxlength="20"></label><label>Ціна за од.<input data-field="unitPrice" type="number" min="0" step="0.01" value="${escapeHtml(item.unitPrice || 0)}"></label><strong data-line-total>${escapeHtml(formatMoney(Math.max(1, Math.round(Number(item.quantity) || 1)) * Number(item.unitPrice || 0), quoteField('currency')?.value || 'UAH'))}</strong><button class="quote-line-remove" type="button" aria-label="Видалити позицію">×</button></article>`).join('') : '<div class="empty-state"><strong>Чернетка поки порожня</strong>Її вже можна зберегти або додати товар із каталогу чи довільний рядок.</div>';
   updateQuoteTotal();
 }
 
@@ -773,7 +773,7 @@ function updateQuoteTotal() {
 
 function openQuoteDialog(item = null) {
   activeQuote = item;
-  quoteDraftItems = (item?.items || []).map(line => ({ ...line }));
+  quoteDraftItems = (item?.items || []).map(line => ({ ...line, quantity:Math.max(1, Math.round(Number(line.quantity) || 1)) }));
   quoteForm.reset();
   quoteField('customerName').value = item?.customerName || '';
   quoteField('company').value = item?.company || '';
@@ -808,7 +808,11 @@ function addQuoteCustomItem() {
 $('#quote-items')?.addEventListener('input', event => {
   const input = event.target.closest('[data-field]'); if (!input) return;
   const index = Number(input.closest('article').dataset.index); if (!quoteDraftItems[index]) return;
-  quoteDraftItems[index][input.dataset.field] = ['quantity','unitPrice'].includes(input.dataset.field) ? Number(input.value || 0) : input.value;
+  if (input.dataset.field === 'quantity') {
+    const quantity = Math.max(1, Math.round(Number(input.value) || 1));
+    input.value = String(quantity);
+    quoteDraftItems[index].quantity = quantity;
+  } else quoteDraftItems[index][input.dataset.field] = input.dataset.field === 'unitPrice' ? Number(input.value || 0) : input.value;
   updateQuoteTotal();
 });
 function moveQuoteItem(from, to) {

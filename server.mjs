@@ -603,7 +603,7 @@ function sanitizeQuoteItems(value){
     productId:cleanText(item?.productId,120),
     name:cleanText(item?.name,220),
     description:cleanText(item?.description,700),
-    quantity:clampNumber(item?.quantity,0.01,100000),
+    quantity:Math.round(clampNumber(item?.quantity,1,100000)),
     unit:cleanText(item?.unit||'шт.',30),
     unitPrice:clampNumber(item?.unitPrice,0,1_000_000_000)
   })).filter(item=>item.name);
