@@ -508,6 +508,7 @@ const equipmentNext = $('#equipment-next');
 const equipmentPageLabel = $('#equipment-page-label');
 const equipmentAllLink = $('#equipment-all-link');
 const equipmentImageLightbox = $('#equipment-image-lightbox');
+const equipmentCartKey = 'voltares-catalog-cart-v1';
 const equipmentItems = new Map();
 const equipmentPageSize = 6;
 let equipmentData = [];
@@ -519,6 +520,33 @@ let equipmentBodyStyle = null;
 let activeEquipmentItem = null;
 let activeEquipmentBrand = 'all';
 let equipmentTitleFitFrame = 0;
+function readHomepageCart() {
+  try { const value = JSON.parse(localStorage.getItem(equipmentCartKey) || '[]'); return Array.isArray(value) ? value : []; }
+  catch { return []; }
+}
+function updateHomepageCartAction(item = activeEquipmentItem) {
+  const cart = readHomepageCart();
+  const collection = item?._collection || 'equipment';
+  const count = cart.reduce((sum, entry) => sum + Number(entry.quantity || 0), 0);
+  const inCart = item?._id && cart.some(entry => entry.id === String(item._id) && entry.collection === collection);
+  const button = $('.equipment-add-to-cart', equipmentDialog);
+  const link = $('.equipment-open-cart', equipmentDialog);
+  if (button) { button.classList.toggle('is-added', Boolean(inCart)); button.firstChild.textContent = inCart ? 'Додати ще один ' : 'Додати до кошика '; }
+  if (link) link.firstChild.textContent = count ? `Відкрити кошик (${count}) і надіслати ` : 'Відкрити кошик і надіслати ';
+}
+function addActiveEquipmentToCart() {
+  const item = activeEquipmentItem;
+  if (!item?._id) return;
+  const cart = readHomepageCart();
+  const collection = item._collection || 'equipment';
+  const existing = cart.find(entry => entry.id === String(item._id) && entry.collection === collection);
+  if (existing) existing.quantity = Math.min(999, Number(existing.quantity || 1) + 1);
+  else cart.push({ id:String(item._id), collection, name:`${item.brand || ''} ${item.model || item.name || ''}`.trim(), power:item.power || item.spec || '', phase:item.phase || item.technology || item.category || '', voltage:item.voltage || '', price:item.price || '', priceUsd:Number(item.priceUsd || 0), image:(Array.isArray(item.images) ? item.images[0] : '') || item.thumbnail || item.image || '', quantity:1 });
+  localStorage.setItem(equipmentCartKey, JSON.stringify(cart.slice(0, 60)));
+  updateHomepageCartAction(item);
+  const button = $('.equipment-add-to-cart', equipmentDialog);
+  if (button) { button.classList.add('is-confirmed'); window.setTimeout(() => button.classList.remove('is-confirmed'), 700); }
+}
 function fitEquipmentCardTitles() {
   equipmentTitleFitFrame = 0;
   $$('.equipment-card h3', publicEquipment).forEach(title => {
@@ -708,6 +736,7 @@ async function openEquipment(item) {
   $('[data-equipment-field="power"]', equipmentDialog).textContent = item.power || '—';
   $('[data-equipment-field="grid"]', equipmentDialog).textContent = [item.phase, item.voltage].filter(Boolean).join(' · ') || '—';
   $('[data-equipment-field="price"]', equipmentDialog).textContent = equipmentPriceLabel(item);
+  updateHomepageCartAction(item);
   const orderForm = $('.equipment-order-form', equipmentDialog);
   const orderStatus = $('.equipment-order-status', equipmentDialog);
   const extraFields = $('.equipment-extra-fields', equipmentDialog);
@@ -760,6 +789,7 @@ $('.equipment-more-toggle')?.addEventListener('click', event => {
   fields.hidden = expanded;
   $('span', button).textContent = expanded ? '↓' : '↑';
 });
+$('.equipment-add-to-cart')?.addEventListener('click', addActiveEquipmentToCart);
 
 $('.equipment-order-form')?.addEventListener('submit', async event => {
   event.preventDefault();

@@ -65,7 +65,9 @@ function render() {
   grid.innerHTML = filtered.length ? filtered.map(item => {
     const image = productImage(item);
     const name = productName(item);
-    return `<a class="catalog-card" href="/products/${encodeURIComponent(item._id || '')}" data-id="${escapeHtml(item._id || '')}" data-collection="${escapeHtml(item._collection || 'equipment')}" aria-label="Відкрити ${escapeHtml(name)}"><span class="catalog-card-media">${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(name)}" loading="lazy" width="520" height="520">` : '⚡'}</span><span class="catalog-card-copy"><span class="catalog-card-brand">${escapeHtml(item.brand || 'ІНК')}</span><h3>${escapeHtml(item.model || item.name || '')}</h3><span class="catalog-card-specs">${escapeHtml([item.power || item.spec, phaseLabel(item.phase || item.technology || item.category), item.voltage].filter(Boolean).join(' · '))}</span><span class="catalog-card-bottom"><strong class="catalog-card-price">${escapeHtml(productPrice(item))}</strong><span class="catalog-card-detail">Детальніше ↗</span></span></span></a>`;
+    const collection = item._collection || 'equipment';
+    const added = cart.some(entry => entry.id === String(item._id) && entry.collection === collection);
+    return `<article class="catalog-card" data-id="${escapeHtml(item._id || '')}" data-collection="${escapeHtml(collection)}"><span class="catalog-card-media">${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(name)}" loading="lazy" width="520" height="520">` : '⚡'}</span><span class="catalog-card-copy"><span class="catalog-card-brand">${escapeHtml(item.brand || 'ІНК')}</span><h3>${escapeHtml(item.model || item.name || '')}</h3><span class="catalog-card-specs">${escapeHtml([item.power || item.spec, phaseLabel(item.phase || item.technology || item.category), item.voltage].filter(Boolean).join(' · '))}</span><button class="catalog-card-cart${added ? ' is-added' : ''}" type="button" data-cart-id="${escapeHtml(item._id || '')}" data-cart-collection="${escapeHtml(collection)}"><span>${added ? 'Ще один до кошика' : 'Додати до кошика'}</span><b aria-hidden="true">＋</b></button><span class="catalog-card-bottom"><strong class="catalog-card-price">${escapeHtml(productPrice(item))}</strong><a class="catalog-card-detail" href="/products/${encodeURIComponent(item._id || '')}">Детальніше ↗</a></span></span></article>`;
   }).join('') : '<div class="catalog-status"><b>За вашим запитом нічого не знайдено.</b></div>';
 }
 
@@ -120,7 +122,7 @@ function cartSnapshot(item) {
   return { id: String(item._id), collection: item._collection || 'equipment', name: productName(item), power: item.power || item.spec || '', phase: item.phase || item.technology || item.category || '', voltage: item.voltage || '', price: item.price || '', priceUsd: Number(item.priceUsd || 0), image: productImage(item), quantity: 1 };
 }
 
-function addToCart(item) {
+function addToCart(item, sourceButton = null) {
   if (!item?._id) return;
   const collection = item._collection || 'equipment';
   const existing = cart.find(entry => entry.id === String(item._id) && entry.collection === collection);
@@ -129,17 +131,27 @@ function addToCart(item) {
   saveCart();
   const button = $('.catalog-add-to-cart', dialog);
   button.classList.add('is-added');
-  button.querySelector('span').textContent = 'Додано до комплекту';
-  setTimeout(() => { if (button.isConnected) button.querySelector('span').textContent = 'Додати до комплекту'; }, 1300);
+  button.querySelector('span').textContent = 'Додано до кошика';
+  setTimeout(() => { if (button.isConnected) button.querySelector('span').textContent = 'Додати до кошика'; }, 1300);
+  if (sourceButton) {
+    sourceButton.classList.add('is-added');
+    sourceButton.querySelector('span').textContent = 'Додано — ще один?';
+    setTimeout(() => { if (sourceButton.isConnected) sourceButton.querySelector('span').textContent = 'Ще один до кошика'; }, 1300);
+  }
 }
 
 function renderCart() {
   const totalCount = cart.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
   $('#catalog-cart-count').textContent = totalCount;
   $('.catalog-cart-trigger').classList.toggle('has-items', totalCount > 0);
+  $$('.catalog-card-cart').forEach(button => {
+    const added = cart.some(entry => entry.id === button.dataset.cartId && entry.collection === button.dataset.cartCollection);
+    button.classList.toggle('is-added', added);
+    button.querySelector('span').textContent = added ? 'Ще один до кошика' : 'Додати до кошика';
+  });
   const list = $('#catalog-cart-items');
   if (!list) return;
-  list.innerHTML = cart.length ? cart.map((item, index) => `<article class="catalog-cart-item" data-index="${index}">${item.image ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}">` : '<span class="catalog-cart-placeholder">⚡</span>'}<div><small>${escapeHtml([item.power, item.phase, item.voltage].filter(Boolean).join(' · '))}</small><strong>${escapeHtml(item.name)}</strong><b>${escapeHtml(productPrice(item))}</b></div><div class="catalog-cart-quantity"><button type="button" data-action="decrease" aria-label="Зменшити кількість">−</button><output aria-label="Кількість">${Number(item.quantity || 1)}</output><button type="button" data-action="increase" aria-label="Збільшити кількість">＋</button></div><button class="catalog-cart-remove" type="button" data-action="remove" aria-label="Видалити ${escapeHtml(item.name)}">×</button></article>`).join('') : '<div class="catalog-cart-empty"><b>Комплект поки порожній.</b><p>Відкрийте товар і натисніть «Додати до комплекту».</p></div>';
+  list.innerHTML = cart.length ? cart.map((item, index) => `<article class="catalog-cart-item" data-index="${index}">${item.image ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}">` : '<span class="catalog-cart-placeholder">⚡</span>'}<div><small>${escapeHtml([item.power, item.phase, item.voltage].filter(Boolean).join(' · '))}</small><strong>${escapeHtml(item.name)}</strong><b>${escapeHtml(productPrice(item))}</b></div><div class="catalog-cart-quantity"><button type="button" data-action="decrease" aria-label="Зменшити кількість">−</button><output aria-label="Кількість">${Number(item.quantity || 1)}</output><button type="button" data-action="increase" aria-label="Збільшити кількість">＋</button></div><button class="catalog-cart-remove" type="button" data-action="remove" aria-label="Видалити ${escapeHtml(item.name)}">×</button></article>`).join('') : '<div class="catalog-cart-empty"><b>Кошик поки порожній.</b><p>Натисніть «Додати до кошика» на потрібних товарах.</p></div>';
   const total = cart.reduce((sum, item) => sum + numericPrice(item) * Number(item.quantity || 1), 0);
   const unknown = cart.some(item => !numericPrice(item));
   $('#catalog-cart-total').textContent = `${total.toLocaleString('uk-UA')} грн${unknown ? ' + за запитом' : ''}`;
@@ -169,8 +181,10 @@ async function loadCatalog() {
 grid.addEventListener('click', event => {
   const card = event.target.closest('.catalog-card');
   if (!card || event.metaKey || event.ctrlKey || event.shiftKey) return;
-  event.preventDefault();
   const item = products.find(product => String(product._id) === card.dataset.id && product._collection === card.dataset.collection);
+  const cartButton = event.target.closest('.catalog-card-cart');
+  if (cartButton) { event.preventDefault(); event.stopPropagation(); if (item) addToCart(item, cartButton); return; }
+  event.preventDefault();
   if (item) openProduct(item);
 });
 filters.addEventListener('click', event => {
@@ -235,4 +249,6 @@ $('.catalog-cart-form').addEventListener('submit', async event => {
 });
 
 renderCart();
-loadCatalog();
+loadCatalog().then(() => {
+  if (location.hash === '#cart') { renderCart(); cartDialog.showModal(); }
+});
