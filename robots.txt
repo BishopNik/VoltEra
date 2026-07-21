@@ -13,4 +13,4 @@ Allow: /api/reviews
 Allow: /api/questions
 Disallow: /api/
 
-Sitemap: https://voltares.pp.ua/sitemap.xml
+Sitemap: https://www.voltares.pp.ua/sitemap.xml

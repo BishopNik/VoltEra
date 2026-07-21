@@ -10,7 +10,7 @@
 - Створено три індексовані категорії: інвертори, батареї та обладнання для гібридних СЕС. Вони мають серверний список відповідних товарів, canonical, CollectionPage/ItemList і BreadcrumbList.
 - Додано реальні посилання на пов’язані моделі, FAQ, калькулятор і корисні матеріали.
 - Admin/API/private/preview/draft закриті в robots; CSS, JS і зображення не блокуються.
-- HTTP і `www` production-варіанти перенаправляються на `https://voltares.pp.ua`; `/catalog` перенаправляється на `/catalog.html`.
+- HTTP і production-варіант без `www` перенаправляються на `https://www.voltares.pp.ua`; `/catalog` перенаправляється на `/catalog.html`.
 
 ## Schema та дані товарів
 

@@ -13,6 +13,19 @@
 @media(max-width:800px){.equipment-dialog>img{height:min(34vh,280px);max-height:none!important}.equipment-dialog>div{padding:34px 24px 28px;scroll-padding-top:34px}}
 @media(max-width:800px){.section-jump{top:10px;right:12px}.section-jump-trigger{width:40px;height:40px}.section-jump-menu{max-height:62vh}.equipment-public-grid .equipment-card{padding:21px}.equipment-public-grid .equipment-card>b{left:21px;right:21px}}
 .equipment-dialog{width:min(1040px,calc(100vw - 48px))!important;max-height:min(760px,calc(100dvh - 48px))!important;padding:20px!important;overflow:hidden!important}.equipment-dialog>img{max-height:min(720px,calc(100dvh - 88px))!important;border-radius:14px 0 0 14px}.equipment-dialog>div{max-height:min(720px,calc(100dvh - 88px))!important;padding:0 42px 38px;overflow:auto;overscroll-behavior:contain;scroll-padding-top:0;clip-path:inset(0 round 0 14px 14px 0)}.equipment-dialog-close{top:32px;right:32px}@media(max-width:800px){.equipment-dialog{width:calc(100vw - 28px)!important;max-height:calc(100dvh - 28px)!important;padding:20px!important}.equipment-dialog>img{max-height:230px!important;border-radius:14px 14px 0 0}.equipment-dialog>div{max-height:calc(100dvh - 298px)!important;padding:0 22px 30px;scroll-padding-top:0;clip-path:inset(0 round 0 0 14px 14px)}.equipment-dialog-close{top:28px;right:28px}}
+
+/* Tooltips must not turn modal close controls back into relatively positioned elements. */
+.selector-dialog{position:fixed!important;inset:0!important;margin:auto!important}
+.selector-dialog>.dialog-close,
+.project-dialog>.project-dialog-close,
+.equipment-dialog>.equipment-dialog-close,
+.answer-dialog>.answer-dialog-close{
+  position:absolute!important;
+  left:auto!important;
+  inset-inline-start:auto!important;
+  transform:none!important;
+}
+.selector-dialog>.dialog-close{top:20px!important;right:20px!important;inset-inline-end:20px!important}
 body.site-loading:before{content:"";position:fixed;z-index:999;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,transparent,var(--acid),var(--mint),var(--acid),transparent);background-size:220% 100%;animation:site-api-progress .9s linear infinite;box-shadow:0 2px 14px color-mix(in srgb,var(--acid) 28%,transparent)}@keyframes site-api-progress{to{background-position:-220% 0}}
 @media(hover:hover){:where(a[href],button:not(:disabled),[role="button"],summary,select):hover{filter:brightness(1.08)}:where(button:not(:disabled),[role="button"],summary):hover{border-color:color-mix(in srgb,var(--acid) 68%,var(--line));box-shadow:0 8px 24px rgba(0,0,0,.14)}}
 :where(a[href],button,[role="button"],summary,select,input,textarea):focus-visible{outline:3px solid color-mix(in srgb,var(--acid) 75%,white);outline-offset:3px}

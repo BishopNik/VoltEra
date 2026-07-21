@@ -9,7 +9,7 @@
 
 ## Sitemap та перша індексація
 
-1. Відкрити **Sitemaps** і надіслати `https://voltares.pp.ua/sitemap.xml`.
+1. Відкрити **Sitemaps** і надіслати `https://www.voltares.pp.ua/sitemap.xml`.
 2. Переконатися, що статус sitemap — `Success`, а кількість знайдених URL приблизно відповідає публічним сторінкам сайту.
 3. Через **URL Inspection** перевірити головну сторінку.
 4. Перевірити 3–5 важливих товарів, зокрема моделі 6, 8 і 12 кВт, а також сторінки `/categories/inverters`, `/categories/batteries` і `/calculators.html`.

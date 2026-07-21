@@ -28,12 +28,16 @@ const ADMIN_USERS = String(process.env.ADMIN_USERS || ADMIN_USER).split(',').map
 const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || '');
 const SECRET_KEY = String(process.env.SECRET_KEY || process.env.SESSION_SECRET || (!IS_PRODUCTION ? crypto.randomBytes(32).toString('hex') : ''));
 const CONTACT_API_URL = String(process.env.CONTACT_API_URL || '').trim();
-const PUBLIC_SITE_URL = /^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(String(process.env.PUBLIC_SITE_URL||''))?String(process.env.PUBLIC_SITE_URL).replace(/\/$/,''):'https://voltares.pp.ua';
+const RESEND_API_KEY = String(process.env.RESEND_API_KEY || '').trim();
+const EMAIL_FROM = String(process.env.EMAIL_FROM || 'Voltares <orders@voltares.pp.ua>').trim();
+const EMAIL_REPLY_TO = String(process.env.EMAIL_REPLY_TO || 'ink.torg@gmail.com').trim();
+const CONFIGURED_PUBLIC_SITE_URL = /^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(String(process.env.PUBLIC_SITE_URL||''))?String(process.env.PUBLIC_SITE_URL).replace(/\/$/,''):'https://www.voltares.pp.ua';
+const PUBLIC_SITE_URL = CONFIGURED_PUBLIC_SITE_URL.replace(/^https:\/\/voltares\.pp\.ua$/i,'https://www.voltares.pp.ua');
 const GA4_MEASUREMENT_ID = /^G-[A-Z0-9]+$/i.test(String(process.env.GA4_MEASUREMENT_ID||''))?String(process.env.GA4_MEASUREMENT_ID).toUpperCase():'';
 const CLARITY_PROJECT_ID = /^[a-z0-9]+$/i.test(String(process.env.CLARITY_PROJECT_ID||''))?String(process.env.CLARITY_PROJECT_ID):'';
 const GOOGLE_SITE_VERIFICATION = String(process.env.GOOGLE_SITE_VERIFICATION||'').trim().slice(0,200).replace(/[^a-zA-Z0-9_\-.]/g,'');
 const ANALYTICS_DEBUG = /^(1|true|yes)$/i.test(String(process.env.ANALYTICS_DEBUG||''));
-const COLLECTIONS = new Set(['leads','reviews','questions','faqs','projects','articles','equipment','solarPanels','greenProtect','users']);
+const COLLECTIONS = new Set(['leads','reviews','questions','faqs','projects','articles','equipment','solarPanels','greenProtect','quotes','purchases','users']);
 const LEGACY_SAMPLE_IDS = {
   leads: ['1082', '1081'],
   reviews: ['r1', 'r2', 'r3', 'r4'],
@@ -234,7 +238,7 @@ const REQUESTED_GREEN_PROTECT = [
   etiProduct('4661855','LBS 250 2P DC1000','Рубильники навантаження',8216,'2P · 250A · 1000V DC')
 ];
 
-const mime = { '.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.svg':'image/svg+xml','.xml':'application/xml; charset=utf-8','.txt':'text/plain; charset=utf-8','.webmanifest':'application/manifest+json' };
+const mime = { '.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.svg':'image/svg+xml','.xml':'application/xml; charset=utf-8','.txt':'text/plain; charset=utf-8','.csv':'text/csv; charset=utf-8','.pdf':'application/pdf','.xlsx':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','.xls':'application/vnd.ms-excel','.webmanifest':'application/manifest+json' };
 const requestBuckets = new Map();
 
 function normalizedEquipmentImages(item={}){
@@ -343,7 +347,10 @@ class MongoStore {
   async init(){
     for(const name of COLLECTIONS) await this.db.collection(name).createIndex({createdAt:-1});
     await this.db.collection('users').createIndex({username:1},{unique:true});
-    await this.db.collection('media').createIndex({sha256:1},{unique:true});
+    // Public catalogue images and private CRM documents may contain identical
+    // bytes, but they must never share an access policy.
+    try{await this.db.collection('media').dropIndex('sha256_1');}catch(error){if(error?.codeName!=='IndexNotFound'&&error?.code!==27)throw error;}
+    await this.db.collection('media').createIndex({sha256:1,access:1},{unique:true});
     // Remove only the old demo documents. MongoDB is no longer populated from
     // data/db.json, so content deleted in CRM stays deleted after a deployment.
     const migrations=this.db.collection('_migrations');
@@ -455,11 +462,12 @@ class MongoStore {
   async remove(type,id){ return (await this.db.collection(type).deleteOne({_id:this.id(id)})).deletedCount>0; }
   async markViewed(type){ await this.db.collection(type).updateMany({viewedAt:null},{$set:{viewedAt:new Date().toISOString()}}); }
   async incrementEquipmentViews(id){ const result=await this.db.collection('equipment').findOneAndUpdate({_id:this.id(id),status:'active'},{$inc:{views:1}},{returnDocument:'after',projection:{views:1}}); return result?Number(result.views||0):null; }
-  async saveMedia(data,contentType){
+  async saveMedia(data,contentType,access='public'){
     const sha256=crypto.createHash('sha256').update(data).digest('hex');
     const now=new Date().toISOString();
-    await this.db.collection('media').updateOne({sha256},{$setOnInsert:{data,contentType,sha256,createdAt:now}},{upsert:true});
-    const media=await this.db.collection('media').findOne({sha256},{projection:{_id:1}});
+    const safeAccess=access==='private'?'private':'public';
+    await this.db.collection('media').updateOne({sha256,access:safeAccess},{$setOnInsert:{data,contentType,sha256,access:safeAccess,createdAt:now}},{upsert:true});
+    const media=await this.db.collection('media').findOne({sha256,access:safeAccess},{projection:{_id:1}});
     return String(media._id);
   }
   async getMedia(id){ return this.db.collection('media').findOne({_id:this.id(id)}); }
@@ -521,7 +529,7 @@ function htmlEscape(value=''){return String(value).replace(/[&<>"']/g,char=>({'&
 function absoluteUrl(value=''){
   const source=String(value||'').trim();
   if(!source)return '';
-  return source.startsWith('http://')||source.startsWith('https://')?source:`https://voltares.pp.ua${source.startsWith('/')?'':'/'}${source}`;
+  return source.startsWith('http://')||source.startsWith('https://')?source:`https://www.voltares.pp.ua${source.startsWith('/')?'':'/'}${source}`;
 }
 function priceAmount(value=''){
   const digits=String(value||'').replace(/[^\d]/g,'');
@@ -574,7 +582,36 @@ async function body(req,limit=2_500_000){
   throw new Error('UNSUPPORTED_CONTENT_TYPE');
 }
 function compareSafe(a='',b=''){ const left=Buffer.from(String(a)); const right=Buffer.from(String(b)); if(left.length!==right.length)return false; return crypto.timingSafeEqual(left,right); }
-function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','status','manager','checkedBy','viewedAt','attribution'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','status','images','homeMode','homeOrder'],solarPanels:['brand','model','power','technology','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','sourceUrl','status','images','homeOrder'],greenProtect:['code','brand','model','name','category','spec','power','phase','voltage','listPrice','purchasePrice','purchaseCurrency','price','priceUsd','description','sourceUrl','status','images']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
+function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','items','status','manager','checkedBy','viewedAt','attribution','emailCopySent','emailCopyId','emailCopyError'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','status','images','homeMode','homeOrder'],solarPanels:['brand','model','power','technology','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','sourceUrl','status','images','homeOrder'],greenProtect:['code','brand','model','name','category','spec','power','phase','voltage','listPrice','purchasePrice','purchaseCurrency','price','priceUsd','description','sourceUrl','status','images'],quotes:['number','customerName','company','email','phone','city','validUntil','note','items','currency','subtotal','status','createdBy','sentAt','emailStatus','emailId','emailError'],purchases:['supplier','date','amount','currency','customer','list','comment','status','attachments','createdBy']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
+
+function cleanText(value='',limit=500){return String(value??'').trim().slice(0,limit)}
+function validEmail(value=''){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).trim())}
+function clampNumber(value,min=0,max=1_000_000_000){const number=Number(value);return Number.isFinite(number)?Math.min(max,Math.max(min,number)):min}
+function sanitizeLeadItems(value){
+  if(!Array.isArray(value))return [];
+  return value.slice(0,60).map(item=>({
+    collection:['equipment','solarPanels','greenProtect'].includes(item?.collection)?item.collection:'equipment',
+    id:cleanText(item?.id,120),
+    quantity:Math.round(clampNumber(item?.quantity,1,999))
+  })).filter(item=>item.id);
+}
+function sanitizeQuoteItems(value){
+  if(!Array.isArray(value))return [];
+  return value.slice(0,100).map(item=>({
+    kind:item?.kind==='custom'?'custom':'catalog',
+    collection:['equipment','solarPanels','greenProtect'].includes(item?.collection)?item.collection:'equipment',
+    productId:cleanText(item?.productId,120),
+    name:cleanText(item?.name,220),
+    description:cleanText(item?.description,700),
+    quantity:clampNumber(item?.quantity,0.01,100000),
+    unit:cleanText(item?.unit||'шт.',30),
+    unitPrice:clampNumber(item?.unitPrice,0,1_000_000_000)
+  })).filter(item=>item.name);
+}
+function sanitizeAttachments(value){
+  if(!Array.isArray(value))return [];
+  return value.slice(0,20).map(file=>({url:cleanText(file?.url,500),name:cleanText(file?.name||'Документ',180),type:cleanText(file?.type,100),size:Math.round(clampNumber(file?.size,0,5_000_000))})).filter(file=>/^\/api\/private-media\/[a-zA-Z0-9_-]+$|^\/private-uploads\/[a-zA-Z0-9._-]+$/.test(file.url));
+}
 function sanitizeAttribution(value={}){
   if(!value||typeof value!=='object'||Array.isArray(value))return undefined;
   const allowed=['utm_source','utm_medium','utm_campaign','utm_content','utm_term','gclid','landing_page','referrer'];
@@ -634,12 +671,47 @@ function validPublicInput(type,input={}){
 function reviewAudit(previous={},next={},user){ const fields=['status','reply','verified']; const changes=fields.filter(field=>String(previous[field]??'')!==String(next[field]??'')); if(!changes.length)return previous.audit || []; const now=new Date().toISOString(); const entries=changes.map(field=>({at:now,user:user.name,role:user.role,action:field==='verified'?'verify-review':'update-review',field,from:previous[field]??null,to:next[field]??null})); return [...(Array.isArray(previous.audit)?previous.audit:[]),...entries]; }
 
 function notificationText(type,item){
+  const itemLines=Array.isArray(item.items)?item.items.map(product=>`${product.quantity||1} × ${product.name||product.model||'Товар'}${product.price?` — ${product.price}`:''}`):[];
   const lines={
-    leads:['Нова заявка',item.name,item.phone,item.need||item.object,item.city,item.comment],
+    leads:['Нова заявка',item.name,item.phone,item.email,item.need||item.object,item.city,...itemLines,item.comment],
     reviews:['Новий відгук',item.name,item.city,item.text],
     questions:['Нове питання',item.author,item.city,item.title,item.body]
   }[type]||['Новий запис',type];
   return lines.filter(Boolean).map(value=>String(value).trim()).filter(Boolean).join('\n');
+}
+
+function formatMoney(value,currency='UAH'){
+  return new Intl.NumberFormat('uk-UA',{style:'currency',currency:currency==='USD'?'USD':'UAH',maximumFractionDigits:2}).format(Number(value||0));
+}
+function emailLayout({eyebrow,title,intro='',content,footer=''}){
+  return `<!doctype html><html lang="uk"><body style="margin:0;background:#f3f2ec;color:#12201b;font-family:Arial,sans-serif"><div style="max-width:720px;margin:0 auto;padding:28px 16px"><div style="padding:30px;border-radius:22px;background:#0d211b;color:#f8f8ef"><div style="color:#d8ef69;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase">${htmlEscape(eyebrow)}</div><h1 style="margin:12px 0 10px;font-size:34px;line-height:1.05">${htmlEscape(title)}</h1>${intro?`<p style="margin:0;color:#b8c7c1;line-height:1.6">${htmlEscape(intro)}</p>`:''}</div><div style="padding:26px 4px">${content}</div><div style="padding:20px 4px;border-top:1px solid #d9ddd8;color:#64716c;font-size:13px;line-height:1.55">${footer||'Voltares / І.Н.К. ТОВ · +38 067 672 18 52 · ink.torg@gmail.com'}</div></div></body></html>`;
+}
+async function sendEmail({to,subject,html,text,idempotencyKey}){
+  if(!RESEND_API_KEY)return {sent:false,error:'EMAIL_NOT_CONFIGURED'};
+  if(!validEmail(to))return {sent:false,error:'INVALID_EMAIL'};
+  const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),9000);
+  try{
+    const response=await fetch('https://api.resend.com/emails',{method:'POST',signal:controller.signal,headers:{Authorization:`Bearer ${RESEND_API_KEY}`,'Content-Type':'application/json','Idempotency-Key':cleanText(idempotencyKey||crypto.randomUUID(),240)},body:JSON.stringify({from:EMAIL_FROM,to:[String(to).trim()],reply_to:EMAIL_REPLY_TO,subject,html,text})});
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok)return {sent:false,error:cleanText(result.message||`HTTP_${response.status}`,300)};
+    return {sent:true,id:cleanText(result.id,160)};
+  }catch(error){return {sent:false,error:cleanText(error.message||'EMAIL_ERROR',300)}}finally{clearTimeout(timeout)}
+}
+function leadEmailContent(item={}){
+  const rows=(Array.isArray(item.items)?item.items:[]).map(product=>`<tr><td style="padding:11px;border-bottom:1px solid #e3e5e1"><b>${htmlEscape(product.name||'Товар')}</b><br><small style="color:#77827d">${htmlEscape([product.power,product.phase,product.voltage].filter(Boolean).join(' · '))}</small></td><td style="padding:11px;border-bottom:1px solid #e3e5e1;text-align:center">${htmlEscape(product.quantity||1)}</td><td style="padding:11px;border-bottom:1px solid #e3e5e1;text-align:right">${htmlEscape(product.price||'За запитом')}</td></tr>`).join('');
+  const table=rows?`<table style="width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden"><thead><tr><th style="padding:11px;text-align:left">Обладнання</th><th style="padding:11px">К-сть</th><th style="padding:11px;text-align:right">Ціна</th></tr></thead><tbody>${rows}</tbody></table>`:'';
+  const content=`${table}<div style="margin-top:18px;padding:18px;border-radius:14px;background:#fff"><b>Контактні дані</b><p style="line-height:1.7">${htmlEscape(item.name||'')}<br>${htmlEscape(item.phone||'')}<br>${htmlEscape(item.email||'')}${item.city?`<br>${htmlEscape(item.city)}`:''}</p>${item.comment?`<b>Коментар</b><p style="line-height:1.6">${htmlEscape(item.comment)}</p>`:''}</div>`;
+  return emailLayout({eyebrow:'Копія вашого запиту',title:'Комплект обладнання отримано',intro:'Інженер перевірить сумісність позицій і зв’яжеться з вами для уточнення комплектації.',content});
+}
+async function sendLeadCopy(item={}){
+  if(!validEmail(item.email))return {sent:false,error:'EMAIL_NOT_PROVIDED'};
+  return sendEmail({to:item.email,subject:`Voltares — копія запиту ${String(item._id||'').slice(-8)}`,html:leadEmailContent(item),text:notificationText('leads',item),idempotencyKey:`lead-${item._id}`});
+}
+function quoteEmailContent(quote={}){
+  const currency=quote.currency||'UAH';
+  const rows=(quote.items||[]).map(item=>`<tr><td style="padding:11px;border-bottom:1px solid #e3e5e1"><b>${htmlEscape(item.name)}</b>${item.description?`<br><small style="color:#77827d">${htmlEscape(item.description)}</small>`:''}</td><td style="padding:11px;border-bottom:1px solid #e3e5e1;text-align:center">${htmlEscape(item.quantity)} ${htmlEscape(item.unit)}</td><td style="padding:11px;border-bottom:1px solid #e3e5e1;text-align:right">${htmlEscape(formatMoney(item.unitPrice,currency))}</td><td style="padding:11px;border-bottom:1px solid #e3e5e1;text-align:right"><b>${htmlEscape(formatMoney(Number(item.quantity)*Number(item.unitPrice),currency))}</b></td></tr>`).join('');
+  const content=`<p style="font-size:16px;line-height:1.6">Для: <b>${htmlEscape(quote.customerName||quote.company||'Клієнт')}</b>${quote.company?` · ${htmlEscape(quote.company)}`:''}</p><table style="width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden"><thead><tr><th style="padding:11px;text-align:left">Позиція</th><th style="padding:11px">К-сть</th><th style="padding:11px;text-align:right">Ціна</th><th style="padding:11px;text-align:right">Сума</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="3" style="padding:16px;text-align:right"><b>Разом</b></td><td style="padding:16px;text-align:right;font-size:19px"><b>${htmlEscape(formatMoney(quote.subtotal,currency))}</b></td></tr></tfoot></table>${quote.note?`<div style="margin-top:18px;padding:18px;border-radius:14px;background:#fff"><b>Примітка</b><p style="line-height:1.6">${htmlEscape(quote.note)}</p></div>`:''}`;
+  return emailLayout({eyebrow:`Комерційна пропозиція ${quote.number||''}`,title:'Комплектація та вартість',intro:quote.validUntil?`Пропозиція дійсна до ${quote.validUntil}.`:'',content});
 }
 function contactApiPayload(type,item,message){
   const label={leads:'Нова заявка',reviews:'Новий відгук',questions:'Нове питання'}[type]||'Нове повідомлення';
@@ -692,14 +764,14 @@ async function api(req,res,url){
   }
   if(url.pathname==='/api/auth/me'){const user=await activeSessionUser(req);return user?json(res,200,{user}):json(res,401,{error:'AUTH_REQUIRED'});}
   if(url.pathname==='/api/auth/logout'&&req.method==='POST'){ return json(res,200,{ok:true},{'Set-Cookie':sessionCookie('',0)}); }
-  if(url.pathname==='/api/integrations/status'){ if(!await requireAdmin(req,res))return; const contact=await getContactApiStatus(); return json(res,200,{contactApi:contact.available,contactApiConfigured:contact.configured,notifications:contact.available,route:contact.route}); }
+  if(url.pathname==='/api/integrations/status'){ if(!await requireAdmin(req,res))return; const contact=await getContactApiStatus(); return json(res,200,{contactApi:contact.available,contactApiConfigured:contact.configured,notifications:contact.available,email: Boolean(RESEND_API_KEY&&EMAIL_FROM),route:contact.route}); }
   if(url.pathname==='/api/dashboard'){ if(!await requireAdmin(req,res))return; const result={}; for(const type of COLLECTIONS){const items=await store.list(type);const hasUnread=['leads','reviews','questions'].includes(type);result[type]={total:items.length,unread:hasUnread?items.filter(x=>!x.viewedAt).length:0};} return json(res,200,result); }
   if(url.pathname==='/api/admin/mark-viewed'&&req.method==='POST'){ if(!await requireAdmin(req,res))return; const input=await body(req); if(!COLLECTIONS.has(input.type))return json(res,400,{error:'INVALID_TYPE'}); await store.markViewed(input.type); return json(res,200,{ok:true}); }
   const mediaMatch=url.pathname.match(/^\/api\/media\/([a-zA-Z0-9_-]+)$/);
   if(mediaMatch&&req.method==='GET'){
     if(typeof store.getMedia!=='function')return json(res,404,{error:'NOT_FOUND'});
     const media=await store.getMedia(mediaMatch[1]);
-    if(!media)return json(res,404,{error:'NOT_FOUND'});
+    if(!media||media.access==='private')return json(res,404,{error:'NOT_FOUND'});
     const binary=media.data;
     const bytes=Buffer.isBuffer(binary)
       ?binary
@@ -709,6 +781,14 @@ async function api(req,res,url){
     securityHeaders(res);
     res.writeHead(200,{'Content-Type':media.contentType||'application/octet-stream','Content-Length':String(bytes.length),'Cache-Control':'public, max-age=31536000, immutable','X-Content-Type-Options':'nosniff'});
     return res.end(bytes);
+  }
+  const privateMediaMatch=url.pathname.match(/^\/api\/private-media\/([a-zA-Z0-9_-]+)$/);
+  if(privateMediaMatch&&req.method==='GET'){
+    if(!await requireAdmin(req,res))return;
+    if(typeof store.getMedia!=='function')return json(res,404,{error:'NOT_FOUND'});
+    const media=await store.getMedia(privateMediaMatch[1]);if(!media||media.access!=='private')return json(res,404,{error:'NOT_FOUND'});
+    const binary=media.data;const bytes=Buffer.isBuffer(binary)?binary:binary?.buffer?Buffer.from(binary.buffer).subarray(0,Number(binary.position)||binary.buffer.length):Buffer.from(binary||[]);
+    securityHeaders(res);res.writeHead(200,{'Content-Type':media.contentType||'application/octet-stream','Content-Length':String(bytes.length),'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Content-Disposition':'inline'});return res.end(bytes);
   }
   if(url.pathname==='/api/uploads'&&req.method==='POST'){
     if(!await requireAdmin(req,res))return;
@@ -728,6 +808,17 @@ async function api(req,res,url){
     await fs.mkdir(path.join(ROOT,'uploads'),{recursive:true});
     await fs.writeFile(path.join(ROOT,'uploads',filename),bytes);
     return json(res,201,{url:`/uploads/${filename}`});
+  }
+  if(url.pathname==='/api/attachments'&&req.method==='POST'){
+    if(!await requireAdmin(req,res))return;
+    const input=await body(req,6_000_000);
+    const match=String(input.dataUrl||'').match(/^data:(application\/pdf|image\/(?:png|jpeg|webp)|text\/plain|text\/csv|application\/(?:vnd\.openxmlformats-officedocument\.spreadsheetml\.sheet|vnd\.ms-excel));base64,(.+)$/);
+    if(!match)return json(res,400,{error:'INVALID_ATTACHMENT'});
+    const contentType=match[1];const bytes=Buffer.from(match[2],'base64');
+    if(!bytes.length||bytes.length>4_000_000)return json(res,400,{error:'INVALID_ATTACHMENT_SIZE'});
+    if(process.env.VERCEL){if(typeof store.saveMedia!=='function')return json(res,503,{error:'MEDIA_STORE_UNAVAILABLE'});const id=await store.saveMedia(bytes,contentType,'private');return json(res,201,{url:`/api/private-media/${id}`});}
+    const extension={'application/pdf':'pdf','image/png':'png','image/jpeg':'jpg','image/webp':'webp','text/plain':'txt','text/csv':'csv','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'xlsx','application/vnd.ms-excel':'xls'}[contentType]||'bin';
+    const filename=`${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${extension}`;await fs.mkdir(path.join(ROOT,'private-uploads'),{recursive:true});await fs.writeFile(path.join(ROOT,'private-uploads',filename),bytes);return json(res,201,{url:`/private-uploads/${filename}`});
   }
   const userMatch=url.pathname.match(/^\/api\/users(?:\/([^/]+))?$/);
   if(userMatch){
@@ -789,10 +880,20 @@ async function api(req,res,url){
     const views=await store.incrementEquipmentViews(equipmentViewMatch[1]);
     return views===null?json(res,404,{error:'NOT_FOUND'}):json(res,200,{views});
   }
-  const match=url.pathname.match(/^\/api\/(leads|reviews|questions|faqs|projects|articles|equipment|solarPanels|greenProtect)(?:\/([^/]+))?$/); if(!match)return false;
+  const quoteSendMatch=url.pathname.match(/^\/api\/quotes\/([^/]+)\/send$/);
+  if(quoteSendMatch&&req.method==='POST'){
+    const user=await requireAdmin(req,res);if(!user)return;
+    const quote=(await store.list('quotes')).find(item=>String(item._id)===quoteSendMatch[1]);
+    if(!quote)return json(res,404,{error:'NOT_FOUND'});
+    if(!validEmail(quote.email))return json(res,400,{error:'CUSTOMER_EMAIL_REQUIRED'});
+    const delivery=await sendEmail({to:quote.email,subject:`Комерційна пропозиція Voltares ${quote.number||''}`.trim(),html:quoteEmailContent(quote),text:`Комерційна пропозиція ${quote.number||''}\nРазом: ${formatMoney(quote.subtotal,quote.currency)}`,idempotencyKey:`quote-${quote._id}-${quote.updatedAt||quote.createdAt}`});
+    const updated=await store.update('quotes',quote._id,{status:delivery.sent?'sent':'draft',sentAt:delivery.sent?new Date().toISOString():quote.sentAt||null,emailStatus:delivery.sent?'sent':'failed',emailId:delivery.id||'',emailError:delivery.error||'',createdBy:quote.createdBy||user.name});
+    return json(res,delivery.sent?200:502,updated);
+  }
+  const match=url.pathname.match(/^\/api\/(leads|reviews|questions|faqs|projects|articles|equipment|solarPanels|greenProtect|quotes|purchases)(?:\/([^/]+))?$/); if(!match)return false;
   const [,type,id]=match; const adminUser=await activeSessionUser(req); const isAdmin=Boolean(adminUser);
   if(req.method==='GET'){
-    if(type==='leads'&&!isAdmin)return json(res,401,{error:'AUTH_REQUIRED'});
+    if(['leads','quotes','purchases'].includes(type)&&!isAdmin)return json(res,401,{error:'AUTH_REQUIRED'});
     let items=await store.list(type);
     if(!isAdmin){
       if(type==='reviews')items=items.filter(x=>x.status==='published').map(publicReview);
@@ -819,7 +920,17 @@ async function api(req,res,url){
       if(!validPublicInput(type,rawInput))return json(res,400,{error:'INVALID_FIELDS'});
     }
     const input=sanitize(type,rawInput);
-    if(type==='leads')input.attribution=sanitizeAttribution(input.attribution);
+    if(type==='leads'){
+      input.attribution=sanitizeAttribution(input.attribution);
+      const requested=sanitizeLeadItems(input.items);const verified=[];
+      for(const requestItem of requested){const product=(await store.list(requestItem.collection)).find(item=>String(item._id)===requestItem.id&&item.status==='active');if(!product)continue;verified.push({collection:requestItem.collection,id:String(product._id),name:`${product.brand||''} ${product.model||product.name||''}`.trim(),power:cleanText(product.power||product.spec,100),phase:cleanText(product.phase||product.technology||product.category,100),voltage:cleanText(product.voltage,100),price:cleanText(product.price||'За запитом',100),priceUsd:clampNumber(product.priceUsd,0,10_000_000),quantity:requestItem.quantity});}
+      input.items=verified;
+      if(verified.length&&!validEmail(input.email))return json(res,400,{error:'EMAIL_REQUIRED_FOR_CART'});
+    }
+    if(type==='quotes'){
+      input.items=sanitizeQuoteItems(input.items);input.currency=input.currency==='USD'?'USD':'UAH';input.subtotal=input.items.reduce((sum,item)=>sum+Number(item.quantity)*Number(item.unitPrice),0);input.status=['draft','sent','accepted','declined'].includes(input.status)?input.status:'draft';input.createdBy=adminUser?.name||'';input.number=cleanText(input.number||`KP-${new Date().toISOString().slice(0,10).replaceAll('-','')}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`,40);input.emailStatus='not-sent';input.emailId='';input.emailError='';
+    }
+    if(type==='purchases'){input.attachments=sanitizeAttachments(input.attachments);input.status=['planned','ordered','received','cancelled'].includes(input.status)?input.status:'planned';input.currency=['UAH','USD','EUR'].includes(input.currency)?input.currency:'UAH';input.amount=clampNumber(input.amount,0,1_000_000_000);input.createdBy=adminUser?.name||'';}
     if(type==='equipment'){
       input.homeMode=['auto','featured','hidden'].includes(input.homeMode)?input.homeMode:'auto';
       input.homeOrder=Math.max(0,Number(input.homeOrder||0));
@@ -835,18 +946,25 @@ async function api(req,res,url){
         input.viewedAt=new Date().toISOString();
       }else Object.assign(input,{status:'open',likes:0,answers:[],viewedAt:null});
     }
-    const requiredOk = type==='leads' ? input.name && input.phone : type==='reviews' ? input.name && input.text : type==='questions' ? input.title : type==='faqs' ? input.question && input.answer : type==='equipment' ? input.brand && input.model : input.title;
+    const requiredOk = type==='leads' ? input.name && input.phone : type==='reviews' ? input.name && input.text : type==='questions' ? input.title : type==='faqs' ? input.question && input.answer : ['equipment','solarPanels'].includes(type) ? input.brand && input.model : type==='greenProtect' ? input.code && input.model : type==='quotes' ? input.customerName && input.email && input.items.length : type==='purchases' ? input.supplier : input.title;
     if(!requiredOk)return json(res,400,{error:'REQUIRED_FIELDS'});
     const created=await store.create(type,input);
     await sendContactNotification(type,created);
+    if(type==='leads'&&created.email){const delivery=await sendLeadCopy(created);const updated=await store.update('leads',created._id,{emailCopySent:delivery.sent,emailCopyId:delivery.id||'',emailCopyError:delivery.error||''});return json(res,201,updated);}
     return json(res,201,created);
   }
-  if(['PATCH','DELETE'].includes(req.method)){ const user=await requireAdmin(req,res); if(!user)return; if(!id)return json(res,400,{error:'ID_REQUIRED'}); if(req.method==='DELETE')return json(res,(await store.remove(type,id))?200:404,{ok:true}); const previous=(await store.list(type)).find(item=>String(item._id)===id); if(!previous)return json(res,404,{error:'NOT_FOUND'}); const input=sanitize(type,await body(req)); if(type==='equipment'){ if(input.homeMode!==undefined)input.homeMode=['auto','featured','hidden'].includes(input.homeMode)?input.homeMode:'auto'; if(input.homeOrder!==undefined)input.homeOrder=Math.max(0,Number(input.homeOrder||0)); } if(type==='reviews'){ if(input.verified!==undefined){ input.verified=Boolean(input.verified); input.verifiedAt=input.verified?new Date().toISOString():null; input.verifiedBy=input.verified?user.name:''; } const next={...previous,...input}; input.audit=reviewAudit(previous,next,user); } return json(res,200,await store.update(type,id,input)); }
+  if(['PATCH','DELETE'].includes(req.method)){ const user=await requireAdmin(req,res); if(!user)return; if(!id)return json(res,400,{error:'ID_REQUIRED'}); if(req.method==='DELETE')return json(res,(await store.remove(type,id))?200:404,{ok:true}); const previous=(await store.list(type)).find(item=>String(item._id)===id); if(!previous)return json(res,404,{error:'NOT_FOUND'}); const input=sanitize(type,await body(req)); if(type==='equipment'){ if(input.homeMode!==undefined)input.homeMode=['auto','featured','hidden'].includes(input.homeMode)?input.homeMode:'auto'; if(input.homeOrder!==undefined)input.homeOrder=Math.max(0,Number(input.homeOrder||0)); } if(type==='quotes'){if(input.items!==undefined){input.items=sanitizeQuoteItems(input.items);input.subtotal=input.items.reduce((sum,item)=>sum+Number(item.quantity)*Number(item.unitPrice),0)}if(input.currency!==undefined)input.currency=input.currency==='USD'?'USD':'UAH';if(input.status!==undefined)input.status=['draft','sent','accepted','declined'].includes(input.status)?input.status:'draft';} if(type==='purchases'){if(input.attachments!==undefined)input.attachments=sanitizeAttachments(input.attachments);if(input.amount!==undefined)input.amount=clampNumber(input.amount,0,1_000_000_000);} if(type==='reviews'){ if(input.verified!==undefined){ input.verified=Boolean(input.verified); input.verifiedAt=input.verified?new Date().toISOString():null; input.verifiedBy=input.verified?user.name:''; } const next={...previous,...input}; input.audit=reviewAudit(previous,next,user); } return json(res,200,await store.update(type,id,input)); }
   return json(res,405,{error:'METHOD_NOT_ALLOWED'});
 }
 
 async function serve(req,res,url){
   if(url.pathname==='/admin.html'&&!currentUser(req)){res.writeHead(302,{Location:'/admin-login.html'});return res.end();}
+  if(url.pathname.startsWith('/private-uploads/')){
+    if(!await requireAdmin(req,res))return;
+    const file=path.resolve(ROOT,`.${decodeURIComponent(url.pathname)}`);const directory=path.join(ROOT,'private-uploads');
+    if(!file.startsWith(directory+path.sep))return json(res,403,{error:'FORBIDDEN'});
+    try{const data=await fs.readFile(file);securityHeaders(res);res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream','Cache-Control':'private, no-store','Content-Disposition':'inline'});return res.end(data);}catch{return json(res,404,{error:'NOT_FOUND'});}
+  }
   if(url.pathname==='/analytics-config.js'){
     const config={ga4MeasurementId:GA4_MEASUREMENT_ID,clarityProjectId:CLARITY_PROJECT_ID,debug:ANALYTICS_DEBUG,siteUrl:PUBLIC_SITE_URL};
     res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-store'});
@@ -890,12 +1008,12 @@ async function serve(req,res,url){
     const name=`${item.brand||''} ${item.model||''}`.trim();
     const canonical=`${PUBLIC_SITE_URL}${equipmentUrl(item)}`;
     const images=normalizedEquipmentImages(item).map(absoluteUrl);
-    const image=images[0]||'https://voltares.pp.ua/og-voltera.svg';
+    const image=images[0]||'https://www.voltares.pp.ua/og-voltera.svg';
     const description=String(item.description||`${name} для систем резервного та автономного живлення.`).split(/\n/)[0].slice(0,240);
     const amount=priceAmount(item.price);
     const specs=[['Потужність / ємність',item.power],['Фази / тип',item.phase],['Робоча напруга',item.voltage],['Бренд',item.brand]].filter(([,value])=>value);
-    const productSchema={'@context':'https://schema.org','@type':'Product','@id':`${canonical}#product`,name,description,image,sku:String(item._id),brand:{'@type':'Brand',name:item.brand||'Voltares'},url:canonical,...(amount?{offers:{'@type':'Offer',url:canonical,priceCurrency:'UAH',price:amount,itemCondition:'https://schema.org/NewCondition',seller:{'@id':'https://voltares.pp.ua/#organization'}}}:{})};
-    const breadcrumbSchema={'@context':'https://schema.org','@type':'BreadcrumbList',itemListElement:[{'@type':'ListItem',position:1,name:'Головна',item:'https://voltares.pp.ua/'},{'@type':'ListItem',position:2,name:'Каталог',item:'https://voltares.pp.ua/catalog.html'},{'@type':'ListItem',position:3,name:item.brand||'Обладнання',item:`https://voltares.pp.ua/obladnannia/${String(item.brand||'').toLowerCase()}.html`},{'@type':'ListItem',position:4,name,item:canonical}]};
+    const productSchema={'@context':'https://schema.org','@type':'Product','@id':`${canonical}#product`,name,description,image,sku:String(item._id),brand:{'@type':'Brand',name:item.brand||'Voltares'},url:canonical,...(amount?{offers:{'@type':'Offer',url:canonical,priceCurrency:'UAH',price:amount,itemCondition:'https://schema.org/NewCondition',seller:{'@id':'https://www.voltares.pp.ua/#organization'}}}:{})};
+    const breadcrumbSchema={'@context':'https://schema.org','@type':'BreadcrumbList',itemListElement:[{'@type':'ListItem',position:1,name:'Головна',item:'https://www.voltares.pp.ua/'},{'@type':'ListItem',position:2,name:'Каталог',item:'https://www.voltares.pp.ua/catalog.html'},{'@type':'ListItem',position:3,name:item.brand||'Обладнання',item:`https://www.voltares.pp.ua/obladnannia/${String(item.brand||'').toLowerCase()}.html`},{'@type':'ListItem',position:4,name,item:canonical}]};
     const body=String(item.description||'').split(/\n{2,}/).filter(Boolean).map(block=>/^#{2,3}\s/.test(block)?`<h2>${htmlEscape(block.replace(/^#{2,3}\s+/,''))}</h2>`:/^(?:[-•]\s.+\n?)+$/m.test(block)?`<ul>${block.split(/\n/).filter(Boolean).map(line=>`<li>${htmlEscape(line.replace(/^[-•]\s+/,''))}</li>`).join('')}</ul>`:`<p>${htmlEscape(block).replace(/\n/g,'<br>')}</p>`).join('');
     const related=equipment.filter(product=>String(product._id)!==String(item._id)&&String(product.brand||'').toLowerCase()===String(item.brand||'').toLowerCase()).slice(0,3);
     const relatedMarkup=related.map(product=>`<a href="${equipmentUrl(product)}" data-related-product="${htmlEscape(String(product._id))}">${htmlEscape(`${product.brand||''} ${product.model||''}`.trim())}</a>`).join('');
@@ -914,7 +1032,7 @@ async function serve(req,res,url){
     const articleBreadcrumb={'@context':'https://schema.org','@type':'BreadcrumbList',itemListElement:[{'@type':'ListItem',position:1,name:'Головна',item:`${PUBLIC_SITE_URL}/`},{'@type':'ListItem',position:2,name:'Статті',item:`${PUBLIC_SITE_URL}/#journal`},{'@type':'ListItem',position:3,name:article.title,item:articleCanonical}]};
     const articleExtraHead=`<link rel="alternate" hreflang="uk-UA" href="${articleCanonical}"><link rel="alternate" hreflang="x-default" href="${articleCanonical}"><meta property="og:type" content="article"><meta property="og:locale" content="uk_UA"><meta property="og:site_name" content="Voltares"><meta property="og:title" content="${htmlEscape(article.title)}"><meta property="og:description" content="${htmlEscape(article.excerpt||article.title)}"><meta property="og:url" content="${articleCanonical}"><meta property="og:image" content="${htmlEscape(articleImage)}"><meta name="twitter:card" content="summary_large_image"><script type="application/ld+json">${jsonLd(articleBreadcrumb)}</script>`;
     const paragraphs=String(article.body||article.excerpt||'').split(/\n{2,}/).filter(Boolean).map(text=>`<p>${htmlEscape(text).replace(/\n/g,'<br>')}</p>`).join('');
-    const page=`<!doctype html><html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${htmlEscape(article.title)} | ІНК</title><meta name="description" content="${htmlEscape(article.excerpt||article.title)}"><meta name="robots" content="index,follow,max-image-preview:large"><link rel="canonical" href="https://voltares.pp.ua/articles/${encodeURIComponent(slug)}.html"><link rel="stylesheet" href="/content-pages.css?v=20260718-1"><script type="application/ld+json">${JSON.stringify({'@context':'https://schema.org','@type':'Article',headline:article.title,description:article.excerpt||'',image:images,datePublished:article.createdAt,dateModified:article.updatedAt,author:{'@type':'Organization',name:'ІНК'},publisher:{'@type':'Organization',name:'ІНК',logo:{'@type':'ImageObject',url:'https://voltares.pp.ua/assets/brand/ink-logo-transparent.png'}}}).replace(/</g,'\\u003c')}</script></head><body><header class="page-header"><div class="page-container"><a class="page-logo" href="/" aria-label="ІНК — головна"></a><nav class="page-nav"><a href="/#journal">Журнал</a><a href="/gallery.html">Галерея</a><a href="/#contacts">Контакти</a></nav><a class="page-button" href="/#consultation">Консультація</a></div></header><main><section class="page-hero"><div class="page-container"><p class="page-eyebrow">${htmlEscape(article.category||'Журнал')}</p><h1>${htmlEscape(article.title)}</h1><p class="page-lead">${htmlEscape(article.excerpt||'')}</p></div></section><div class="page-container article-layout"><aside class="article-aside"><a href="/">← На головну</a><a href="/#journal">Інші статті</a></aside><article class="article-content">${images.map(src=>`<img src="${htmlEscape(src)}" alt="${htmlEscape(article.title)}" loading="lazy" style="width:100%;margin:0 0 24px;border-radius:22px">`).join('')}${paragraphs}<a class="page-button" href="/#consultation">Поставити питання →</a></article></div></main><footer class="page-footer"><div class="page-container">© 2026 ІНК · Енергетичні рішення</div></footer></body></html>`;
+    const page=`<!doctype html><html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${htmlEscape(article.title)} | ІНК</title><meta name="description" content="${htmlEscape(article.excerpt||article.title)}"><meta name="robots" content="index,follow,max-image-preview:large"><link rel="canonical" href="https://www.voltares.pp.ua/articles/${encodeURIComponent(slug)}.html"><link rel="stylesheet" href="/content-pages.css?v=20260718-1"><script type="application/ld+json">${JSON.stringify({'@context':'https://schema.org','@type':'Article',headline:article.title,description:article.excerpt||'',image:images,datePublished:article.createdAt,dateModified:article.updatedAt,author:{'@type':'Organization',name:'ІНК'},publisher:{'@type':'Organization',name:'ІНК',logo:{'@type':'ImageObject',url:'https://www.voltares.pp.ua/assets/brand/ink-logo-transparent.png'}}}).replace(/</g,'\\u003c')}</script></head><body><header class="page-header"><div class="page-container"><a class="page-logo" href="/" aria-label="ІНК — головна"></a><nav class="page-nav"><a href="/#journal">Журнал</a><a href="/gallery.html">Галерея</a><a href="/#contacts">Контакти</a></nav><a class="page-button" href="/#consultation">Консультація</a></div></header><main><section class="page-hero"><div class="page-container"><p class="page-eyebrow">${htmlEscape(article.category||'Журнал')}</p><h1>${htmlEscape(article.title)}</h1><p class="page-lead">${htmlEscape(article.excerpt||'')}</p></div></section><div class="page-container article-layout"><aside class="article-aside"><a href="/">← На головну</a><a href="/#journal">Інші статті</a></aside><article class="article-content">${images.map(src=>`<img src="${htmlEscape(src)}" alt="${htmlEscape(article.title)}" loading="lazy" style="width:100%;margin:0 0 24px;border-radius:22px">`).join('')}${paragraphs}<a class="page-button" href="/#consultation">Поставити питання →</a></article></div></main><footer class="page-footer"><div class="page-container">© 2026 ІНК · Енергетичні рішення</div></footer></body></html>`;
     const enrichedArticle=page.replace('</head>',`${articleExtraHead}</head>`);
     res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'public, max-age=300'});return res.end(injectPublicHead(enrichedArticle));
   }

@@ -2,7 +2,7 @@
 
 ## Що вже зроблено в коді
 
-- канонічний домен `https://voltares.pp.ua/`;
+- канонічний домен `https://www.voltares.pp.ua/`;
 - `robots.txt` дозволяє індексацію публічних сторінок і посилається на sitemap;
 - sitemap містить головну, каталог, посадкові сторінки брендів, рішення, галерею,
   Енергоколо, FAQ, калькулятори, опубліковані статті та всі активні товари;
@@ -22,12 +22,12 @@
 
 1. Додати `voltares.pp.ua` як Domain property у Google Search Console і пройти
    перевірку DNS TXT-записом.
-2. Надіслати `https://voltares.pp.ua/sitemap.xml` у розділі Sitemaps.
+2. Надіслати `https://www.voltares.pp.ua/sitemap.xml` у розділі Sitemaps.
 3. Через URL Inspection перевірити й запросити індексацію щонайменше для:
-   - `https://voltares.pp.ua/`;
-   - `https://voltares.pp.ua/catalog.html`;
-   - `https://voltares.pp.ua/obladnannia/deye.html`.
-   - `https://voltares.pp.ua/calculators.html`;
+   - `https://www.voltares.pp.ua/`;
+   - `https://www.voltares.pp.ua/catalog.html`;
+   - `https://www.voltares.pp.ua/obladnannia/deye.html`.
+   - `https://www.voltares.pp.ua/calculators.html`;
    - одну-дві пріоритетні сторінки моделей із `/products/`.
 4. Створити або оновити Google Business Profile: однакові назва Voltares / ІНК,
    адреса, телефони та посилання на сайт.

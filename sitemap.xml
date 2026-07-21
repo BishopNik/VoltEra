@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
-  <url><loc>https://voltares.pp.ua/</loc><lastmod>2026-07-19</lastmod><changefreq>weekly</changefreq><priority>1.0</priority><image:image><image:loc>https://voltares.pp.ua/assets/projects/home-backup.jpg</image:loc><image:title>Система резервного живлення Voltares з інвертором Deye</image:title></image:image></url>
-  <url><loc>https://voltares.pp.ua/catalog.html</loc><lastmod>2026-07-19</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://voltares.pp.ua/faq.html</loc><lastmod>2026-07-19</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://voltares.pp.ua/calculators.html</loc><lastmod>2026-07-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://voltares.pp.ua/categories/inverters</loc><lastmod>2026-07-19</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://voltares.pp.ua/categories/batteries</loc><lastmod>2026-07-19</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://voltares.pp.ua/categories/solar</loc><lastmod>2026-07-19</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://voltares.pp.ua/rishennia/invertor-dlia-domu.html</loc><lastmod>2026-07-12</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://voltares.pp.ua/rishennia/rezervne-zhyvlennia-dlia-biznesu.html</loc><lastmod>2026-07-12</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://voltares.pp.ua/rishennia/soniachni-paneli.html</loc><lastmod>2026-07-12</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://voltares.pp.ua/obladnannia/deye.html</loc><lastmod>2026-07-19</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://voltares.pp.ua/obladnannia/anenji.html</loc><lastmod>2026-07-18</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://voltares.pp.ua/obladnannia/easun.html</loc><lastmod>2026-07-18</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://voltares.pp.ua/obladnannia/lifepo4.html</loc><lastmod>2026-07-18</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://voltares.pp.ua/articles/5-pryladiv-iaki-zidaiut-avtonomnist.html</loc><lastmod>2026-07-12</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://voltares.pp.ua/gallery.html</loc><lastmod>2026-07-12</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://voltares.pp.ua/community.html</loc><lastmod>2026-07-12</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.voltares.pp.ua/</loc><lastmod>2026-07-21</lastmod><changefreq>weekly</changefreq><priority>1.0</priority><image:image><image:loc>https://www.voltares.pp.ua/assets/projects/home-backup.jpg</image:loc><image:title>Система резервного живлення Voltares з інвертором Deye</image:title></image:image></url>
+  <url><loc>https://www.voltares.pp.ua/catalog.html</loc><lastmod>2026-07-21</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.voltares.pp.ua/faq.html</loc><lastmod>2026-07-21</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.voltares.pp.ua/calculators.html</loc><lastmod>2026-07-21</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.voltares.pp.ua/categories/inverters</loc><lastmod>2026-07-21</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.voltares.pp.ua/categories/batteries</loc><lastmod>2026-07-21</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.voltares.pp.ua/categories/solar</loc><lastmod>2026-07-21</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.voltares.pp.ua/rishennia/invertor-dlia-domu.html</loc><lastmod>2026-07-21</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.voltares.pp.ua/rishennia/rezervne-zhyvlennia-dlia-biznesu.html</loc><lastmod>2026-07-21</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.voltares.pp.ua/rishennia/soniachni-paneli.html</loc><lastmod>2026-07-21</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.voltares.pp.ua/obladnannia/deye.html</loc><lastmod>2026-07-21</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.voltares.pp.ua/obladnannia/anenji.html</loc><lastmod>2026-07-21</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.voltares.pp.ua/obladnannia/easun.html</loc><lastmod>2026-07-21</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.voltares.pp.ua/obladnannia/lifepo4.html</loc><lastmod>2026-07-21</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.voltares.pp.ua/articles/5-pryladiv-iaki-zidaiut-avtonomnist.html</loc><lastmod>2026-07-21</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.voltares.pp.ua/gallery.html</loc><lastmod>2026-07-21</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.voltares.pp.ua/community.html</loc><lastmod>2026-07-21</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
 </urlset>

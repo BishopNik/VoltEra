@@ -11,6 +11,8 @@ const state = {
   equipment: [],
   solarPanels: [],
   greenProtect: [],
+  quotes: [],
+  purchases: [],
   users: [],
   dashboard: {}
 };
@@ -18,6 +20,8 @@ const state = {
 const titles = {
   dashboard: 'Огляд',
   leads: 'Заявки',
+  quotes: 'Комерційні пропозиції',
+  purchases: 'Закупівлі',
   reviews: 'Відгуки',
   questions: 'Питання',
   faqs: 'Короткі FAQ',
@@ -30,7 +34,7 @@ const titles = {
   settings: 'Налаштування'
 };
 
-const collections = ['leads', 'reviews', 'questions', 'faqs', 'projects', 'articles', 'equipment', 'solarPanels', 'greenProtect', 'users'];
+const collections = ['leads', 'reviews', 'questions', 'faqs', 'projects', 'articles', 'equipment', 'solarPanels', 'greenProtect', 'quotes', 'purchases', 'users'];
 const unreadViews = new Set(['leads', 'reviews', 'questions']);
 const statusOrder = ['new', 'work', 'calc', 'done'];
 const statusLabels = {
@@ -48,6 +52,13 @@ const statusLabels = {
   review: ['На перевірці', 'status-work'],
   auto: ['Автоматично', 'status-work'],
   featured: ['Закріплено', 'status-done'],
+  sent: ['Надіслано', 'status-done'],
+  accepted: ['Погоджено', 'status-done'],
+  declined: ['Відхилено', 'status-calc'],
+  planned: ['Заплановано', 'status-calc'],
+  ordered: ['Замовлено', 'status-work'],
+  received: ['Отримано', 'status-done'],
+  cancelled: ['Скасовано', 'status-calc'],
   disabled: ['Вимкнений', 'status-calc']
 };
 let currentAdmin = null;
@@ -73,6 +84,15 @@ function statusBadge(status = 'new', asButton = false) {
 function formatDate(iso) {
   if (!iso) return '—';
   return new Intl.DateTimeFormat('uk-UA', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
+}
+
+function formatMoney(value, currency = 'UAH') {
+  return new Intl.NumberFormat('uk-UA', { style: 'currency', currency: currency === 'USD' ? 'USD' : currency === 'EUR' ? 'EUR' : 'UAH', maximumFractionDigits: 2 }).format(Number(value || 0));
+}
+
+function leadItemsSummary(lead = {}) {
+  if (!Array.isArray(lead.items) || !lead.items.length) return escapeHtml(lead.need || lead.comment || '—');
+  return `<details class="lead-kit"><summary>${lead.items.reduce((sum, item) => sum + Number(item.quantity || 1), 0)} од. у комплекті</summary><ul>${lead.items.map(item => `<li><b>${escapeHtml(item.quantity || 1)} ×</b> ${escapeHtml(item.name || 'Товар')} <small>${escapeHtml(item.price || 'За запитом')}</small></li>`).join('')}</ul>${lead.comment ? `<p>${escapeHtml(lead.comment)}</p>` : ''}<small class="email-delivery ${lead.emailCopySent ? 'is-sent' : ''}">${lead.email ? (lead.emailCopySent ? 'Копію на email надіслано' : `Email: ${escapeHtml(lead.emailCopyError || 'не надіслано')}`) : 'Email не вказано'}</small></details>`;
 }
 
 async function api(path, options = {}) {
@@ -129,6 +149,8 @@ async function loadAll() {
   renderEquipment();
   renderSolarPanels();
   renderGreenProtect();
+  renderQuotes();
+  renderPurchases();
   renderUsers();
   await loadIntegrationStatus();
   if (failed.length) showApiNotice(`Не завантажено: ${failed.join(', ')}. Перезапустіть локальний сервер або розгорніть актуальну версію API.`);
@@ -161,6 +183,8 @@ async function loadIntegrationStatus() {
     const data = await api('/api/integrations/status');
     status.textContent = data.contactApi ? 'Contact API підключено' : data.contactApiConfigured ? 'Маршрут voltares ще не опубліковано' : 'Потрібна змінна CONTACT_API_URL';
     status.classList.toggle('connected', Boolean(data.notifications));
+    const email = $('#email-api-status');
+    if (email) { email.textContent = data.email ? 'Resend підключено' : 'Потрібен RESEND_API_KEY'; email.classList.toggle('connected', Boolean(data.email)); }
   } catch {
     status.textContent = 'Статус недоступний';
   }
@@ -277,7 +301,7 @@ function renderLeads() {
       <td>#${escapeHtml(lead._id).slice(0, 8)}<span>${formatDate(lead.createdAt)}</span></td>
       <td><strong>${escapeHtml(lead.name)}</strong><span>${escapeHtml(lead.phone || lead.email || '—')}</span></td>
       <td>${escapeHtml(lead.object || '—')} · ${escapeHtml(lead.city || '—')}</td>
-      <td>${escapeHtml(lead.need || lead.comment || '—')}</td>
+      <td>${leadItemsSummary(lead)}</td>
       <td><strong>${escapeHtml(lead.manager || 'ще ніхто')}</strong><span>Перевірив: ${escapeHtml(lead.checkedBy || 'ще не перевірено')}</span></td>
       <td>${statusBadge(lead.status || 'new', true)}</td>
       <td><div class="lead-actions"><button class="secondary-admin lead-edit" type="button">Змінити</button><button class="secondary-admin danger-admin lead-delete" type="button">Видалити</button></div></td>
@@ -644,6 +668,128 @@ function toggleEquipmentImageZoom() {
   button.textContent = isZoomed ? 'Зменшити' : 'Збільшити';
 }
 
+function renderQuotes() {
+  const list = $('#quote-list');
+  if (!list) return;
+  if (!state.quotes.length) { list.innerHTML = emptyState('Пропозицій ще немає', 'Створіть першу пропозицію з товарів каталогу або власних позицій.'); return; }
+  list.innerHTML = state.quotes.map(quote => `<article data-id="${escapeHtml(String(quote._id))}"><header><div><span class="view-caption">${escapeHtml(quote.number || 'КП')}</span><h3>${escapeHtml(quote.customerName || quote.company || 'Клієнт')}</h3><p>${escapeHtml([quote.company, quote.email, quote.phone].filter(Boolean).join(' · '))}</p></div>${statusBadge(quote.status || 'draft')}</header><ul>${(quote.items || []).slice(0, 5).map(item => `<li><span>${escapeHtml(item.name)}</span><b>${escapeHtml(item.quantity)} ${escapeHtml(item.unit || 'шт.')} · ${escapeHtml(formatMoney(Number(item.quantity) * Number(item.unitPrice), quote.currency))}</b></li>`).join('')}${(quote.items || []).length > 5 ? `<li><span>Ще ${(quote.items || []).length - 5} позицій</span></li>` : ''}</ul><footer><strong>${escapeHtml(formatMoney(quote.subtotal, quote.currency))}</strong><small class="email-delivery ${quote.emailStatus === 'sent' ? 'is-sent' : ''}">${quote.emailStatus === 'sent' ? `Надіслано ${formatDate(quote.sentAt)}` : quote.emailStatus === 'failed' ? `Помилка email: ${escapeHtml(quote.emailError || '')}` : 'Ще не надсилалось'}</small><div><button class="secondary-admin quote-edit" type="button">Редагувати</button><button class="primary-admin quote-send" type="button">${quote.emailStatus === 'sent' ? 'Надіслати повторно' : 'Надіслати'}</button><button class="secondary-admin danger-admin quote-delete" type="button">Видалити</button></div></footer></article>`).join('');
+  $$('.quote-edit', list).forEach(button => button.addEventListener('click', () => openQuoteDialog(state.quotes.find(item => String(item._id) === button.closest('article').dataset.id))));
+  $$('.quote-send', list).forEach(button => button.addEventListener('click', async () => {
+    setBusy(button, true);
+    try { await api(`/api/quotes/${button.closest('article').dataset.id}/send`, { method: 'POST', body: JSON.stringify({}) }); await loadCollection('quotes'); renderQuotes(); }
+    catch (error) { showApiNotice(`Пропозицію збережено, але email не надіслано: ${error.message}`); }
+    finally { if (button.isConnected) setBusy(button, false); }
+  }));
+  $$('.quote-delete', list).forEach(button => button.addEventListener('click', () => removeItem('quotes', button.closest('article').dataset.id)));
+}
+
+function renderPurchases() {
+  const list = $('#purchase-list');
+  if (!list) return;
+  if (!state.purchases.length) { list.innerHTML = emptyState('Закупівель ще немає', 'Додайте рахунок, чек, інвойс або звичайний список закупівлі.'); return; }
+  list.innerHTML = state.purchases.map(item => `<article data-id="${escapeHtml(String(item._id))}"><header><div><span class="view-caption">${escapeHtml(item.date || formatDate(item.createdAt))}</span><h3>${escapeHtml(item.supplier || 'Постачальник')}</h3><p>${item.customer ? `Під замовлення: <b>${escapeHtml(item.customer)}</b>` : 'Закупівля на склад'}</p></div>${statusBadge(item.status || 'planned')}</header><div class="purchase-copy"><strong>${escapeHtml(formatMoney(item.amount, item.currency))}</strong>${item.list ? `<p>${escapeHtml(item.list)}</p>` : ''}${item.comment ? `<small>${escapeHtml(item.comment)}</small>` : ''}</div><div class="purchase-files">${(item.attachments || []).map(file => `<a href="${escapeHtml(file.url)}" target="_blank" rel="noopener">▧ ${escapeHtml(file.name || 'Документ')}</a>`).join('') || '<span>Вкладень немає</span>'}</div><footer><small>Створив: ${escapeHtml(item.createdBy || '—')}</small><div><button class="secondary-admin purchase-edit" type="button">Редагувати</button><button class="secondary-admin danger-admin purchase-delete" type="button">Видалити</button></div></footer></article>`).join('');
+  $$('.purchase-edit', list).forEach(button => button.addEventListener('click', () => openContentDialog('purchases', state.purchases.find(item => String(item._id) === button.closest('article').dataset.id))));
+  $$('.purchase-delete', list).forEach(button => button.addEventListener('click', () => removeItem('purchases', button.closest('article').dataset.id)));
+}
+
+const quoteDialog = $('#quote-dialog');
+const quoteForm = $('#quote-form');
+const quoteField = name => quoteForm?.elements?.namedItem(name);
+let activeQuote = null;
+let quoteDraftItems = [];
+
+function catalogueForQuote() {
+  return [
+    ...state.equipment.map(item => ({ ...item, _collection:'equipment' })),
+    ...state.solarPanels.map(item => ({ ...item, _collection:'solarPanels' })),
+    ...state.greenProtect.map(item => ({ ...item, _collection:'greenProtect' }))
+  ].filter(item => item.status === 'active');
+}
+
+function priceNumber(value = '') { const digits = String(value).replace(/[^\d.,]/g, '').replaceAll(' ', '').replace(',', '.'); const number = Number(digits); return Number.isFinite(number) ? number : 0; }
+
+function quoteProductOptions() {
+  const select = $('#quote-product-select');
+  if (!select) return;
+  select.innerHTML = '<option value="">Оберіть товар</option>' + catalogueForQuote().map(item => `<option value="${escapeHtml(`${item._collection}:${item._id}`)}">${escapeHtml(`${item.brand || ''} ${item.model || item.name || ''}`.trim())} · ${escapeHtml(item.price || 'за запитом')}</option>`).join('');
+}
+
+function renderQuoteDraftItems() {
+  const list = $('#quote-items');
+  if (!list) return;
+  list.innerHTML = quoteDraftItems.length ? quoteDraftItems.map((item, index) => `<article data-index="${index}" class="${item.kind === 'custom' ? 'is-custom' : ''}"><span class="quote-line-number">${String(index + 1).padStart(2, '0')}</span><div class="quote-line-fields"><label>Назва<input data-field="name" value="${escapeHtml(item.name || '')}" placeholder="Товар або робота" required></label><label>Опис<input data-field="description" value="${escapeHtml(item.description || '')}" placeholder="Необов’язкове уточнення"></label></div><label>Кількість<input data-field="quantity" type="number" min="0.01" step="0.01" value="${escapeHtml(item.quantity || 1)}"></label><label>Од.<input data-field="unit" value="${escapeHtml(item.unit || 'шт.')}" maxlength="20"></label><label>Ціна за од.<input data-field="unitPrice" type="number" min="0" step="0.01" value="${escapeHtml(item.unitPrice || 0)}"></label><strong data-line-total>${escapeHtml(formatMoney(Number(item.quantity || 0) * Number(item.unitPrice || 0), quoteField('currency')?.value || 'UAH'))}</strong><button class="quote-line-remove" type="button" aria-label="Видалити позицію">×</button></article>`).join('') : '<div class="empty-state"><strong>Додайте хоча б одну позицію</strong>Оберіть товар із каталогу або створіть довільний рядок.</div>';
+  updateQuoteTotal();
+}
+
+function updateQuoteTotal() {
+  const currency = quoteField('currency')?.value || 'UAH';
+  const total = quoteDraftItems.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0), 0);
+  const output = $('#quote-total'); if (output) output.textContent = formatMoney(total, currency);
+  $$('#quote-items article').forEach((row, index) => { const line = $('[data-line-total]', row); if (line) line.textContent = formatMoney(Number(quoteDraftItems[index]?.quantity || 0) * Number(quoteDraftItems[index]?.unitPrice || 0), currency); });
+}
+
+function openQuoteDialog(item = null) {
+  activeQuote = item;
+  quoteDraftItems = (item?.items || []).map(line => ({ ...line }));
+  quoteForm.reset();
+  quoteField('customerName').value = item?.customerName || '';
+  quoteField('company').value = item?.company || '';
+  quoteField('email').value = item?.email || '';
+  quoteField('phone').value = item?.phone || '';
+  quoteField('city').value = item?.city || '';
+  quoteField('validUntil').value = item?.validUntil || '';
+  quoteField('currency').value = item?.currency || 'UAH';
+  quoteField('note').value = item?.note || '';
+  $('#quote-dialog-title').textContent = item ? `Редагувати ${item.number || 'пропозицію'}` : 'Нова комерційна пропозиція';
+  $('.quote-form-status').textContent = '';
+  quoteProductOptions(); renderQuoteDraftItems(); quoteDialog.showModal();
+}
+
+function addQuoteCatalogueItem() {
+  const value = $('#quote-product-select').value; if (!value) return;
+  const [collection, id] = value.split(':');
+  const item = catalogueForQuote().find(product => product._collection === collection && String(product._id) === id); if (!item) return;
+  const currency = quoteField('currency').value;
+  quoteDraftItems.push({ kind:'catalog', collection, productId:String(item._id), name:`${item.brand || ''} ${item.model || item.name || ''}`.trim(), description:[item.power || item.spec, item.phase || item.technology || item.category, item.voltage].filter(Boolean).join(' · '), quantity:1, unit:'шт.', unitPrice:currency === 'USD' ? Number(item.priceUsd || 0) : priceNumber(item.price) });
+  renderQuoteDraftItems();
+}
+
+function addQuoteCustomItem() {
+  quoteDraftItems.push({ kind:'custom', name:'', description:'', quantity:1, unit:'посл.', unitPrice:0 });
+  renderQuoteDraftItems();
+  const last = $('#quote-items article:last-of-type input[data-field="name"]'); last?.focus();
+}
+
+$('#quote-items')?.addEventListener('input', event => {
+  const input = event.target.closest('[data-field]'); if (!input) return;
+  const index = Number(input.closest('article').dataset.index); if (!quoteDraftItems[index]) return;
+  quoteDraftItems[index][input.dataset.field] = ['quantity','unitPrice'].includes(input.dataset.field) ? Number(input.value || 0) : input.value;
+  updateQuoteTotal();
+});
+$('#quote-items')?.addEventListener('click', event => { const button = event.target.closest('.quote-line-remove'); if (!button) return; quoteDraftItems.splice(Number(button.closest('article').dataset.index), 1); renderQuoteDraftItems(); });
+$('#quote-add-product')?.addEventListener('click', addQuoteCatalogueItem);
+$('#quote-add-custom')?.addEventListener('click', addQuoteCustomItem);
+quoteField('currency')?.addEventListener('change', updateQuoteTotal);
+$('.quote-dialog-close')?.addEventListener('click', () => quoteDialog.close());
+$('.quote-dialog-cancel')?.addEventListener('click', () => quoteDialog.close());
+quoteDialog?.addEventListener('click', event => { if (event.target === quoteDialog) quoteDialog.close(); });
+quoteForm?.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (!quoteForm.reportValidity()) return;
+  if (!quoteDraftItems.length || quoteDraftItems.some(item => !String(item.name || '').trim())) { $('.quote-form-status').textContent = 'Заповніть назву кожної позиції.'; return; }
+  const action = event.submitter?.dataset.quoteAction || 'save'; const button = event.submitter;
+  const fields = Object.fromEntries(new FormData(quoteForm).entries());
+  const payload = { customerName:fields.customerName, company:fields.company, email:fields.email, phone:fields.phone, city:fields.city, validUntil:fields.validUntil, currency:fields.currency, note:fields.note, items:quoteDraftItems, status:activeQuote?.status || 'draft' };
+  setBusy(button, true); $('.quote-form-status').textContent = action === 'send' ? 'Зберігаємо та надсилаємо…' : 'Зберігаємо…';
+  try {
+    const saved = await api(activeQuote ? `/api/quotes/${activeQuote._id}` : '/api/quotes', { method:activeQuote ? 'PATCH' : 'POST', body:JSON.stringify(payload) });
+    if (action === 'send') await api(`/api/quotes/${saved._id}/send`, { method:'POST', body:JSON.stringify({}) });
+    await loadCollection('quotes'); renderQuotes(); quoteDialog.close();
+  } catch (error) {
+    await loadCollection('quotes').catch(() => {}); renderQuotes(); $('.quote-form-status').textContent = action === 'send' ? `Пропозицію збережено, але email не надіслано: ${error.message}` : `Помилка: ${error.message}`;
+  } finally { if (button?.isConnected) setBusy(button, false); }
+});
+
 function renderUsers() {
   const list = $('#user-list');
   if (!list) return;
@@ -673,7 +819,7 @@ async function removeItem(type, id) {
 }
 
 function renderByType(type) {
-  ({ leads: renderLeads, reviews: renderReviews, questions: renderQuestions, faqs: renderFaqs, projects: renderProjects, articles: renderArticles, equipment: renderEquipment, solarPanels:renderSolarPanels, greenProtect:renderGreenProtect, users: renderUsers }[type])?.();
+  ({ leads: renderLeads, reviews: renderReviews, questions: renderQuestions, faqs: renderFaqs, projects: renderProjects, articles: renderArticles, equipment: renderEquipment, solarPanels:renderSolarPanels, greenProtect:renderGreenProtect, quotes:renderQuotes, purchases:renderPurchases, users: renderUsers }[type])?.();
 }
 
 const dialog = $('#content-dialog');
@@ -691,6 +837,7 @@ const configs = {
   equipment: { title: 'модель обладнання', fields: [['brand', 'Бренд', 'text', true], ['model', 'Модель', 'text', true], ['power', 'Потужність', 'text'], ['phase', 'Фази / Тип', 'choice', false, ['1 фаза', '3 фази', 'LiFePO₄', 'HV']], ['voltage', 'Напруга', 'text'], ['price', 'Роздрібна ціна, грн', 'text'], ['priceUsd', 'Роздрібна ціна, USD', 'number'], ['purchasePrice', 'Закупівельна ціна (лише CRM)', 'number'], ['purchaseCurrency', 'Валюта закупівлі', 'select', false, ['USD', 'EUR', 'UAH']], ['homeMode', 'Показ на головній', 'select', false, ['auto', 'featured', 'hidden']], ['description', 'Опис для сайту', 'textarea'], ['imageFiles', 'Фото моделі (можна кілька)', 'files'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] },
   solarPanels: { title: 'сонячну панель', fields: [['brand', 'Бренд', 'text', true], ['model', 'Модель', 'text', true], ['power', 'Потужність', 'text', true], ['technology', 'Технологія / тип', 'text'], ['price', 'Роздрібна ціна, грн', 'text'], ['priceUsd', 'Роздрібна ціна, USD', 'number'], ['purchasePrice', 'Закупівельна ціна (лише CRM)', 'number'], ['purchaseCurrency', 'Валюта закупівлі', 'select', false, ['USD', 'EUR', 'UAH']], ['description', 'Короткий опис', 'textarea'], ['imageFiles', 'Фото панелі', 'files'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] },
   greenProtect: { title: 'компонент Green Protect', fields: [['code', 'Код ETI', 'text', true], ['model', 'Назва', 'text', true], ['category', 'Категорія', 'select', false, ['Автоматичні вимикачі', 'Запобіжники gPV', 'Тримачі запобіжників', 'Захист від перенапруги', 'DC роз’єднувачі', 'Рубильники навантаження']], ['spec', 'Короткі характеристики', 'text'], ['listPrice', 'Ціна прайса ETI, грн', 'number'], ['purchasePrice', 'Закупівельна ціна, грн (−35%, лише CRM)', 'number'], ['price', 'Ціна сайту, грн (−15%)', 'text'], ['sourceUrl', 'Офіційне джерело', 'url'], ['imageFiles', 'Фото (необов’язково)', 'files'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] },
+  purchases: { title: 'закупівлю', fields: [['supplier', 'Постачальник', 'text', true], ['date', 'Дата закупівлі', 'date'], ['amount', 'Сума', 'number'], ['currency', 'Валюта', 'select', false, ['UAH', 'USD', 'EUR']], ['customer', 'Замовник (необов’язково)', 'text'], ['list', 'Список товарів / робіт', 'textarea'], ['comment', 'Коментар', 'textarea'], ['attachmentFiles', 'Рахунок, інвойс, чек або список', 'attachments'], ['status', 'Статус', 'select', false, ['planned', 'ordered', 'received', 'cancelled']]] },
   users: { title: 'користувача CRM', fields: [['username', "Ім'я користувача", 'text', true], ['password', 'Новий пароль (мінімум 8 символів)', 'password'], ['status', 'Доступ', 'select', false, ['active', 'disabled']]] }
 };
 
@@ -705,6 +852,7 @@ function fieldTemplate([name, label, type, required, options = []], item = {}) {
   }
   if (type === 'file') return `<label>${label}<input name="${name}" type="file" accept="image/png,image/jpeg,image/webp"><small>${item.image ? `Поточне фото: ${escapeHtml(item.image)}` : 'PNG, JPG або WebP'}</small></label>`;
   if (type === 'files') return `<label>${label}<input name="${name}" type="file" accept="image/png,image/jpeg,image/webp" multiple><small>${item.images?.length ? `Збережено фото: ${item.images.length}` : 'PNG, JPG або WebP; можна вибрати кілька файлів одночасно'}</small></label>`;
+  if (type === 'attachments') return `<label>${label}<input name="${name}" type="file" accept="application/pdf,image/png,image/jpeg,image/webp,text/plain,text/csv,.xlsx,.xls" multiple><small>${item.attachments?.length ? `Збережено файлів: ${item.attachments.length}. Нові файли буде додано.` : 'PDF, фото, TXT, CSV або Excel; до 4 МБ кожен'}</small></label>`;
   return `<label>${label}<input name="${name}" type="${type}" value="${escapeHtml(item[name] ?? '')}" ${type === 'number' ? 'min="0" step="0.01" inputmode="decimal"' : ''} ${required ? 'required' : ''}></label>`;
 }
 
@@ -817,7 +965,15 @@ form.addEventListener('submit', async event => {
     const files = [...(fileInput?.files || [])];
     delete data.imageFile;
     delete data.imageFiles;
-    if (files.length) {
+    delete data.attachmentFiles;
+    if (activeType === 'purchases') {
+      const attachments = [...(Array.isArray(activeItem?.attachments) ? activeItem.attachments : [])];
+      for (const selectedFile of files) {
+        const upload = await api('/api/attachments', { method: 'POST', body: JSON.stringify({ dataUrl: await fileToDataUrl(selectedFile) }) });
+        attachments.push({ url: upload.url, name: selectedFile.name, type: selectedFile.type, size: selectedFile.size });
+      }
+      data.attachments = attachments;
+    } else if (files.length) {
       const images = [];
       for (const selectedFile of files) {
         const upload = await api('/api/uploads', { method: 'POST', body: JSON.stringify({ dataUrl: await fileToDataUrl(selectedFile) }) });
@@ -851,6 +1007,8 @@ $('#review-filter')?.addEventListener('change', renderReviews);
 $('#lead-search')?.addEventListener('input', renderLeads);
 $('#lead-status-filter')?.addEventListener('change', renderLeads);
 $('#add-lead')?.addEventListener('click', () => openContentDialog('leads'));
+$('#add-quote')?.addEventListener('click', () => openQuoteDialog());
+$('#add-purchase')?.addEventListener('click', () => openContentDialog('purchases'));
 $('#add-question')?.addEventListener('click', () => openContentDialog('questions'));
 $('#add-faq')?.addEventListener('click', () => openContentDialog('faqs'));
 $('#add-project')?.addEventListener('click', () => openContentDialog('projects'));
