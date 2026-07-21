@@ -9,6 +9,8 @@ const state = {
   projects: [],
   articles: [],
   equipment: [],
+  solarPanels: [],
+  greenProtect: [],
   users: [],
   dashboard: {}
 };
@@ -22,11 +24,13 @@ const titles = {
   projects: "Об'єкти",
   articles: 'Статті',
   equipment: 'Обладнання',
+  solarPanels: 'Сонячні панелі',
+  greenProtect: 'Green Protect',
   users: 'Користувачі',
   settings: 'Налаштування'
 };
 
-const collections = ['leads', 'reviews', 'questions', 'faqs', 'projects', 'articles', 'equipment', 'users'];
+const collections = ['leads', 'reviews', 'questions', 'faqs', 'projects', 'articles', 'equipment', 'solarPanels', 'greenProtect', 'users'];
 const unreadViews = new Set(['leads', 'reviews', 'questions']);
 const statusOrder = ['new', 'work', 'calc', 'done'];
 const statusLabels = {
@@ -123,6 +127,8 @@ async function loadAll() {
   renderProjects();
   renderArticles();
   renderEquipment();
+  renderSolarPanels();
+  renderGreenProtect();
   renderUsers();
   await loadIntegrationStatus();
   if (failed.length) showApiNotice(`Не завантажено: ${failed.join(', ')}. Перезапустіть локальний сервер або розгорніть актуальну версію API.`);
@@ -576,6 +582,25 @@ function renderEquipment() {
   $$('.delete-equipment', list).forEach(button => button.addEventListener('click', () => removeItem('equipment', button.closest('article').dataset.id)));
 }
 
+function renderCatalogAdmin(type, selector) {
+  const list = $(selector);
+  if (!list) return;
+  const items = state[type] || [];
+  if (!items.length) { list.innerHTML = emptyState('Розділ порожній', 'Додайте першу позицію до каталогу.'); return; }
+  list.innerHTML = items.map(item => {
+    const images = [...new Set([...(Array.isArray(item.images) ? item.images : []), item.image].filter(Boolean))];
+    const image = images[0] ? `<button class="equipment-admin-media" type="button" data-preview="${escapeHtml(images[0])}" aria-label="Збільшити фото"><img src="${escapeHtml(images[0])}" alt="${escapeHtml(`${item.brand || ''} ${item.model || item.name || ''}`)}" loading="lazy"><span>${images.length} фото</span></button>` : '<div class="equipment-admin-media is-empty"><span>Фото не додано</span></div>';
+    const retail = [item.price, item.priceUsd ? `$${Number(item.priceUsd).toLocaleString('en-US')}` : ''].filter(Boolean).join(' · ') || 'не вказано';
+    const purchase = item.purchasePrice ? `${Number(item.purchasePrice).toLocaleString('en-US')} ${item.purchaseCurrency || 'USD'}` : item.listPrice ? `${Number(item.listPrice).toLocaleString('uk-UA')} грн (прайс)` : 'не вказано';
+    return `<article data-id="${escapeHtml(String(item._id))}">${image}<span class="equipment-admin-brand">${escapeHtml(item.brand || 'ETI')}</span><h3>${escapeHtml(item.model || item.name || 'Позиція')}</h3><p>${escapeHtml(item.power || item.spec || '—')} · ${escapeHtml(item.phase || item.category || '—')}</p><p class="equipment-admin-pricing"><b>Роздріб:</b> ${escapeHtml(retail)}<br><b>Закупівля / прайс:</b> ${escapeHtml(purchase)}</p><div>${statusBadge(item.status || 'active')}<button class="edit-catalog-item" type="button">Налаштувати</button><button class="delete-catalog-item danger-link" type="button">Видалити</button></div></article>`;
+  }).join('');
+  $$('.equipment-admin-media[data-preview]', list).forEach(button => button.addEventListener('click', () => { const image = $('#admin-image-preview'); image.src = button.dataset.preview; imageDialog.showModal(); }));
+  $$('.edit-catalog-item', list).forEach(button => button.addEventListener('click', () => openContentDialog(type, items.find(item => String(item._id) === button.closest('article').dataset.id))));
+  $$('.delete-catalog-item', list).forEach(button => button.addEventListener('click', () => removeItem(type, button.closest('article').dataset.id)));
+}
+const renderSolarPanels = () => renderCatalogAdmin('solarPanels', '#solar-panels-list');
+const renderGreenProtect = () => renderCatalogAdmin('greenProtect', '#green-protect-list');
+
 const imageDialog = $('#admin-image-dialog');
 const imagePreview = $('#admin-image-preview');
 const imageCounter = $('#admin-image-counter');
@@ -648,7 +673,7 @@ async function removeItem(type, id) {
 }
 
 function renderByType(type) {
-  ({ leads: renderLeads, reviews: renderReviews, questions: renderQuestions, faqs: renderFaqs, projects: renderProjects, articles: renderArticles, equipment: renderEquipment, users: renderUsers }[type])?.();
+  ({ leads: renderLeads, reviews: renderReviews, questions: renderQuestions, faqs: renderFaqs, projects: renderProjects, articles: renderArticles, equipment: renderEquipment, solarPanels:renderSolarPanels, greenProtect:renderGreenProtect, users: renderUsers }[type])?.();
 }
 
 const dialog = $('#content-dialog');
@@ -664,6 +689,8 @@ const configs = {
   projects: { title: "об'єкт", fields: [['title', 'Назва', 'text', true], ['city', 'Локація', 'text'], ['type', 'Тип об’єкта', 'text'], ['description', 'Опис', 'textarea'], ['imageFile', 'Фото об’єкта', 'file'], ['status', 'Статус', 'select', false, ['published', 'draft']]] },
   articles: { title: 'статтю', fields: [['title', 'Назва', 'text', true], ['slug', 'Адреса сторінки (латиницею, без пробілів)', 'text'], ['category', 'Категорія', 'text'], ['excerpt', 'Короткий SEO-опис', 'textarea'], ['body', 'Повний текст статті', 'textarea'], ['imageFiles', 'Фото статті (можна кілька)', 'files'], ['status', 'Статус', 'select', false, ['published', 'draft']]] },
   equipment: { title: 'модель обладнання', fields: [['brand', 'Бренд', 'text', true], ['model', 'Модель', 'text', true], ['power', 'Потужність', 'text'], ['phase', 'Фази / Тип', 'choice', false, ['1 фаза', '3 фази', 'LiFePO₄', 'HV']], ['voltage', 'Напруга', 'text'], ['price', 'Роздрібна ціна, грн', 'text'], ['priceUsd', 'Роздрібна ціна, USD', 'number'], ['purchasePrice', 'Закупівельна ціна (лише CRM)', 'number'], ['purchaseCurrency', 'Валюта закупівлі', 'select', false, ['USD', 'EUR', 'UAH']], ['homeMode', 'Показ на головній', 'select', false, ['auto', 'featured', 'hidden']], ['description', 'Опис для сайту', 'textarea'], ['imageFiles', 'Фото моделі (можна кілька)', 'files'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] },
+  solarPanels: { title: 'сонячну панель', fields: [['brand', 'Бренд', 'text', true], ['model', 'Модель', 'text', true], ['power', 'Потужність', 'text', true], ['technology', 'Технологія / тип', 'text'], ['price', 'Роздрібна ціна, грн', 'text'], ['priceUsd', 'Роздрібна ціна, USD', 'number'], ['purchasePrice', 'Закупівельна ціна (лише CRM)', 'number'], ['purchaseCurrency', 'Валюта закупівлі', 'select', false, ['USD', 'EUR', 'UAH']], ['description', 'Короткий опис', 'textarea'], ['imageFiles', 'Фото панелі', 'files'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] },
+  greenProtect: { title: 'компонент Green Protect', fields: [['code', 'Код ETI', 'text', true], ['model', 'Назва', 'text', true], ['category', 'Категорія', 'select', false, ['Автоматичні вимикачі', 'Запобіжники gPV', 'Тримачі запобіжників', 'Захист від перенапруги', 'DC роз’єднувачі', 'Рубильники навантаження']], ['spec', 'Короткі характеристики', 'text'], ['listPrice', 'Ціна прайса ETI, грн', 'number'], ['purchasePrice', 'Закупівельна ціна, грн (−35%, лише CRM)', 'number'], ['price', 'Ціна сайту, грн (−15%)', 'text'], ['sourceUrl', 'Офіційне джерело', 'url'], ['imageFiles', 'Фото (необов’язково)', 'files'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] },
   users: { title: 'користувача CRM', fields: [['username', "Ім'я користувача", 'text', true], ['password', 'Новий пароль (мінімум 8 символів)', 'password'], ['status', 'Доступ', 'select', false, ['active', 'disabled']]] }
 };
 
@@ -698,6 +725,7 @@ function openContentDialog(type, item = null) {
   $$('[data-choice-name]', form).forEach(select => {
     const customInput = select.parentElement.querySelector('[data-choice-custom]');
     const setEditing = (editing, { focus = false } = {}) => {
+      select.hidden = editing;
       customInput.hidden = !editing;
       customInput.disabled = !editing;
       select.parentElement.classList.toggle('is-custom', editing);
@@ -708,7 +736,7 @@ function openContentDialog(type, item = null) {
       let option = select.querySelector('[data-custom-choice]');
       if (!value) {
         if (option) option.remove();
-        select.value = '__manual__';
+        select.value = '';
         return;
       }
       if (!option) {
@@ -776,6 +804,15 @@ form.addEventListener('submit', async event => {
       data.homeMode = ['auto', 'featured', 'hidden'].includes(data.homeMode) ? data.homeMode : 'auto';
       if (data.homeMode === 'featured' && activeItem?.homeMode !== 'featured') data.homeOrder = Math.max(0, ...state.equipment.filter(item => item.homeMode === 'featured').map(item => Number(item.homeOrder || 0))) + 1;
     }
+    if (activeType === 'solarPanels') data.phase = data.technology || '';
+    if (activeType === 'greenProtect') {
+      data.brand = 'ETI'; data.name = data.model; data.phase = data.category; data.power = data.spec;
+      if (Number(data.listPrice) > 0) {
+        data.purchasePrice = Math.round(Number(data.listPrice) * 0.65);
+        data.purchaseCurrency = 'UAH';
+        if (!String(data.price || '').trim()) data.price = `${Math.round(Number(data.listPrice) * 0.85).toLocaleString('uk-UA')} грн`;
+      }
+    }
     const fileInput = form.querySelector('input[type="file"]');
     const files = [...(fileInput?.files || [])];
     delete data.imageFile;
@@ -787,15 +824,15 @@ form.addEventListener('submit', async event => {
         images.push(upload.url);
       }
       data.images = images;
-      if (activeType !== 'equipment') data.image = images[0];
+      if (!['equipment','solarPanels','greenProtect'].includes(activeType)) data.image = images[0];
     } else if (activeItem) {
       const existingImages = [...new Set([...(Array.isArray(activeItem.images) ? activeItem.images : []), activeItem.image].filter(Boolean))];
       if (existingImages.length) {
         data.images = existingImages;
-        if (activeType !== 'equipment') data.image = existingImages[0];
+        if (!['equipment','solarPanels','greenProtect'].includes(activeType)) data.image = existingImages[0];
       }
     }
-    if (activeType === 'equipment') delete data.image;
+    if (['equipment','solarPanels','greenProtect'].includes(activeType)) delete data.image;
     const path = activeItem ? `/api/${activeType}/${activeItem._id}` : `/api/${activeType}`;
     await api(path, { method: activeItem ? 'PATCH' : 'POST', body: JSON.stringify(data) });
     await loadCollection(activeType);
@@ -819,6 +856,8 @@ $('#add-faq')?.addEventListener('click', () => openContentDialog('faqs'));
 $('#add-project')?.addEventListener('click', () => openContentDialog('projects'));
 $('#add-article')?.addEventListener('click', () => openContentDialog('articles'));
 $('#add-equipment')?.addEventListener('click', () => openContentDialog('equipment'));
+$('#add-solar-panel')?.addEventListener('click', () => openContentDialog('solarPanels'));
+$('#add-green-protect')?.addEventListener('click', () => openContentDialog('greenProtect'));
 $('#add-user')?.addEventListener('click', () => openContentDialog('users'));
 $('.dialog-x')?.addEventListener('click', () => dialog.close());
 $('.admin-image-close')?.addEventListener('click', () => imageDialog.close());

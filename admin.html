@@ -19,6 +19,8 @@
       <button class="admin-nav" data-view="projects"><span>▦</span>Об'єкти</button>
       <button class="admin-nav" data-view="articles"><span>≡</span>Журнал</button>
       <button class="admin-nav" data-view="equipment"><span>⚡</span>Обладнання</button>
+      <button class="admin-nav" data-view="solarPanels"><span>☀</span>Сонячні панелі</button>
+      <button class="admin-nav" data-view="greenProtect"><span>⛨</span>Green Protect</button>
       <button class="admin-nav" data-view="users"><span>♙</span>Користувачі</button>
       <button class="admin-nav" data-view="settings"><span>⚙</span>Налаштування</button>
     </nav>
@@ -51,6 +53,10 @@
 
     <section class="admin-view" data-page="equipment"><div class="view-tools"><div><span class="view-caption">КАТАЛОГ</span><h2>Обладнання</h2></div><button class="primary-admin" id="add-equipment">+ Додати модель</button></div><div class="admin-help"><strong>Перша шістка на головній:</strong> режим <b>Закріплено</b> ставить вибрані моделі першими — їх порядок змінюється стрілками в картках. Вільні місця режим <b>Автоматично</b> заповнює товарами з найбільшою кількістю переглядів. <b>Приховано</b> залишає модель у повному каталозі, але прибирає з головної.</div><div class="equipment-grid" id="equipment-list"></div></section>
 
+    <section class="admin-view" data-page="solarPanels"><div class="view-tools"><div><span class="view-caption">PV / КАТАЛОГ</span><h2>Сонячні панелі</h2></div><button class="primary-admin" id="add-solar-panel">+ Додати панель</button></div><div class="admin-help">Окрема колекція MongoDB. Закупівельна ціна доступна лише CRM; на сайті показуються роздрібні ціни в гривні та доларах.</div><div class="equipment-grid" id="solar-panels-list"></div></section>
+
+    <section class="admin-view" data-page="greenProtect"><div class="view-tools"><div><span class="view-caption">ETI / GREEN PROTECT</span><h2>Комплектуючі для СЕС</h2></div><button class="primary-admin" id="add-green-protect">+ Додати компонент</button></div><div class="admin-help">Відібрані компоненти захисту СЕС. Закупівельна ціна — прайс ETI мінус 35%, ціна сайту — прайс мінус 15%.</div><div class="equipment-grid" id="green-protect-list"></div></section>
+
     <section class="admin-view" data-page="users"><div class="view-tools"><div><span class="view-caption">ДОСТУП ДО CRM</span><h2>Користувачі</h2></div><button class="primary-admin" id="add-user" type="button">+ Додати користувача</button></div><div class="admin-help" id="users-help">Основний адміністратор може створювати й видаляти користувачів та змінювати всі паролі. Співробітники компанії можуть змінити лише пароль власного акаунта.</div><article class="admin-card content-list" id="user-list"></article></section>
 
     <section class="admin-view" data-page="settings"><div class="settings-grid"><article class="admin-card"><span class="view-caption">БРЕНД</span><h2>Компанія</h2><div class="logo-setting"><img src="/assets/brand/ink-logo-transparent.png" alt="Логотип ІНК"><div><strong>Фірмовий логотип</strong><small>Файл сайту: /assets/brand/ink-logo-transparent.png</small></div></div><label>Назва компанії<input value="І.Н.К. ТОВ" readonly></label><label>Email<input value="ink.torg@gmail.com" readonly></label><label>Телефони<input value="+38 067 672 18 52 · +38 067 679 58 03 · +38 067 984 41 53" readonly></label><label>Адреса<input value="Львівська область, Солонка, вул. Козацька, 6" readonly></label><p class="settings-note">Цей блок показує актуальні публічні дані компанії. Зміна контактів робиться у коді сайту або наступним етапом через окрему колекцію settings у MongoDB.</p></article><article class="admin-card"><span class="view-caption">ІНТЕГРАЦІЇ</span><h2>Підключення</h2><ul class="integration-list"><li><span>CRM / заявки / відгуки / питання / FAQ</span><b class="connected">Працює через API</b></li><li><span>MongoDB</span><b class="connected">Через MONGODB_URI</b></li><li><span>Авторизація CRM</span><b class="connected">Колекція users · хеші паролів</b></li><li><span>Vercel Analytics</span><b class="connected">Підключено скриптом</b></li><li><span>Contact API</span><b id="contact-api-status">Перевірка…</b></li></ul><p class="settings-note">Для production задайте у Vercel: MONGODB_URI, MONGODB_DB, SECRET_KEY та CONTACT_API_URL. ADMIN_USERS і ADMIN_PASSWORD використовуються лише один раз — для створення перших облікових записів у порожній базі.</p></article></div></section>
@@ -63,5 +69,5 @@
     <div class="admin-image-stage"><img id="admin-image-preview" alt=""></div>
     <footer><button class="admin-image-prev" type="button" aria-label="Попереднє фото">←</button><span id="admin-image-counter">1 / 1</span><button class="admin-image-next" type="button" aria-label="Наступне фото">→</button><button class="admin-image-zoom" type="button" aria-pressed="false">Збільшити</button></footer>
   </dialog>
-  <script src="/admin.js?v=20260720-1" defer></script>
+  <script src="/admin.js?v=20260720-2" defer></script>
 </body></html>

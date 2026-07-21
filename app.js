@@ -658,12 +658,13 @@ async function openEquipment(item) {
   equipmentReturnY = window.scrollY;
   equipmentRestoreScroll = true;
   const itemId = String(item._id || '');
+  const collection = ['equipment','solarPanels','greenProtect'].includes(item._collection) ? item._collection : 'equipment';
   if (itemId && !item.description && !item.image && !(Array.isArray(item.images) && item.images.length)) {
     updateSiteLoading(1);
     try {
       let request = equipmentDetailCache.get(itemId);
       if (!request) {
-        request = fetch(`/api/equipment/${encodeURIComponent(itemId)}`).then(response => response.ok ? response.json() : null).catch(() => null);
+        request = fetch(`/api/${collection}/${encodeURIComponent(itemId)}`).then(response => response.ok ? response.json() : null).catch(() => null);
         equipmentDetailCache.set(itemId, request);
       }
       const detail = await request;
@@ -703,7 +704,7 @@ async function openEquipment(item) {
     $$('button', gallery).forEach(item => item.classList.toggle('is-active', item === button));
   }));
   $('h2', equipmentDialog).textContent = `${item.brand || 'ІНК'} ${item.model || ''}`.trim();
-  $('.equipment-dialog-copy', equipmentDialog).innerHTML = renderSimpleMarkdown(localizedContent(item, 'description', uiText('Модель використовується в проєктних системах ІНК. Точну сумісність, комплектацію й ціну інженер підтвердить після карти навантажень.', 'This model is used in INK engineered systems. An engineer will confirm exact compatibility, configuration and price after reviewing your load profile.')));
+  $('.equipment-dialog-copy', equipmentDialog).innerHTML = renderSimpleMarkdown(localizedContent(item, 'description', uiText('Товар можна придбати окремо. Його призначення та основні характеристики вказані в картці.', 'This product can be purchased separately. Its purpose and key specifications are shown in the product card.')));
   $('[data-equipment-field="power"]', equipmentDialog).textContent = item.power || '—';
   $('[data-equipment-field="grid"]', equipmentDialog).textContent = [item.phase, item.voltage].filter(Boolean).join(' · ') || '—';
   $('[data-equipment-field="price"]', equipmentDialog).textContent = equipmentPriceLabel(item);
@@ -729,7 +730,7 @@ async function openEquipment(item) {
     $('.equipment-dialog-close', equipmentDialog)?.focus({ preventScroll:true });
   });
   window.setTimeout(resetDialogScroll, 80);
-  if (itemId) fetch(`/api/equipment/${encodeURIComponent(itemId)}/view`, { method:'POST', keepalive:true }).then(response => response.ok ? response.json() : null).then(result => { if (result?.views !== undefined) item.views = result.views; }).catch(() => null);
+  if (itemId && collection === 'equipment') fetch(`/api/equipment/${encodeURIComponent(itemId)}/view`, { method:'POST', keepalive:true }).then(response => response.ok ? response.json() : null).then(result => { if (result?.views !== undefined) item.views = result.views; }).catch(() => null);
 }
 
 function openEquipmentImageLightbox() {
@@ -846,6 +847,27 @@ equipmentDialog?.addEventListener('close', () => {
   unlockEquipmentPage();
 });
 loadPublicEquipment();
+
+async function loadCatalogExtension(collection, selector, limit) {
+  const root = $(selector);
+  if (!root) return;
+  root.innerHTML = loadingMarkup(uiText('Завантажуємо каталог…', 'Loading catalogue…'));
+  const data = await apiList(collection);
+  if (!Array.isArray(data) || !data.length) {
+    root.innerHTML = emptyMarkup(uiText('Розділ оновлюється', 'This section is being updated'), uiText('Перевірені позиції з’являться після схвалення фахівцями.', 'Verified products will appear after specialist approval.'));
+    return;
+  }
+  const items = data.slice(0, limit).map(item => ({...item, _collection:collection}));
+  root.innerHTML = items.map(item => {
+    const image = item.thumbnail || item.images?.[0] || (collection === 'solarPanels' ? '/assets/catalog/solar-panel.svg' : '/assets/catalog/green-protect.svg');
+    const specs = [item.power || item.spec, item.technology || item.category].filter(Boolean).join(' · ');
+    return `<button class="catalog-extension-card" type="button" data-id="${escapeHtml(String(item._id))}"><img src="${escapeHtml(image)}" alt="${escapeHtml(`${item.brand || ''} ${item.model || item.name || ''}`.trim())}" loading="lazy"><span><small>${escapeHtml(item.brand || 'ETI')}</small><strong>${escapeHtml(item.model || item.name || '')}</strong><em>${escapeHtml(specs)}</em><b>${escapeHtml(equipmentPriceLabel(item))}</b></span></button>`;
+  }).join('');
+  $$('.catalog-extension-card', root).forEach(button => button.addEventListener('click', () => openEquipment(items.find(item => String(item._id) === button.dataset.id))));
+  enhanceClickableHints(root);
+}
+loadCatalogExtension('solarPanels', '#public-solar-panels', 8);
+loadCatalogExtension('greenProtect', '#public-green-protect', 8);
 
 // Journal from API
 const articleGrid = $('.article-grid');
