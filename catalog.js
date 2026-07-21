@@ -2,6 +2,8 @@ const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
 const CART_KEY = 'voltares-catalog-cart-v1';
+const CATALOG_CACHE_KEY = 'voltares-public-catalog-v1';
+const CATALOG_REVALIDATE_AFTER = 60 * 1000;
 const COLLECTIONS = ['equipment', 'solarPanels', 'greenProtect'];
 
 let products = [];
@@ -44,6 +46,50 @@ function productPrice(item = {}) {
   const usd = Number(item.priceUsd);
   const dollars = Number.isFinite(usd) && usd > 0 ? `$${Math.round(usd).toLocaleString('en-US')}` : '';
   return [uah, dollars].filter(Boolean).join(' · ') || 'За запитом';
+}
+function exchangeRate() {
+  const rates = [...products, ...cart].map(item => {
+    const uah = numericPrice(item);
+    const usd = Number(item.priceUsd || 0);
+    return uah > 0 && usd > 0 ? uah / usd : 0;
+  }).filter(rate => rate >= 20 && rate <= 100).sort((a, b) => a - b);
+  if (!rates.length) return 44;
+  const middle = Math.floor(rates.length / 2);
+  return rates.length % 2 ? rates[middle] : (rates[middle - 1] + rates[middle]) / 2;
+}
+function itemPrices(item = {}, rate = exchangeRate()) {
+  let uah = numericPrice(item);
+  let usd = Number(item.priceUsd || 0);
+  if (!uah && usd) uah = usd * rate;
+  if (!usd && uah) usd = uah / rate;
+  return { uah, usd, known: uah > 0 || usd > 0 };
+}
+function readCatalogCache() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(CATALOG_CACHE_KEY) || 'null');
+    if (cached?.items && Array.isArray(cached.items)) return cached;
+    const parts = COLLECTIONS.map(collection => {
+      const entry = JSON.parse(localStorage.getItem(`voltares-public-api-v1:${collection}`) || 'null');
+      return entry?.data && Array.isArray(entry.data) ? { ...entry, collection } : null;
+    }).filter(Boolean);
+    if (!parts.length) return null;
+    return {
+      savedAt: Math.min(...parts.map(part => Number(part.savedAt || 0))),
+      checkedAt: Math.min(...parts.map(part => Number(part.checkedAt || part.savedAt || 0))),
+      etags: Object.fromEntries(parts.map(part => [part.collection, part.etag || ''])),
+      items: parts.flatMap(part => part.data.map(item => ({ ...item, _collection:part.collection })))
+    };
+  } catch { return null; }
+}
+function writeCatalogCache(items, { etags = {}, savedAt = Date.now() } = {}) {
+  try {
+    const checkedAt = Date.now();
+    localStorage.setItem(CATALOG_CACHE_KEY, JSON.stringify({ savedAt, checkedAt, etags, items }));
+    COLLECTIONS.forEach(collection => {
+      const data = items.filter(item => item._collection === collection).map(({ _collection, ...item }) => item);
+      localStorage.setItem(`voltares-public-api-v1:${collection}`, JSON.stringify({ savedAt, checkedAt, etag:etags[collection] || '', data }));
+    });
+  } catch {}
 }
 function modelsLabel(value) {
   const mod10 = value % 10;
@@ -152,11 +198,19 @@ function renderCart() {
   const list = $('#catalog-cart-items');
   if (!list) return;
   list.innerHTML = cart.length ? cart.map((item, index) => `<article class="catalog-cart-item" data-index="${index}">${item.image ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}">` : '<span class="catalog-cart-placeholder">⚡</span>'}<div><small>${escapeHtml([item.power, item.phase, item.voltage].filter(Boolean).join(' · '))}</small><strong>${escapeHtml(item.name)}</strong><b>${escapeHtml(productPrice(item))}</b></div><div class="catalog-cart-quantity"><button type="button" data-action="decrease" aria-label="Зменшити кількість">−</button><output aria-label="Кількість">${Number(item.quantity || 1)}</output><button type="button" data-action="increase" aria-label="Збільшити кількість">＋</button></div><button class="catalog-cart-remove" type="button" data-action="remove" aria-label="Видалити ${escapeHtml(item.name)}">×</button></article>`).join('') : '<div class="catalog-cart-empty"><b>Кошик поки порожній.</b><p>Натисніть «Додати до кошика» на потрібних товарах.</p></div>';
-  const total = cart.reduce((sum, item) => sum + numericPrice(item) * Number(item.quantity || 1), 0);
-  const unknown = cart.some(item => !numericPrice(item));
-  $('#catalog-cart-total').textContent = `${total.toLocaleString('uk-UA')} грн${unknown ? ' + за запитом' : ''}`;
+  const rate = exchangeRate();
+  const total = cart.reduce((sum, item) => {
+    const prices = itemPrices(item, rate);
+    const quantity = Number(item.quantity || 1);
+    sum.uah += prices.uah * quantity;
+    sum.usd += prices.usd * quantity;
+    return sum;
+  }, { uah: 0, usd: 0 });
+  const unknown = cart.some(item => !itemPrices(item, rate).known);
+  $('#catalog-cart-total').textContent = `${Math.round(total.uah).toLocaleString('uk-UA')} грн · $${Math.round(total.usd).toLocaleString('en-US')}${unknown ? ' + за запитом' : ''}`;
   const submit = $('.catalog-cart-form button[type="submit"]');
   submit.disabled = !cart.length;
+  $('.catalog-cart-clear').disabled = !cart.length;
 }
 
 function openLightbox() {
@@ -167,14 +221,29 @@ function openLightbox() {
 }
 
 async function loadCatalog() {
-  status.hidden = false; grid.innerHTML = '';
-  const results = await Promise.all(COLLECTIONS.map(async collection => {
-    const response = await fetch(`/api/${collection}`).catch(() => null);
-    return response?.ok ? (await response.json()).map(item => ({ ...item, _collection: collection })) : [];
-  }));
-  products = results.flat();
   const requested = new URLSearchParams(location.search).get('type');
-  if (COLLECTIONS.includes(requested)) products = products.filter(item => item._collection === requested);
+  const cached = readCatalogCache();
+  const cachedItems = cached?.items || [];
+  if (cached?.items?.length) {
+    products = COLLECTIONS.includes(requested) ? cachedItems.filter(item => item._collection === requested) : cachedItems;
+    status.hidden = true; buildFilters(); render(); renderCart();
+  } else {
+    status.hidden = false; grid.innerHTML = '';
+  }
+  if (cached && Date.now() - Number(cached.checkedAt || cached.savedAt || 0) < CATALOG_REVALIDATE_AFTER) return;
+  const results = await Promise.all(COLLECTIONS.map(async collection => {
+    const previous = cachedItems.filter(item => item._collection === collection);
+    const etag = cached?.etags?.[collection] || '';
+    const response = await fetch(`/api/${collection}`, { headers:etag ? {'If-None-Match':etag} : {} }).catch(() => null);
+    if (response?.status === 304) return { items:previous, etag, changed:false };
+    if (!response?.ok) return { items:previous, etag, changed:false };
+    const items = (await response.json()).map(item => ({ ...item, _collection: collection }));
+    return { items, etag:response.headers.get('etag') || '', changed:true };
+  }));
+  const fullCatalog = results.flatMap(result => result.items);
+  const etags = Object.fromEntries(COLLECTIONS.map((collection, index) => [collection, results[index].etag]));
+  writeCatalogCache(fullCatalog, { etags, savedAt:results.some(result => result.changed) ? Date.now() : Number(cached?.savedAt || Date.now()) });
+  products = COLLECTIONS.includes(requested) ? fullCatalog.filter(item => item._collection === requested) : fullCatalog;
   status.hidden = true; buildFilters(); render(); renderCart();
 }
 
@@ -194,8 +263,8 @@ filters.addEventListener('click', event => {
   render();
 });
 search.addEventListener('input', render);
-$('.catalog-theme').addEventListener('click', () => { const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'; document.documentElement.dataset.theme = next; localStorage.setItem('ink-theme', next); });
-document.documentElement.dataset.theme = localStorage.getItem('ink-theme') || 'dark';
+$('.catalog-theme').addEventListener('click', () => { const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'; document.documentElement.dataset.theme = next; localStorage.setItem('voltera-theme', next); });
+document.documentElement.dataset.theme = localStorage.getItem('voltera-theme') || localStorage.getItem('ink-theme') || 'dark';
 $('.catalog-dialog-close').addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
 $('.catalog-product-media>img', dialog).addEventListener('click', openLightbox);
@@ -222,6 +291,12 @@ $('.catalog-enquiry-form').addEventListener('submit', async event => {
 $('.catalog-cart-trigger').addEventListener('click', () => { renderCart(); cartDialog.showModal(); });
 $('.catalog-cart-close').addEventListener('click', () => cartDialog.close());
 cartDialog.addEventListener('cancel', event => event.preventDefault());
+$('.catalog-cart-clear').addEventListener('click', () => {
+  if (!cart.length) return;
+  cart = [];
+  saveCart();
+  $('.catalog-cart-status').textContent = 'Кошик очищено.';
+});
 $('#catalog-cart-items').addEventListener('click', event => {
   const button = event.target.closest('button[data-action]'); if (!button) return;
   const index = Number(button.closest('[data-index]').dataset.index); const item = cart[index]; if (!item) return;

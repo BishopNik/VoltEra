@@ -78,24 +78,64 @@ const updateSiteLoading = delta => {
   }
 };
 const apiCache = new Map();
+const PUBLIC_CACHE_PREFIX = 'voltares-public-api-v1:';
+const PUBLIC_REVALIDATE_AFTER = 60 * 1000;
+const PUBLIC_CACHE_TYPES = new Set(['reviews','questions','faqs','projects','articles','equipment','solarPanels','greenProtect']);
+function readPublicApiCache(type) {
+  if (!PUBLIC_CACHE_TYPES.has(type)) return null;
+  try {
+    const cached = JSON.parse(localStorage.getItem(`${PUBLIC_CACHE_PREFIX}${type}`) || 'null');
+    return cached?.data && Array.isArray(cached.data) ? cached : null;
+  } catch { return null; }
+}
+function writePublicApiCache(type, data, { etag = '', savedAt = Date.now() } = {}) {
+  if (!PUBLIC_CACHE_TYPES.has(type) || !Array.isArray(data)) return;
+  try { localStorage.setItem(`${PUBLIC_CACHE_PREFIX}${type}`, JSON.stringify({ savedAt, checkedAt:Date.now(), etag, data })); } catch {}
+}
+async function fetchPublicApi(type, cached = null, background = false) {
+  if (!background) updateSiteLoading(1);
+  try {
+    const response = await fetch(`/api/${type}`, { headers:cached?.etag ? {'If-None-Match':cached.etag} : {} }).catch(() => null);
+    if (response?.status === 304 && cached?.data) {
+      writePublicApiCache(type, cached.data, { etag:cached.etag, savedAt:Number(cached.savedAt || Date.now()) });
+      return { data:cached.data, changed:false };
+    }
+    const result = response?.ok ? await response.json() : null;
+    if (!Array.isArray(result)) return { data:cached?.data ?? null, changed:false };
+    const etag = response.headers.get('etag') || '';
+    const changed = !cached || (etag ? etag !== cached.etag : JSON.stringify(result) !== JSON.stringify(cached.data));
+    writePublicApiCache(type, result, { etag });
+    return { data:result, changed };
+  } finally {
+    if (!background) updateSiteLoading(-1);
+  }
+}
+function revalidatePublicApi(type, cached) {
+  fetchPublicApi(type, cached, true).then(({ data, changed }) => {
+    if (!Array.isArray(data)) return;
+    apiCache.set(type, Promise.resolve(data));
+    if (changed) window.dispatchEvent(new CustomEvent('voltares:collection-updated', { detail:{ type } }));
+  });
+}
 const apiList = async (type, { fresh = false } = {}) => {
   if (!fresh && apiCache.has(type)) return apiCache.get(type);
-  const request = (async () => {
-  updateSiteLoading(1);
-  try {
-    const response = await fetch(`/api/${type}`).catch(() => null);
-    return response?.ok ? response.json() : null;
-  } finally {
-    updateSiteLoading(-1);
+  const cached = !fresh ? readPublicApiCache(type) : null;
+  if (cached) {
+    apiCache.set(type, Promise.resolve(cached.data));
+    if (Date.now() - Number(cached.checkedAt || cached.savedAt || 0) >= PUBLIC_REVALIDATE_AFTER) revalidatePublicApi(type, cached);
+    return cached.data;
   }
-  })();
+  const request = fetchPublicApi(type, null, false).then(result => result.data);
   apiCache.set(type, request);
   const result = await request;
   if (result === null) apiCache.delete(type);
   else apiCache.set(type, Promise.resolve(result));
   return result;
 };
-const invalidateApiCache = type => apiCache.delete(type);
+const invalidateApiCache = type => {
+  apiCache.delete(type);
+  try { localStorage.removeItem(`${PUBLIC_CACHE_PREFIX}${type}`); } catch {}
+};
 const loadingMarkup = label => `<div class="section-loader"><i></i><span>${escapeHtml(label)}</span></div>`;
 const emptyMarkup = (title, text) => `<div class="section-empty"><div><strong>${escapeHtml(title)}</strong>${escapeHtml(text)}</div></div>`;
 
@@ -528,12 +568,17 @@ function updateHomepageCartAction(item = activeEquipmentItem) {
   const cart = readHomepageCart();
   const collection = item?._collection || 'equipment';
   const count = cart.reduce((sum, entry) => sum + Number(entry.quantity || 0), 0);
+  $$('.homepage-cart-count').forEach(element => { element.textContent = count; });
+  $$('.homepage-cart-label').forEach(element => { element.textContent = uiText('Кошик', 'Cart'); });
   const inCart = item?._id && cart.some(entry => entry.id === String(item._id) && entry.collection === collection);
   const button = $('.equipment-add-to-cart', equipmentDialog);
   const link = $('.equipment-open-cart', equipmentDialog);
-  if (button) { button.classList.toggle('is-added', Boolean(inCart)); button.firstChild.textContent = inCart ? 'Додати ще один ' : 'Додати до кошика '; }
-  if (link) link.firstChild.textContent = count ? `Відкрити кошик (${count}) і надіслати ` : 'Відкрити кошик і надіслати ';
+  if (button) { button.classList.toggle('is-added', Boolean(inCart)); button.firstChild.textContent = inCart ? uiText('Додати ще один ', 'Add one more ') : uiText('Додати до кошика ', 'Add to cart '); }
+  if (link) link.firstChild.textContent = count ? uiText(`Відкрити кошик (${count}) і надіслати `, `Open cart (${count}) and send `) : uiText('Відкрити кошик і надіслати ', 'Open cart and send ');
 }
+updateHomepageCartAction(null);
+window.addEventListener('pageshow', () => updateHomepageCartAction(null));
+window.addEventListener('storage', event => { if (event.key === equipmentCartKey) updateHomepageCartAction(null); });
 function addActiveEquipmentToCart() {
   const item = activeEquipmentItem;
   if (!item?._id) return;
@@ -1361,3 +1406,19 @@ window.addEventListener('scroll', requestSectionNavigationUpdate, { passive: tru
 window.addEventListener('resize', requestSectionNavigationUpdate);
 updateSectionNavigation();
 enhanceClickableHints();
+
+// Cached sections paint immediately. When a lightweight ETag check detects
+// newer CRM content, refresh only the affected block without reloading page.
+window.addEventListener('voltares:collection-updated', event => {
+  const loaders = {
+    reviews:loadReviews,
+    projects:loadProjects,
+    equipment:loadPublicEquipment,
+    solarPanels:() => loadCatalogExtension('solarPanels', '#public-solar-panels', 8),
+    greenProtect:() => loadCatalogExtension('greenProtect', '#public-green-protect', 8),
+    articles:loadArticles,
+    questions:loadTopics,
+    faqs:loadFaqs
+  };
+  loaders[event.detail?.type]?.();
+});

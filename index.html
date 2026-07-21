@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>try{const theme=localStorage.getItem('voltera-theme')||localStorage.getItem('ink-theme')||'dark';document.documentElement.dataset.theme=theme;localStorage.setItem('voltera-theme',theme)}catch{}</script>
   <title>Інвертори Deye в Україні та резервне живлення | Voltares</title>
   <meta name="description" content="Інвертори Deye, Anenji й Easun, LiFePO4 батареї та сонячні системи під ключ в Україні. Підбір, монтаж, ціни й сервіс Voltares / ІНК.">
   <meta name="keywords" content="інвертори Deye Україна, купити інвертор Deye, інвертор для дому, акумулятор для інвертора, резервне живлення, гібридний інвертор, LiFePO4 акумулятор, сонячні панелі">
@@ -14,7 +15,7 @@
   <link rel="alternate" hreflang="x-default" href="https://www.voltares.pp.ua/">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="/site.webmanifest">
-  <link rel="stylesheet" href="/styles.css?v=20260721-2"><link rel="stylesheet" href="/ui-overrides.css?v=20260721-1">
+  <link rel="stylesheet" href="/styles.css?v=20260721-3"><link rel="stylesheet" href="/ui-overrides.css?v=20260721-1">
   <script>const q=new URLSearchParams(location.search);if(q.get('catalog')==='all')location.replace('/catalog.html');if(q.has('lang')){q.delete('lang');history.replaceState(null,'',location.pathname+(q.size?`?${q}`:'')+location.hash)}</script>
   <meta property="og:type" content="website">
   <meta property="og:locale" content="uk_UA">
@@ -59,13 +60,14 @@
       </nav>
       <div class="nav-actions">
         <div class="phone-menu"><a class="phone" href="tel:+380676721852"><span>+38 067</span> 672 18 52</a><div class="phone-dropdown" aria-label="Усі телефони ІНК"><a href="tel:+380676721852">+38 067 672 18 52</a><a href="tel:+380676795803">+38 067 679 58 03</a><a href="tel:+380679844153">+38 067 984 41 53</a></div></div>
+        <a class="header-cart-link" href="/catalog.html#cart" aria-label="Відкрити кошик"><span class="homepage-cart-label">Кошик</span><i class="homepage-cart-count">0</i></a>
         <button class="icon-button theme-toggle" type="button" aria-label="Змінити тему"><span aria-hidden="true">◐</span></button>
         <a class="button button-small" href="#consultation">Консультація</a>
         <button class="menu-toggle" type="button" aria-label="Відкрити меню" aria-expanded="false"><span></span><span></span></button>
       </div>
     </div>
     <div class="mobile-nav" aria-hidden="true">
-      <a href="#inverters">Інвертори</a><a href="#equipment">Обладнання</a><a href="/calculators.html">Калькулятори</a><a href="#projects">Фото об'єктів</a><a href="#journal">Журнал</a><a href="#reviews">Відгуки</a><a href="/faq.html">FAQ</a><a href="#consultation">Консультація</a>
+      <a href="#inverters">Інвертори</a><a href="#equipment">Обладнання</a><a href="/catalog.html#cart">Кошик (<span class="homepage-cart-count">0</span>)</a><a href="/calculators.html">Калькулятори</a><a href="#projects">Фото об'єктів</a><a href="#journal">Журнал</a><a href="#reviews">Відгуки</a><a href="/faq.html">FAQ</a><a href="#consultation">Консультація</a>
     </div>
   </header>
 
@@ -296,7 +298,7 @@
 
   <dialog class="selector-dialog" id="selector-dialog" aria-label="Швидкий підбір енергосистеми"><button class="dialog-close" type="button" aria-label="Закрити">×</button><div class="selector-progress"><i></i></div><div class="selector-content"><p class="eyebrow">AI-підбір / 01</p><h2>Де потрібна енергія?</h2><div class="selector-options"><button type="button" data-answer="Квартира">Квартира <span>→</span></button><button type="button" data-answer="Будинок">Приватний будинок <span>→</span></button><button type="button" data-answer="Бізнес">Бізнес <span>→</span></button></div><p class="selector-hint">3 питання · близько 90 секунд</p></div></dialog>
 
-<script src="/app.js?v=20260721-1" defer></script>
+<script src="/app.js?v=20260721-2" defer></script>
   <script>
     if (!['localhost', '127.0.0.1'].includes(location.hostname)) {
       const analytics = document.createElement('script');

@@ -525,6 +525,18 @@ function securityHeaders(res){
   res.setHeader('Content-Security-Policy',`default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: https:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com https://www.googletagmanager.com https://*.clarity.ms; connect-src 'self' https://api-contact-tg.a-nikanorov.workers.dev https://vitals.vercel-insights.com https://www.google-analytics.com https://region1.google-analytics.com https://*.clarity.ms; frame-src https://www.google.com https://maps.google.com${upgrade}`);
 }
 function json(res,status,data,headers={}){ securityHeaders(res); res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',...headers}); res.end(JSON.stringify(data)); }
+function publicJson(req,res,data){
+  const payload=JSON.stringify(data);
+  const etag=`"${crypto.createHash('sha1').update(payload).digest('base64url')}"`;
+  const headers={'Cache-Control':'public, max-age=30, stale-while-revalidate=300','ETag':etag};
+  securityHeaders(res);
+  if(String(req.headers['if-none-match']||'').split(/\s*,\s*/).includes(etag)){
+    res.writeHead(304,headers);
+    return res.end();
+  }
+  res.writeHead(200,{'Content-Type':'application/json; charset=utf-8',...headers});
+  return res.end(payload);
+}
 function htmlEscape(value=''){return String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));}
 function absoluteUrl(value=''){
   const source=String(value||'').trim();
@@ -538,14 +550,15 @@ function priceAmount(value=''){
 function equipmentUrl(item={}){return `/products/${encodeURIComponent(String(item._id||'').trim())}`}
 function jsonLd(value){return JSON.stringify(value).replace(/</g,'\\u003c')}
 const SEO_CATEGORIES=Object.freeze({
-  inverters:{name:'Гібридні інвертори',title:'Гібридні інвертори для дому та бізнесу | Voltares',description:'Однофазні й трифазні гібридні інвертори для резервного живлення та сонячних електростанцій. Порівняння потужності, фаз і напруги АКБ.',intro:'Гібридний інвертор керує мережею, акумулятором і сонячними панелями. Вибір залежить від пікового навантаження, кількості фаз, напруги батареї та майбутнього розширення системи.',match:item=>/фаз/i.test(String(item.phase||''))&&/kw/i.test(String(item.power||''))},
-  batteries:{name:'LiFePO₄ акумулятори',title:'LiFePO4 акумулятори для інвертора | Voltares',description:'LiFePO4 батареї для резервного й автономного живлення: ємність, напруга, BMS, сумісність і модульне розширення системи.',intro:'LiFePO₄ акумулятор обирають за корисною енергією, напругою, струмом BMS і протоколом зв’язку з інвертором. Для точного розрахунку важливий реальний профіль навантаження.',match:item=>/kwh|lifepo|bms|акб/i.test([item.power,item.phase,item.model].join(' '))},
-  solar:{name:'Обладнання для сонячних систем',title:'Обладнання для гібридних сонячних систем | Voltares',description:'Гібридні інвертори та накопичувачі енергії для домашніх і комерційних СЕС. Підбір MPPT, потужності панелей, батареї та резервного контуру.',intro:'Гібридна сонячна система поєднує панелі, інвертор, батарею й захист. До розрахунку входять генерація за орієнтацією даху, MPPT-діапазон, денне споживання та потрібний резерв.',match:item=>/^sun-/i.test(String(item.model||''))}
+  inverters:{collections:['equipment'],name:'Гібридні інвертори',title:'Гібридні інвертори для дому та бізнесу | Voltares',description:'Однофазні й трифазні гібридні інвертори для резервного живлення та сонячних електростанцій. Порівняння потужності, фаз і напруги АКБ.',intro:'Гібридний інвертор керує мережею, акумулятором і сонячними панелями. Вибір залежить від пікового навантаження, кількості фаз, напруги батареї та майбутнього розширення системи.',match:item=>/фаз/i.test(String(item.phase||''))&&/kw/i.test(String(item.power||''))&&!/kwh|lifepo|bms|акб/i.test([item.power,item.phase,item.model].join(' '))},
+  batteries:{collections:['equipment'],name:'LiFePO₄ акумулятори',title:'LiFePO4 акумулятори для інвертора | Voltares',description:'LiFePO4 батареї для резервного й автономного живлення: ємність, напруга, BMS, сумісність і модульне розширення системи.',intro:'LiFePO₄ акумулятор обирають за корисною енергією, напругою, струмом BMS і протоколом зв’язку з інвертором. Для точного розрахунку важливий реальний профіль навантаження.',match:item=>/kwh|lifepo|bms|акб/i.test([item.power,item.phase,item.model].join(' '))},
+  solar:{collections:['solarPanels','greenProtect'],name:'Обладнання для сонячних систем',title:'Сонячні панелі та захист СЕС | Voltares',description:'Сонячні панелі та компоненти захисту Green Protect для домашніх і комерційних СЕС.',intro:'У цьому розділі зібрані сонячні панелі, DC-захист, запобіжники, роз’єднувачі та інші компоненти, які можна придбати окремо або додати до комплектації станції.',match:()=>true}
 });
 function injectPublicHead(page=''){
   const source=String(page);
   const markup=[];
   if(GOOGLE_SITE_VERIFICATION&&!source.includes('name="google-site-verification"'))markup.push(`<meta name="google-site-verification" content="${htmlEscape(GOOGLE_SITE_VERIFICATION)}">`);
+  if(!source.includes('/header-consistency.css'))markup.push('<link rel="stylesheet" href="/header-consistency.css?v=20260721-1">');
   if(!source.includes('/analytics.js'))markup.push('<script defer src="/analytics-config.js"></script><script defer src="/analytics.js?v=20260720-1"></script>');
   return markup.length?source.replace('</head>',`${markup.join('')}</head>`):source;
 }
@@ -910,7 +923,8 @@ async function api(req,res,url){
       if(type==='faqs')items=items.filter(x=>x.status==='active').sort((a,b)=>Number(a.order||0)-Number(b.order||0));
     }
     if(!isAdmin&&id&&!items.some(x=>String(x._id)===id))return json(res,404,{error:'NOT_FOUND'});
-    return json(res,200,id?(items.find(x=>String(x._id)===id)||null):items,isAdmin?{}:{'Cache-Control':'public, max-age=30, stale-while-revalidate=300'});
+    const result=id?(items.find(x=>String(x._id)===id)||null):items;
+    return isAdmin?json(res,200,result):publicJson(req,res,result);
   }
   if(req.method==='POST'){
     if(!['leads','reviews','questions'].includes(type)&&!await requireAdmin(req,res))return;
@@ -992,7 +1006,7 @@ async function serve(req,res,url){
     if(url.pathname.endsWith('/')){res.writeHead(301,{Location:url.pathname.slice(0,-1)});return res.end()}
     const category=SEO_CATEGORIES[categoryMatch[1]];
     if(!category)return json(res,404,{error:'NOT_FOUND'});
-    const items=(await store.list('equipment')).filter(item=>item.status==='active'&&category.match(item));
+    const items=(await Promise.all(category.collections.map(type=>store.list(type)))).flat().filter(item=>item.status==='active'&&category.match(item));
     const canonical=`${PUBLIC_SITE_URL}/categories/${categoryMatch[1]}`;
     const breadcrumb={'@context':'https://schema.org','@type':'BreadcrumbList',itemListElement:[{'@type':'ListItem',position:1,name:'Головна',item:`${PUBLIC_SITE_URL}/`},{'@type':'ListItem',position:2,name:'Каталог',item:`${PUBLIC_SITE_URL}/catalog.html`},{'@type':'ListItem',position:3,name:category.name,item:canonical}]};
     const collection={'@context':'https://schema.org','@type':'CollectionPage',name:category.name,description:category.description,url:canonical,inLanguage:'uk-UA',mainEntity:{'@type':'ItemList',numberOfItems:items.length,itemListElement:items.map((item,index)=>({'@type':'ListItem',position:index+1,url:`${PUBLIC_SITE_URL}${equipmentUrl(item)}`,name:`${item.brand||''} ${item.model||''}`.trim()}))}};
