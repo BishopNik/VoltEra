@@ -38,7 +38,8 @@
 
 /* Product media and catalogue navigation stay legible at normal browser zoom. */
 .catalog-header nav a{font-size:15px}
-.catalog-card{grid-template-rows:230px auto}
-.catalog-card-media img{object-position:center;transform:scale(1.2)}
-.catalog-card:hover .catalog-card-media img{transform:scale(1.25)}
-@media(max-width:680px){.catalog-card{grid-template-rows:220px auto}.catalog-header nav a{font-size:14px}}
+.catalog-card{grid-template-rows:190px auto}
+.catalog-card-media{position:relative;padding:0}
+.catalog-card-media img{position:absolute;inset:22px;width:calc(100% - 44px);height:calc(100% - 44px);object-position:center;transform:none}
+.catalog-card:hover .catalog-card-media img{transform:scale(1.025)}
+@media(max-width:680px){.catalog-card{grid-template-rows:185px auto}.catalog-card-media img{inset:18px;width:calc(100% - 36px);height:calc(100% - 36px)}.catalog-header nav a{font-size:14px}}
