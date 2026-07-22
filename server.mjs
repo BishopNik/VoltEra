@@ -54,6 +54,7 @@ const PV_CATALOG_MIGRATION_ID = 'add-pv-panels-and-green-protect-2026-07-20-v1';
 const PV_CATALOG_CLEANUP_ID = 'clean-pv-catalog-2026-07-20-v1';
 const GREEN_PROTECT_PURCHASE_MIGRATION_ID = 'set-green-protect-purchase-prices-2026-07-20-v1';
 const PV_CATALOG_MEDIA_MIGRATION_ID = 'set-pv-catalog-media-and-usage-2026-07-21-v2';
+const PUBLIC_PROPOSALS_MIGRATION_ID = 'public-commercial-proposals-2026-07-22-v1';
 const EQUIPMENT_RETAIL_PRICES = Object.freeze({
   'SE-G5.1 Pro-B':'38 900 грн',
   'SE-F5 Pro-C':'38 500 грн',
@@ -330,7 +331,22 @@ class FileStore {
       }
       this.data._migrations.push(PV_CATALOG_MEDIA_MIGRATION_ID); changed=true;
     }
-    for(const review of this.data.reviews||[]){ if(review.status==='waiting'){review.status='published';changed=true;} if(review.verified===undefined){ review.verified=false; review.verifiedBy=''; review.verifiedAt=null; review.audit=[]; changed=true; } if(!Array.isArray(review.audit)){ review.audit=[]; changed=true; } }
+    for(const review of this.data.reviews||[]){ if(review.verified===undefined){ review.verified=false; review.verifiedBy=''; review.verifiedAt=null; review.audit=[]; changed=true; } if(!Array.isArray(review.audit)){ review.audit=[]; changed=true; } }
+    if(!this.data._migrations.includes(PUBLIC_PROPOSALS_MIGRATION_ID)){
+      for(const quote of this.data.quotes||[]){
+        const legacyStatus={accepted:'confirmed',completed:'confirmed',declined:'cancelled'}[quote.status];
+        Object.assign(quote,{
+          status:legacyStatus||(['draft','sent','viewed','confirmed','cancelled'].includes(quote.status)?quote.status:'draft'),
+          publicToken:quote.publicToken||null,publicEnabled:Boolean(quote.publicEnabled),sentAt:quote.sentAt||null,
+          firstViewedAt:quote.firstViewedAt||null,lastViewedAt:quote.lastViewedAt||null,viewsCount:Number(quote.viewsCount||0),
+          confirmedAt:quote.confirmedAt||null,lastClientActivityAt:quote.lastClientActivityAt||null,
+          adminViewedActivityAt:quote.adminViewedActivityAt||null,previousVersionId:quote.previousVersionId||null,
+          nextVersionId:quote.nextVersionId||null,version:Math.max(1,Number(quote.version||1)),
+          confirmationNotificationSentAt:quote.confirmationNotificationSentAt||null
+        });
+      }
+      this.data._migrations.push(PUBLIC_PROPOSALS_MIGRATION_ID);changed=true;
+    }
     if(changed)await this.persist();
   }
   async persist(){ const tmp=`${this.file}.tmp`; await fs.writeFile(tmp,JSON.stringify(this.data,null,2)); await fs.rename(tmp,this.file); }
@@ -340,6 +356,15 @@ class FileStore {
   async remove(type,id){ const index=this.data[type].findIndex(x=>String(x._id)===id); if(index<0)return false; this.data[type].splice(index,1); await this.persist(); return true; }
   async markViewed(type){ const now=new Date().toISOString(); (this.data[type]||[]).forEach(item=>{if(!item.viewedAt)item.viewedAt=now;}); await this.persist(); }
   async incrementEquipmentViews(id){ const item=this.data.equipment.find(entry=>String(entry._id)===String(id)); if(!item)return null; item.views=Number(item.views||0)+1; await this.persist(); return item.views; }
+  async quoteByToken(token){ return this.data.quotes.find(item=>item.publicToken===token)||null; }
+  async recordQuoteView(token,now){
+    const operation=this.queue.then(async()=>{const item=await this.quoteByToken(token);if(!item||!item.publicEnabled)return null;if(item.status==='sent')item.status='viewed';if(!item.firstViewedAt)item.firstViewedAt=now;Object.assign(item,{lastViewedAt:now,viewsCount:Number(item.viewsCount||0)+1,lastClientActivityAt:now,updatedAt:now});await this.persist();return item;});
+    this.queue=operation.catch(()=>{});return operation;
+  }
+  async confirmQuote(token,now){
+    const operation=this.queue.then(async()=>{const item=await this.quoteByToken(token);if(!item||!item.publicEnabled)return {quote:item,changed:false};if(!['sent','viewed'].includes(item.status))return {quote:item,changed:false};Object.assign(item,{status:'confirmed',confirmedAt:now,lastClientActivityAt:now,updatedAt:now});await this.persist();return {quote:item,changed:true};});
+    this.queue=operation.catch(()=>{});return operation;
+  }
 }
 
 class MongoStore {
@@ -347,6 +372,8 @@ class MongoStore {
   async init(){
     for(const name of COLLECTIONS) await this.db.collection(name).createIndex({createdAt:-1});
     await this.db.collection('users').createIndex({username:1},{unique:true});
+    await this.db.collection('quotes').updateMany({publicToken:null},{$unset:{publicToken:''}});
+    await this.db.collection('quotes').createIndex({publicToken:1},{unique:true,sparse:true});
     // Public catalogue images and private CRM documents may contain identical
     // bytes, but they must never share an access policy.
     try{await this.db.collection('media').dropIndex('sha256_1');}catch(error){if(error?.codeName!=='IndexNotFound'&&error?.code!==27)throw error;}
@@ -452,7 +479,10 @@ class MongoStore {
     }
     await this.db.collection('reviews').updateMany({verified:{$exists:false}},{$set:{verified:false,verifiedBy:'',verifiedAt:null,audit:[]}});
     await this.db.collection('reviews').updateMany({audit:{$exists:false}},{$set:{audit:[]}});
-    await this.db.collection('reviews').updateMany({status:'waiting'},{$set:{status:'published',updatedAt:new Date().toISOString()}});
+    await this.db.collection('quotes').updateMany({status:'accepted'},{$set:{status:'confirmed'}});
+    await this.db.collection('quotes').updateMany({status:'completed'},{$set:{status:'confirmed'}});
+    await this.db.collection('quotes').updateMany({status:'declined'},{$set:{status:'cancelled'}});
+    await this.db.collection('quotes').updateMany({publicEnabled:{$exists:false}},{$set:{publicEnabled:false,sentAt:null,firstViewedAt:null,lastViewedAt:null,viewsCount:0,confirmedAt:null,lastClientActivityAt:null,adminViewedActivityAt:null,previousVersionId:null,nextVersionId:null,version:1,confirmationNotificationSentAt:null}});
   }
   id(id){ try{return new this.ObjectId(id)}catch{return id} }
   clean(doc){ if(!doc)return doc; return {...doc,_id:String(doc._id)}; }
@@ -462,6 +492,24 @@ class MongoStore {
   async remove(type,id){ return (await this.db.collection(type).deleteOne({_id:this.id(id)})).deletedCount>0; }
   async markViewed(type){ await this.db.collection(type).updateMany({viewedAt:null},{$set:{viewedAt:new Date().toISOString()}}); }
   async incrementEquipmentViews(id){ const result=await this.db.collection('equipment').findOneAndUpdate({_id:this.id(id),status:'active'},{$inc:{views:1}},{returnDocument:'after',projection:{views:1}}); return result?Number(result.views||0):null; }
+  async quoteByToken(token){ return this.clean(await this.db.collection('quotes').findOne({publicToken:token})); }
+  async recordQuoteView(token,now){
+    const result=await this.db.collection('quotes').findOneAndUpdate(
+      {publicToken:token,publicEnabled:true,status:{$ne:'cancelled'}},
+      [{$set:{status:{$cond:[{$eq:['$status','sent']},'viewed','$status']},firstViewedAt:{$ifNull:['$firstViewedAt',now]},lastViewedAt:now,viewsCount:{$add:[{$ifNull:['$viewsCount',0]},1]},lastClientActivityAt:now,updatedAt:now}}],
+      {returnDocument:'after'}
+    );
+    return this.clean(result);
+  }
+  async confirmQuote(token,now){
+    const result=await this.db.collection('quotes').findOneAndUpdate(
+      {publicToken:token,publicEnabled:true,status:{$in:['sent','viewed']}},
+      {$set:{status:'confirmed',confirmedAt:now,lastClientActivityAt:now,updatedAt:now}},
+      {returnDocument:'after'}
+    );
+    if(result)return {quote:this.clean(result),changed:true};
+    return {quote:await this.quoteByToken(token),changed:false};
+  }
   async saveMedia(data,contentType,access='public'){
     const sha256=crypto.createHash('sha256').update(data).digest('hex');
     const now=new Date().toISOString();
@@ -484,6 +532,19 @@ async function createStore(){
   const store=new FileStore(path.join(ROOT,'data','db.json')); await store.init(); console.log('Database: local JSON fallback'); return store;
 }
 const store = await createStore();
+
+async function hydrateQuoteItemSnapshots(items=[],currency='UAH'){
+  const groups=await Promise.all(['equipment','solarPanels','greenProtect'].map(async type=>(await store.list(type)).map(item=>({...item,_collection:type}))));
+  const catalog=groups.flat();
+  return sanitizeQuoteItems(items).map(item=>{
+    const product=item.kind==='catalog'?catalog.find(entry=>entry._collection===item.collection&&String(entry._id)===String(item.productId)):null;
+    const description=item.shortDescription||item.description||[product?.power||product?.spec,product?.phase||product?.technology||product?.category,product?.voltage].filter(Boolean).join(' · ');
+    const image=item.image||(product?normalizedEquipmentImages(product)[0]:'')||'';
+    const productSlug=item.productSlug||String(product?._id||item.productId||'');
+    const productUrl=item.productUrl||(product&&productSlug?`/products/${productSlug}`:'');
+    return {...item,productSlug,productUrl,image,shortDescription:description,currency,total:Number(item.quantity)*Number(item.unitPrice)*(1-Number(item.discount||0)/100)};
+  });
+}
 
 function passwordRecord(password,salt=crypto.randomBytes(16).toString('hex')){
   return {passwordSalt:salt,passwordHash:crypto.scryptSync(String(password),salt,64).toString('hex')};
@@ -630,12 +691,44 @@ function sanitizeQuoteItems(value){
     kind:item?.kind==='custom'?'custom':'catalog',
     collection:['equipment','solarPanels','greenProtect'].includes(item?.collection)?item.collection:'equipment',
     productId:cleanText(item?.productId,120),
+    productSlug:cleanText(item?.productSlug||item?.productId,160),
+    productUrl:/^\/products\/[a-zA-Z0-9_-]+$/.test(String(item?.productUrl||''))?String(item.productUrl):'',
     name:cleanText(item?.name,220),
     description:cleanText(item?.description,700),
+    shortDescription:cleanText(item?.shortDescription||item?.description,700),
+    image:/^(?:\/|https:\/\/)/.test(String(item?.image||''))?cleanText(item.image,700):'',
     quantity:Math.round(clampNumber(item?.quantity,1,100000)),
     unit:cleanText(item?.unit||'шт.',30),
-    unitPrice:clampNumber(item?.unitPrice,0,1_000_000_000)
+    unitPrice:clampNumber(item?.unitPrice,0,1_000_000_000),
+    discount:clampNumber(item?.discount,0,100),
+    total:clampNumber(item?.total??Number(item?.quantity||0)*Number(item?.unitPrice||0),0,1_000_000_000),
+    currency:['UAH','USD','EUR'].includes(item?.currency)?item.currency:undefined
   })).filter(item=>item.name);
+}
+const QUOTE_STATUSES=new Set(['draft','sent','viewed','confirmed','cancelled']);
+function normalizedQuoteStatus(value='draft'){return ({accepted:'confirmed',completed:'confirmed',declined:'cancelled'}[value]||value);}
+function quoteDefaults(quote={}){return {...quote,status:QUOTE_STATUSES.has(normalizedQuoteStatus(quote.status))?normalizedQuoteStatus(quote.status):'draft',publicToken:quote.publicToken||null,publicEnabled:Boolean(quote.publicEnabled),sentAt:quote.sentAt||null,firstViewedAt:quote.firstViewedAt||null,lastViewedAt:quote.lastViewedAt||null,viewsCount:Number(quote.viewsCount||0),confirmedAt:quote.confirmedAt||null,lastClientActivityAt:quote.lastClientActivityAt||null,adminViewedActivityAt:quote.adminViewedActivityAt||null,previousVersionId:quote.previousVersionId||null,nextVersionId:quote.nextVersionId||null,version:Math.max(1,Number(quote.version||1)),confirmationNotificationSentAt:quote.confirmationNotificationSentAt||null};}
+function validProposalToken(value=''){return /^[a-f0-9]{64}$/.test(String(value));}
+function publicProposalUrl(token){return `${PUBLIC_SITE_URL}/proposal/${token}`;}
+function proposalExpired(quote={}){if(!/^\d{4}-\d{2}-\d{2}$/.test(String(quote.validUntil||'')))return false;return Date.now()>new Date(`${quote.validUntil}T23:59:59`).getTime();}
+function serializePublicProposal(source={}){
+  const quote=quoteDefaults(source);
+  return {
+    number:cleanText(quote.number,40),createdAt:quote.createdAt||null,validUntil:quote.validUntil||null,
+    expired:proposalExpired(quote),status:quote.status,version:quote.version,
+    customer:{name:cleanText(quote.customerName,160),company:cleanText(quote.company,160),phone:cleanText(quote.phone,80),city:cleanText(quote.city,120)},
+    items:(quote.items||[]).map(item=>({
+      name:cleanText(item.name,220),shortDescription:cleanText(item.shortDescription||item.description,700),
+      image:/^(?:\/|https:\/\/)/.test(String(item.image||''))?item.image:'',quantity:Number(item.quantity||0),
+      unit:cleanText(item.unit||'шт.',30),unitPrice:Number(item.unitPrice||0),discount:Number(item.discount||0),
+      total:Number(item.total??Number(item.quantity||0)*Number(item.unitPrice||0)),
+      productUrl:/^\/products\/[a-zA-Z0-9_-]+$/.test(String(item.productUrl||''))?item.productUrl:''
+    })),
+    subtotal:Number(quote.subtotal||0),currency:['UAH','USD','EUR'].includes(quote.currency)?quote.currency:'UAH',
+    note:cleanText(quote.note,3000),paymentTerms:cleanText(quote.paymentTerms||'',1000),deliveryTerms:cleanText(quote.deliveryTerms||'',1000),
+    warranty:cleanText(quote.warranty||'',1000),manager:{name:cleanText(quote.createdBy||'Менеджер Voltares',160),phone:'+38 067 672 18 52',email:EMAIL_REPLY_TO},
+    confirmedAt:quote.confirmedAt||null
+  };
 }
 function sanitizeAttachments(value){
   if(!Array.isArray(value))return [];
@@ -743,8 +836,17 @@ function quoteEmailContent(quote={}){
   const validDays=Number.isNaN(reservedDate.getTime())?3:Math.max(1,Math.round((reservedDate.getTime()-createdDate.getTime())/86_400_000));
   const validDate=String(quote.validUntil||'').split('-').reverse().join('.');
   const rows=(quote.items||[]).map(item=>`<tr><td style="padding:11px;border-bottom:1px solid #e3e5e1"><b>${htmlEscape(item.name)}</b>${item.description?`<br><small style="color:#77827d">${htmlEscape(item.description)}</small>`:''}</td><td style="padding:11px;border-bottom:1px solid #e3e5e1;text-align:center">${htmlEscape(item.quantity)} ${htmlEscape(item.unit)}</td><td style="padding:11px;border-bottom:1px solid #e3e5e1;text-align:right">${htmlEscape(formatMoney(item.unitPrice,currency))}</td><td style="padding:11px;border-bottom:1px solid #e3e5e1;text-align:right"><b>${htmlEscape(formatMoney(Number(item.quantity)*Number(item.unitPrice),currency))}</b></td></tr>`).join('');
-  const content=`<p style="font-size:16px;line-height:1.6">Для: <b>${htmlEscape(quote.customerName||quote.company||'Клієнт')}</b>${quote.company?` · ${htmlEscape(quote.company)}`:''}</p><table style="width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden"><thead><tr><th style="padding:11px;text-align:left">Позиція</th><th style="padding:11px">К-сть</th><th style="padding:11px;text-align:right">Ціна</th><th style="padding:11px;text-align:right">Сума</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="3" style="padding:16px;text-align:right"><b>Разом</b></td><td style="padding:16px;text-align:right;font-size:19px"><b>${htmlEscape(formatMoney(quote.subtotal,currency))}</b></td></tr></tfoot></table>${quote.note?`<div style="margin-top:18px;padding:18px;border-radius:14px;background:#fff"><b>Примітка</b><p style="line-height:1.6">${htmlEscape(quote.note)}</p></div>`:''}`;
+  const publicLink=quote.publicEnabled&&quote.publicToken?`<p style="margin:20px 0"><a href="${htmlEscape(publicProposalUrl(quote.publicToken))}" style="display:inline-block;padding:14px 20px;border-radius:10px;background:#e88b22;color:#fff;text-decoration:none;font-weight:800">Переглянути та підтвердити пропозицію</a></p>`:'';
+  const content=`<p style="font-size:16px;line-height:1.6">Для: <b>${htmlEscape(quote.customerName||quote.company||'Клієнт')}</b>${quote.company?` · ${htmlEscape(quote.company)}`:''}</p>${publicLink}<table style="width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden"><thead><tr><th style="padding:11px;text-align:left">Позиція</th><th style="padding:11px">К-сть</th><th style="padding:11px;text-align:right">Ціна</th><th style="padding:11px;text-align:right">Сума</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="3" style="padding:16px;text-align:right"><b>Разом</b></td><td style="padding:16px;text-align:right;font-size:19px"><b>${htmlEscape(formatMoney(quote.subtotal,currency))}</b></td></tr></tfoot></table>${quote.note?`<div style="margin-top:18px;padding:18px;border-radius:14px;background:#fff"><b>Примітка</b><p style="line-height:1.6">${htmlEscape(quote.note)}</p></div>`:''}`;
   return emailLayout({eyebrow:`Комерційна пропозиція ${quote.number||''}`,title:'Комплектація та вартість',intro:quote.validUntil?`Ціна та наявність зарезервовані на ${validDays} дн., до ${validDate} включно.`:'',content});
+}
+async function sendProposalConfirmationNotification(quote={}){
+  const confirmed=new Date(quote.confirmedAt||Date.now()).toLocaleString('uk-UA',{timeZone:'Europe/Warsaw',dateStyle:'medium',timeStyle:'short'});
+  const adminUrl=`${PUBLIC_SITE_URL}/admin.html#quotes`;
+  const title=`Клієнт підтвердив комерційну пропозицію ${quote.number||''}`.trim();
+  const text=[`Клієнт ${quote.customerName||quote.company||'—'} підтвердив комерційну пропозицію ${quote.number||''}.`,`Дата підтвердження: ${confirmed}`,`Сума: ${formatMoney(quote.subtotal,quote.currency)}`,`Відкрити в адмінці: ${adminUrl}`].join('\n');
+  const content=`<div style="padding:20px;border-radius:14px;background:#fff"><p><b>${htmlEscape(quote.customerName||quote.company||'Клієнт')}</b> підтвердив пропозицію.</p><p>Дата: ${htmlEscape(confirmed)}<br>Сума: <b>${htmlEscape(formatMoney(quote.subtotal,quote.currency))}</b></p><p><a href="${htmlEscape(adminUrl)}">Відкрити в адмінці →</a></p></div>`;
+  return sendEmail({to:EMAIL_REPLY_TO,subject:title,html:emailLayout({eyebrow:'Нова дія клієнта',title,content}),text,idempotencyKey:`proposal-confirmed-${quote._id}`});
 }
 function contactApiPayload(type,item,message){
   const label={leads:'Нова заявка',reviews:'Новий відгук',questions:'Нове питання'}[type]||'Нове повідомлення';
@@ -913,17 +1015,81 @@ async function api(req,res,url){
     const views=await store.incrementEquipmentViews(equipmentViewMatch[1]);
     return views===null?json(res,404,{error:'NOT_FOUND'}):json(res,200,{views});
   }
+  const publicProposalMatch=url.pathname.match(/^\/api\/public\/proposals\/([^/]+)(?:\/(view|confirm))?$/);
+  if(publicProposalMatch){
+    const token=publicProposalMatch[1];const action=publicProposalMatch[2]||'get';
+    if(!validProposalToken(token))return json(res,400,{error:'INVALID_LINK'});
+    if(!allowRequest(req,res,`public-proposal-${action}`,action==='get'?60:20,10*60_000))return;
+    const quote=await store.quoteByToken(token);
+    if(!quote)return json(res,404,{error:'NOT_FOUND'});
+    if(!quote.publicEnabled)return json(res,410,{error:'LINK_REVOKED'});
+    if(action==='get'&&req.method==='GET')return json(res,200,serializePublicProposal(quote),{'Cache-Control':'private, no-store','X-Robots-Tag':'noindex, nofollow, noarchive'});
+    if(action==='view'&&req.method==='POST'){
+      const viewed=await store.recordQuoteView(token,new Date().toISOString());
+      return viewed?json(res,200,{ok:true,status:normalizedQuoteStatus(viewed.status)}):json(res,410,{error:'LINK_REVOKED'});
+    }
+    if(action==='confirm'&&req.method==='POST'){
+      if(proposalExpired(quote))return json(res,409,{error:'PROPOSAL_EXPIRED'});
+      const result=await store.confirmQuote(token,new Date().toISOString());
+      if(!result.quote)return json(res,404,{error:'NOT_FOUND'});
+      if(!result.quote.publicEnabled)return json(res,410,{error:'LINK_REVOKED'});
+      if(!result.changed){
+        if(normalizedQuoteStatus(result.quote.status)==='confirmed')return json(res,200,{ok:true,alreadyConfirmed:true,confirmedAt:result.quote.confirmedAt||null});
+        return json(res,409,{error:'CONFIRMATION_NOT_ALLOWED'});
+      }
+      try{
+        const delivery=await sendProposalConfirmationNotification(result.quote);
+        if(delivery.sent)await store.update('quotes',result.quote._id,{confirmationNotificationSentAt:new Date().toISOString()});
+        else console.error('Proposal confirmation email failed',{proposalId:result.quote._id,number:result.quote.number,error:delivery.error,at:new Date().toISOString()});
+      }catch(error){console.error('Proposal confirmation notification error',{proposalId:result.quote._id,number:result.quote.number,error:error.message,at:new Date().toISOString()});}
+      return json(res,200,{ok:true,confirmedAt:result.quote.confirmedAt});
+    }
+    return json(res,405,{error:'METHOD_NOT_ALLOWED'});
+  }
+  const adminProposalMatch=url.pathname.match(/^\/api\/admin\/proposals\/([^/]+)\/(publish|revoke|create-version|mark-activity-seen)$/);
+  if(adminProposalMatch&&req.method==='POST'){
+    const user=await requireAdmin(req,res);if(!user)return;
+    const [,id,action]=adminProposalMatch;
+    const quote=(await store.list('quotes')).find(item=>String(item._id)===id);
+    if(!quote)return json(res,404,{error:'NOT_FOUND'});
+    if(!canAccessQuote(user,quote))return json(res,403,{error:'QUOTE_ACCESS_DENIED'});
+    if(action==='publish'){
+      if(!cleanText(quote.customerName,160)||!cleanText(quote.phone,80)||!Array.isArray(quote.items)||!quote.items.length)return json(res,400,{error:'QUOTE_PUBLISH_FIELDS_REQUIRED'});
+      if(normalizedQuoteStatus(quote.status)==='cancelled')return json(res,409,{error:'CANCELLED_PROPOSAL'});
+      let token=quote.publicEnabled&&validProposalToken(quote.publicToken)?quote.publicToken:'';
+      if(!token){do{token=crypto.randomBytes(32).toString('hex');}while(await store.quoteByToken(token));}
+      const now=new Date().toISOString();const items=await hydrateQuoteItemSnapshots(quote.items,quote.currency||'UAH');const subtotal=items.reduce((sum,item)=>sum+Number(item.total),0);
+      const status=normalizedQuoteStatus(quote.status)==='confirmed'?'confirmed':'sent';
+      const updated=await store.update('quotes',id,{publicToken:token,publicEnabled:true,status,sentAt:quote.sentAt||now,items,subtotal,ownerId:quote.ownerId||user.id,createdBy:quote.createdBy||user.name});
+      return json(res,200,{proposal:updated,publicUrl:publicProposalUrl(token)});
+    }
+    if(action==='revoke')return json(res,200,await store.update('quotes',id,{publicEnabled:false}));
+    if(action==='mark-activity-seen')return json(res,200,await store.update('quotes',id,{adminViewedActivityAt:new Date().toISOString()}));
+    if(action==='create-version'){
+      if(normalizedQuoteStatus(quote.status)!=='confirmed')return json(res,409,{error:'ONLY_CONFIRMED_CAN_VERSION'});
+      const version=Math.max(1,Number(quote.version||1))+1;
+      const copyFields=['customerName','company','email','phone','city','validUntil','note','items','currency','subtotal','sharedWith','sourceLeadId','ownerId','createdBy'];
+      const copy=Object.fromEntries(copyFields.filter(key=>quote[key]!==undefined).map(key=>[key,structuredClone(quote[key])]));
+      const created=await store.create('quotes',{...copy,number:`KP-${new Date().toISOString().slice(0,10).replaceAll('-','')}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`,status:'draft',publicEnabled:false,sentAt:null,firstViewedAt:null,lastViewedAt:null,viewsCount:0,confirmedAt:null,lastClientActivityAt:null,adminViewedActivityAt:null,previousVersionId:String(quote._id),nextVersionId:null,version,confirmationNotificationSentAt:null,emailStatus:'not-sent',emailId:'',emailError:''});
+      await store.update('quotes',quote._id,{nextVersionId:String(created._id)});
+      return json(res,201,created);
+    }
+  }
   const quoteSendMatch=url.pathname.match(/^\/api\/quotes\/([^/]+)\/send$/);
   if(quoteSendMatch&&req.method==='POST'){
     const user=await requireAdmin(req,res);if(!user)return;
     const quote=(await store.list('quotes')).find(item=>String(item._id)===quoteSendMatch[1]);
     if(!quote)return json(res,404,{error:'NOT_FOUND'});
     if(!canAccessQuote(user,quote))return json(res,403,{error:'QUOTE_ACCESS_DENIED'});
-    if(!cleanText(quote.customerName,160)||!validEmail(quote.email)||!Array.isArray(quote.items)||!quote.items.length)return json(res,400,{error:'QUOTE_SEND_FIELDS_REQUIRED'});
-    const delivery=await sendEmail({to:quote.email,subject:`Комерційна пропозиція Voltares ${quote.number||''}`.trim(),html:quoteEmailContent(quote),text:`Комерційна пропозиція ${quote.number||''}\nРазом: ${formatMoney(quote.subtotal,quote.currency)}`,idempotencyKey:`quote-${quote._id}-${quote.updatedAt||quote.createdAt}`});
-    const protectedStatus=['accepted','completed','declined'].includes(quote.status)?quote.status:null;
-    const updated=await store.update('quotes',quote._id,{status:protectedStatus||(delivery.sent?'sent':quote.status||'draft'),sentAt:delivery.sent?new Date().toISOString():quote.sentAt||null,emailStatus:delivery.sent?'sent':'failed',emailId:delivery.id||'',emailError:delivery.error||'',ownerId:quote.ownerId||user.id,createdBy:quote.createdBy||user.name});
-    return json(res,delivery.sent?200:502,updated);
+    if(!cleanText(quote.customerName,160)||!cleanText(quote.phone,80)||!validEmail(quote.email)||!Array.isArray(quote.items)||!quote.items.length)return json(res,400,{error:'QUOTE_SEND_FIELDS_REQUIRED'});
+    if(['confirmed','cancelled'].includes(normalizedQuoteStatus(quote.status)))return json(res,409,{error:normalizedQuoteStatus(quote.status)==='confirmed'?'CONFIRMED_READ_ONLY':'CANCELLED_PROPOSAL'});
+    let token=quote.publicEnabled&&validProposalToken(quote.publicToken)?quote.publicToken:'';
+    if(!token){do{token=crypto.randomBytes(32).toString('hex');}while(await store.quoteByToken(token));}
+    const now=new Date().toISOString();const items=await hydrateQuoteItemSnapshots(quote.items,quote.currency||'UAH');const subtotal=items.reduce((sum,item)=>sum+Number(item.total),0);
+    const published=await store.update('quotes',quote._id,{status:'sent',publicToken:token,publicEnabled:true,sentAt:quote.sentAt||now,items,subtotal,ownerId:quote.ownerId||user.id,createdBy:quote.createdBy||user.name});
+    const delivery=await sendEmail({to:published.email,subject:`Комерційна пропозиція Voltares ${published.number||''}`.trim(),html:quoteEmailContent(published),text:`Комерційна пропозиція ${published.number||''}\nРазом: ${formatMoney(published.subtotal,published.currency)}\n${publicProposalUrl(token)}`,idempotencyKey:`quote-${published._id}-${published.updatedAt||published.createdAt}`});
+    const updated=await store.update('quotes',published._id,{emailStatus:delivery.sent?'sent':'failed',emailId:delivery.id||'',emailError:delivery.error||''});
+    return json(res,200,{...updated,publicUrl:publicProposalUrl(token),emailDelivered:delivery.sent});
   }
   if(url.pathname==='/api/leads/bulk-delete'&&req.method==='POST'){
     if(!await requireAdmin(req,res))return;
@@ -939,7 +1105,7 @@ async function api(req,res,url){
   if(req.method==='GET'){
     if(['leads','quotes','purchases'].includes(type)&&!isAdmin)return json(res,401,{error:'AUTH_REQUIRED'});
     let items=await store.list(type);
-    if(type==='quotes'&&isAdmin)items=items.filter(item=>canAccessQuote(adminUser,item));
+    if(type==='quotes'&&isAdmin)items=items.filter(item=>canAccessQuote(adminUser,item)).map(quoteDefaults);
     if(!isAdmin){
       if(type==='reviews')items=items.filter(x=>x.status==='published').map(publicReview);
       if(['projects','articles'].includes(type))items=items.filter(x=>x.status==='published'||x.status==='active');
@@ -974,7 +1140,7 @@ async function api(req,res,url){
       if(verified.length&&input.email&&!validEmail(input.email))return json(res,400,{error:'INVALID_EMAIL_FOR_CART'});
     }
     if(type==='quotes'){
-      input.items=sanitizeQuoteItems(input.items);input.currency=input.currency==='USD'?'USD':'UAH';input.subtotal=input.items.reduce((sum,item)=>sum+Number(item.quantity)*Number(item.unitPrice),0);input.status=['draft','sent','accepted','completed','declined'].includes(input.status)?input.status:'draft';input.ownerId=String(adminUser?.id||'');input.createdBy=adminUser?.name||'';input.sharedWith=await sanitizeQuoteShares(input.sharedWith,input.ownerId);input.sourceLeadId=cleanText(input.sourceLeadId,100);input.number=cleanText(input.number||`KP-${new Date().toISOString().slice(0,10).replaceAll('-','')}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`,40);input.emailStatus='not-sent';input.emailId='';input.emailError='';
+      input.currency=input.currency==='USD'?'USD':'UAH';input.items=await hydrateQuoteItemSnapshots(input.items,input.currency);input.subtotal=input.items.reduce((sum,item)=>sum+Number(item.total),0);input.status='draft';input.ownerId=String(adminUser?.id||'');input.createdBy=adminUser?.name||'';input.sharedWith=await sanitizeQuoteShares(input.sharedWith,input.ownerId);input.sourceLeadId=cleanText(input.sourceLeadId,100);input.number=cleanText(input.number||`KP-${new Date().toISOString().slice(0,10).replaceAll('-','')}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`,40);Object.assign(input,{publicEnabled:false,sentAt:null,firstViewedAt:null,lastViewedAt:null,viewsCount:0,confirmedAt:null,lastClientActivityAt:null,adminViewedActivityAt:null,previousVersionId:null,nextVersionId:null,version:1,confirmationNotificationSentAt:null,emailStatus:'not-sent',emailId:'',emailError:''});
     }
     if(type==='purchases'){input.attachments=sanitizeAttachments(input.attachments);input.status=['planned','ordered','received','cancelled'].includes(input.status)?input.status:'planned';input.currency=['UAH','USD','EUR'].includes(input.currency)?input.currency:'UAH';input.amount=clampNumber(input.amount,0,1_000_000_000);input.createdBy=adminUser?.name||'';}
     if(type==='equipment'){
@@ -983,7 +1149,7 @@ async function api(req,res,url){
       input.views=0;
     }
     if(type==='leads')Object.assign(input,{status:input.status||'new',manager:input.manager||'',checkedBy:input.checkedBy||'',viewedAt:null});
-    if(type==='reviews')Object.assign(input,{status:'published',reply:'',verified:false,verifiedAt:null,verifiedBy:'',audit:[],viewedAt:null,rating:Number(input.rating||5)});
+    if(type==='reviews')Object.assign(input,{status:'waiting',reply:'',verified:false,verifiedAt:null,verifiedBy:'',audit:[],viewedAt:null,rating:Number(input.rating||5)});
     if(type==='questions'){
       if(isAdmin){
         input.answers=Array.isArray(input.answers)?input.answers.filter(answer=>answer&&String(answer.text||'').trim()).map(answer=>({author:String(answer.author||adminUser?.name||'ІНК'),role:'engineer',text:String(answer.text).trim(),createdAt:answer.createdAt||new Date().toISOString()})):[];
@@ -1007,6 +1173,7 @@ async function api(req,res,url){
     if(type==='quotes'&&!canAccessQuote(user,previous))return json(res,403,{error:'QUOTE_ACCESS_DENIED'});
     if(req.method==='DELETE'){
       if(type==='quotes'&&!isQuoteOwner(user,previous))return json(res,403,{error:'QUOTE_OWNER_ONLY'});
+      if(type==='quotes'&&normalizedQuoteStatus(previous.status)==='confirmed')return json(res,409,{error:'CONFIRMED_READ_ONLY'});
       return json(res,(await store.remove(type,id))?200:404,{ok:true});
     }
     const input=sanitize(type,await body(req));
@@ -1015,10 +1182,15 @@ async function api(req,res,url){
       if(input.homeOrder!==undefined)input.homeOrder=Math.max(0,Number(input.homeOrder||0));
     }
     if(type==='quotes'){
+      if(normalizedQuoteStatus(previous.status)==='confirmed')return json(res,409,{error:'CONFIRMED_READ_ONLY'});
       if(!previous.ownerId&&isQuoteOwner(user,previous))input.ownerId=String(user.id||'');
-      if(input.items!==undefined){input.items=sanitizeQuoteItems(input.items);input.subtotal=input.items.reduce((sum,item)=>sum+Number(item.quantity)*Number(item.unitPrice),0)}
+      if(input.items!==undefined){input.items=await hydrateQuoteItemSnapshots(input.items,input.currency||previous.currency||'UAH');input.subtotal=input.items.reduce((sum,item)=>sum+Number(item.total),0)}
       if(input.currency!==undefined)input.currency=input.currency==='USD'?'USD':'UAH';
-      if(input.status!==undefined)input.status=['draft','sent','accepted','completed','declined'].includes(input.status)?input.status:'draft';
+      if(input.status!==undefined){
+        const from=normalizedQuoteStatus(previous.status);const to=normalizedQuoteStatus(input.status);const transitions={draft:['draft','sent','cancelled'],sent:['sent','viewed','confirmed','cancelled'],viewed:['viewed','confirmed','cancelled'],cancelled:['cancelled']}[from]||[from];
+        if(!transitions.includes(to))return json(res,409,{error:'INVALID_STATUS_TRANSITION'});
+        input.status=to;if(to==='cancelled')input.publicEnabled=false;
+      }
       if(input.sourceLeadId!==undefined)input.sourceLeadId=cleanText(input.sourceLeadId,100);
       if(input.sharedWith!==undefined){
         if(!isQuoteOwner(user,previous))return json(res,403,{error:'QUOTE_OWNER_ONLY'});
@@ -1040,6 +1212,10 @@ async function api(req,res,url){
 
 async function serve(req,res,url){
   if(url.pathname==='/admin.html'&&!currentUser(req)){res.writeHead(302,{Location:'/admin-login.html'});return res.end();}
+  if(/^\/proposal\/[^/]+\/?$/.test(url.pathname)){
+    const page=await fs.readFile(path.join(ROOT,'proposal.html'));
+    res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'private, no-store','X-Robots-Tag':'noindex, nofollow, noarchive'});return res.end(page);
+  }
   if(url.pathname.startsWith('/private-uploads/')){
     if(!await requireAdmin(req,res))return;
     const file=path.resolve(ROOT,`.${decodeURIComponent(url.pathname)}`);const directory=path.join(ROOT,'private-uploads');
@@ -1129,7 +1305,7 @@ export async function handleRequest(req,res){
     securityHeaders(res);
     const url=new URL(req.url,`http://${req.headers.host||'localhost'}`);
     const requestHost=String(req.headers['x-forwarded-host']||req.headers.host||'').split(',')[0].trim().toLowerCase();
-    if(requestHost.endsWith('.vercel.app')||/^\/(?:admin|api|private|preview|draft)(?:[/.]|$)/.test(url.pathname))res.setHeader('X-Robots-Tag','noindex, nofollow');
+    if(requestHost.endsWith('.vercel.app')||/^\/(?:admin|api|private|preview|draft|proposal)(?:[/.]|$)/.test(url.pathname))res.setHeader('X-Robots-Tag','noindex, nofollow, noarchive');
     if(IS_PRODUCTION){
       const forwardedHost=requestHost;
       const forwardedProto=String(req.headers['x-forwarded-proto']||'https').split(',')[0].trim().toLowerCase();
@@ -1142,7 +1318,7 @@ export async function handleRequest(req,res){
   }catch(error){
     console.error(error);
     const status=error.message==='PAYLOAD_TOO_LARGE'?413:error.message==='UNSUPPORTED_CONTENT_TYPE'?415:error instanceof SyntaxError?400:500;
-    json(res,status,{error:error.message||'SERVER_ERROR'});
+    json(res,status,{error:String(req.url||'').startsWith('/api/public/proposals/')?'SERVER_ERROR':error.message||'SERVER_ERROR'});
   }
 }
 export default handleRequest;

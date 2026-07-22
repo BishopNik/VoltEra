@@ -413,19 +413,19 @@ reviewForm.addEventListener('submit', async event => {
   const submit = reviewForm.querySelector('button[type="submit"]');
   submit.disabled = true;
   submit.classList.add('is-sending');
-  submit.textContent = uiText('Публікуємо…', 'Publishing…');
+  submit.textContent = uiText('Надсилаємо…', 'Sending…');
   const response = await fetch('/api/reviews', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) }).catch(() => null);
   submit.disabled = false;
   submit.classList.remove('is-sending');
-  submit.textContent = uiText('Опублікувати відгук ↗', 'Publish review ↗');
+  submit.textContent = uiText('Надіслати на модерацію ↗', 'Send for review ↗');
   if (!response?.ok) { submit.textContent = uiText('Помилка. Спробуйте ще раз', 'Error. Please try again'); return; }
-  await reviewsReady;
-  if (!reviews.length) reviewTrack.innerHTML = '';
-  createReview({...data, rating:Number(data.rating), status:'published', verified:false});
-  showReview(reviews.length - 1);
   reviewForm.reset();
   reviewForm.hidden = true;
-  reviewTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const addButton = $('.review-add');
+  const defaultLabel = uiText('Додати свій відгук', 'Add your review');
+  addButton.textContent = uiText('Відгук надіслано на перевірку ✓', 'Review submitted for moderation ✓');
+  window.setTimeout(() => { addButton.textContent = defaultLabel; }, 5000);
+  addButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 showReview(0);
 const reviewsReady = loadReviews();

@@ -17,6 +17,7 @@
     { "source": "/categories/:slug", "destination": "/api/category-page?slug=:slug" },
     { "source": "/products/:slug", "destination": "/api/product-page?slug=:slug" },
     { "source": "/articles/:slug.html", "destination": "/api/article-page?slug=:slug" },
+    { "source": "/proposal/:token", "destination": "/proposal.html" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/api/:path*", "destination": "/api/router?path=:path*" }
   ],
@@ -43,6 +44,13 @@
       "source": "/analytics-config.js",
       "headers": [
         { "key": "Cache-Control", "value": "no-store" }
+      ]
+    },
+    {
+      "source": "/proposal/:token",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" },
+        { "key": "Cache-Control", "value": "private, no-store" }
       ]
     }
   ]

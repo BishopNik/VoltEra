@@ -123,6 +123,13 @@ function openPrintDocument(markup, blockedMessage) {
   setTimeout(() => popup.print(), 250);
 }
 
+function openPreviewDocument(markup) {
+  const popup = window.open('about:blank', '_blank');
+  if (!popup) { showApiNotice('Браузер заблокував вікно попереднього перегляду. Дозвольте спливні вікна для CRM.'); return; }
+  popup.opener = null;
+  popup.document.open(); popup.document.write(markup); popup.document.close(); popup.focus();
+}
+
 function leadPrintDocument(lead = {}) {
   const items = Array.isArray(lead.items) ? lead.items : [];
   const totals = leadTotals(lead);
@@ -761,6 +768,12 @@ function saveQuoteAsPdf(quote) {
   openPrintDocument(quotePdfDocument(quote), 'Браузер заблокував вікно PDF. Дозвольте спливні вікна для CRM.');
 }
 
+function previewQuote(quote) {
+  const publicUrl = quotePublicUrl(quote);
+  if (publicUrl) return window.open(publicUrl, '_blank', 'noopener');
+  openPreviewDocument(quotePdfDocument(quote));
+}
+
 function quoteIsOwner(quote = null) {
   if (!quote) return true;
   if (quote.ownerId) return String(quote.ownerId) === String(currentAdmin?.id || '');
@@ -817,38 +830,82 @@ $('#quote-access-list')?.addEventListener('change', updateQuoteAccessLabel);
 document.addEventListener('pointerdown', event => {
   const dropdown = $('.quote-access-dropdown');
   if (dropdown?.open && !dropdown.contains(event.target)) dropdown.open = false;
+  $$('.quote-more[open], .quote-action-menu[open]').forEach(menu => { if (!menu.contains(event.target)) menu.open = false; });
 });
+document.addEventListener('click', event => {
+  const action = event.target.closest('.quote-more button, .quote-action-menu button');
+  if (action) action.closest('details').open = false;
+});
+
+let quoteFilter = 'all';
+const quoteStatusLabels = { draft:'Чернетка', sent:'Надіслано', viewed:'Переглянуто', confirmed:'Підтверджено', cancelled:'Скасовано', accepted:'Підтверджено', completed:'Підтверджено', declined:'Скасовано' };
+function normalizedQuoteStatus(status = 'draft') { return ({ accepted:'confirmed', completed:'confirmed', declined:'cancelled' }[status] || status); }
+function quoteHasUnreadActivity(quote = {}) { return Boolean(quote.lastClientActivityAt && (!quote.adminViewedActivityAt || new Date(quote.lastClientActivityAt) > new Date(quote.adminViewedActivityAt))); }
+function quotePublicUrl(quote = {}) { return quote.publicEnabled && quote.publicToken ? `https://www.voltares.pp.ua/proposal/${quote.publicToken}` : ''; }
+async function copyText(value) {
+  if (!value) throw new Error('LINK_NOT_AVAILABLE');
+  if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(value);
+  const input = document.createElement('textarea'); input.value = value; input.style.position = 'fixed'; input.style.opacity = '0'; document.body.append(input); input.select(); document.execCommand('copy'); input.remove();
+}
+function showQuoteShare(url, emailDelivered = null) {
+  const dialog = $('#quote-share-dialog'); $('#quote-share-url').value = url;
+  $('#quote-share-email-status').textContent = emailDelivered === false ? 'Публічне посилання створено. Email не доставлено — скопіюйте посилання та надішліть його клієнту вручну.' : emailDelivered === true ? 'Email із посиланням успішно надіслано клієнту.' : '';
+  const message = `Комерційна пропозиція Voltares\n${url}`;
+  $('#quote-share-whatsapp').href = `https://wa.me/?text=${encodeURIComponent(message)}`;
+  $('#quote-share-telegram').href = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent('Комерційна пропозиція Voltares')}`;
+  $('#quote-share-viber').href = `viber://forward?text=${encodeURIComponent(message)}`;
+  $('#quote-share-system').hidden = typeof navigator.share !== 'function';
+  $('#quote-share-menu').hidden = true; $('#quote-share-native').setAttribute('aria-expanded', 'false'); dialog.showModal();
+}
+async function runQuoteAction(action, quote, trigger) {
+  if (!quote) return;
+  try {
+    if (action === 'edit') return openQuoteDialog(quote);
+    if (action === 'pdf') return saveQuoteAsPdf(quote);
+    if (action === 'preview') return previewQuote(quote);
+    if (action === 'share') { const url = quotePublicUrl(quote); if (!url) throw new Error('Спочатку створіть публічне посилання.'); showQuoteShare(url); return; }
+    if (action === 'access') return openQuoteDialog(quote, true);
+    if (action === 'delete') return removeItem('quotes', quote._id);
+    if (action === 'copy') { await copyText(quotePublicUrl(quote)); showApiNotice('Публічне посилання скопійовано.'); return; }
+    if (action === 'open') return window.open(quotePublicUrl(quote), '_blank', 'noopener');
+    setBusy(trigger, true);
+    if (action === 'publish') {
+      const result = await api(`/api/admin/proposals/${quote._id}/publish`, { method:'POST', body:'{}' });
+      await loadCollection('quotes'); renderQuotes(); showQuoteShare(result.publicUrl);
+    } else if (action === 'revoke') {
+      if (!confirm('Відкликати публічне посилання? Клієнт більше не зможе відкрити пропозицію.')) return;
+      await api(`/api/admin/proposals/${quote._id}/revoke`, { method:'POST', body:'{}' }); await loadCollection('quotes'); renderQuotes();
+    } else if (action === 'version') {
+      const created = await api(`/api/admin/proposals/${quote._id}/create-version`, { method:'POST', body:'{}' }); await loadCollection('quotes'); renderQuotes(); openQuoteDialog(created);
+    } else if (action === 'send') {
+      const result = await api(`/api/quotes/${quote._id}/send`, { method:'POST', body:'{}' }); await loadCollection('quotes'); renderQuotes(); showQuoteShare(result.publicUrl, result.emailDelivered);
+    }
+  } catch (error) { showApiNotice(`Не вдалося виконати дію: ${error.message}`); }
+  finally { if (trigger?.isConnected) setBusy(trigger, false); }
+}
 
 function renderQuotes() {
   const list = $('#quote-list');
   if (!list) return;
-  if (!state.quotes.length) { list.innerHTML = emptyState('Пропозицій ще немає', 'Створіть першу пропозицію з товарів каталогу або власних позицій.'); return; }
-  list.innerHTML = state.quotes.map(quote => {
+  const quotes = state.quotes.filter(quote => quoteFilter === 'all' || quoteFilter === 'attention' ? quoteFilter !== 'attention' || quoteHasUnreadActivity(quote) : normalizedQuoteStatus(quote.status) === quoteFilter);
+  if (!quotes.length) { list.innerHTML = emptyState(state.quotes.length ? 'За цим фільтром пропозицій немає' : 'Пропозицій ще немає', state.quotes.length ? 'Оберіть інший статус.' : 'Створіть першу пропозицію з товарів каталогу або власних позицій.'); return; }
+  list.innerHTML = quotes.map(quote => {
     const owner = quote.createdBy || '—';
     const canManageAccess = quoteIsOwner(quote);
-    return `<article data-id="${escapeHtml(String(quote._id))}"><header><div><span class="view-caption">${escapeHtml(quote.number || 'КП')}</span><h3>${escapeHtml(quote.customerName || quote.company || 'Клієнт')}</h3><p>${escapeHtml([quote.company, quote.email, quote.phone].filter(Boolean).join(' · '))}</p><small class="quote-access-summary">Власник: ${escapeHtml(owner)} · ${escapeHtml(quoteAccessSummary(quote))}${quote.sourceLeadId ? ` · із заявки #${escapeHtml(String(quote.sourceLeadId).slice(0, 8))}` : ''}</small></div><label class="quote-status-control"><span>Статус КП</span><select class="quote-status"><option value="draft">Чернетка</option><option value="sent">Надіслано</option><option value="accepted">Підтверджено клієнтом</option><option value="completed">Реалізовано</option><option value="declined">Відхилено</option></select></label></header><ul>${(quote.items || []).slice(0, 5).map(item => `<li><span>${escapeHtml(item.name)}</span><b>${escapeHtml(item.quantity)} ${escapeHtml(item.unit || 'шт.')} · ${escapeHtml(formatMoney(Number(item.quantity) * Number(item.unitPrice), quote.currency))}</b></li>`).join('')}${(quote.items || []).length > 5 ? `<li><span>Ще ${(quote.items || []).length - 5} позицій</span></li>` : ''}</ul><footer><strong>${escapeHtml(formatMoney(quote.subtotal, quote.currency))}</strong><small class="email-delivery ${quote.emailStatus === 'sent' ? 'is-sent' : ''}">${quote.emailStatus === 'sent' ? `Надіслано ${formatDate(quote.sentAt)}` : quote.emailStatus === 'failed' ? `Помилка email: ${escapeHtml(quote.emailError || '')}` : 'Ще не надсилалось'}</small><div><button class="secondary-admin quote-pdf" type="button">Друк / PDF</button>${canManageAccess ? '<button class="secondary-admin quote-access-button" type="button">Доступ</button>' : ''}<button class="secondary-admin quote-edit" type="button">Редагувати</button><button class="primary-admin quote-send" type="button">${quote.emailStatus === 'sent' ? 'Надіслати повторно' : 'Надіслати'}</button>${canManageAccess ? '<button class="secondary-admin danger-admin quote-delete" type="button">Видалити</button>' : ''}</div></footer></article>`;
+    const status = normalizedQuoteStatus(quote.status); const unread = quoteHasUnreadActivity(quote);
+    const activity = unread ? `<div class="quote-client-activity">Нове: клієнт ${status === 'confirmed' ? 'підтвердив' : 'переглянув'} пропозицію · ${escapeHtml(formatDate(quote.lastClientActivityAt))}</div>` : '';
+    const version = Number(quote.version || 1) > 1 ? `<small class="quote-version-info">Версія ${escapeHtml(quote.version)}${quote.previousVersionId ? ' · створено на основі попереднього КП' : ''}</small>` : '';
+    return `<article data-id="${escapeHtml(String(quote._id))}" class="${unread ? 'has-unread-activity' : ''}"><header><div><span class="view-caption">${escapeHtml(quote.number || 'КП')}</span><h3>${escapeHtml(quote.customerName || quote.company || 'Клієнт')}</h3><p>${escapeHtml([quote.company, quote.phone, quote.email].filter(Boolean).join(' · '))}</p><div class="quote-card-meta"><span>Створено ${escapeHtml(formatDate(quote.createdAt))}</span><span>Діє до ${escapeHtml(quote.validUntil ? formatDate(`${quote.validUntil}T12:00:00`) : '—')}</span>${quote.lastViewedAt ? `<span>Останній перегляд ${escapeHtml(formatDate(quote.lastViewedAt))}</span>` : ''}${quote.confirmedAt ? `<span>Підтверджено ${escapeHtml(formatDate(quote.confirmedAt))}</span>` : ''}</div><small class="quote-access-summary">Власник: ${escapeHtml(owner)} · ${escapeHtml(quoteAccessSummary(quote))}</small>${version}${activity}</div><span class="quote-status-badge status-${escapeHtml(status)}">${escapeHtml(quoteStatusLabels[status] || status)}</span></header><ul>${(quote.items || []).slice(0, 5).map(item => `<li><span>${escapeHtml(item.name)}</span><b>${escapeHtml(item.quantity)} ${escapeHtml(item.unit || 'шт.')} · ${escapeHtml(formatMoney(item.total ?? Number(item.quantity) * Number(item.unitPrice), quote.currency))}</b></li>`).join('')}${(quote.items || []).length > 5 ? `<li><span>Ще ${(quote.items || []).length - 5} позицій</span></li>` : ''}</ul><footer><strong>${escapeHtml(formatMoney(quote.subtotal, quote.currency))}</strong><small class="email-delivery ${quote.emailStatus === 'sent' ? 'is-sent' : ''}">${quote.emailStatus === 'sent' ? `Email надіслано ${formatDate(quote.sentAt)}` : quote.emailStatus === 'failed' ? 'Email не доставлено' : 'Email ще не надсилався'}</small><div><button class="secondary-admin" data-quote-action="edit" type="button">${status === 'confirmed' ? 'Відкрити' : 'Редагувати'}</button>${!['confirmed','cancelled'].includes(status) ? `<button class="primary-admin" data-quote-action="send" type="button">Зберегти й надіслати</button>` : ''}<details class="quote-action-menu"><summary aria-label="Додаткові дії">⋯</summary><div><button data-quote-action="pdf">Друк / PDF</button><button data-quote-action="preview">Попередній перегляд</button>${quote.publicEnabled ? '<button data-quote-action="copy">Скопіювати посилання</button><button data-quote-action="open">Відкрити публічне посилання</button><button data-quote-action="revoke">Відкликати посилання</button>' : status !== 'draft' ? '<button data-quote-action="publish">Створити публічне посилання</button>' : ''}${status === 'confirmed' ? '<button data-quote-action="version">Створити нову версію</button>' : ''}${canManageAccess ? '<button data-quote-action="access">Доступ</button><button class="danger-admin" data-quote-action="delete">Видалити</button>' : ''}</div></details></div></footer></article>`;
   }).join('');
-  $$('.quote-status', list).forEach(select => {
-    const quote = state.quotes.find(item => String(item._id) === select.closest('article').dataset.id);
-    select.value = quote?.status || 'draft';
-    select.addEventListener('change', async () => {
-      select.disabled = true;
-      try { await api(`/api/quotes/${quote._id}`, { method:'PATCH', body:JSON.stringify({ status:select.value }) }); await loadCollection('quotes'); renderQuotes(); }
-      catch (error) { select.value = quote.status || 'draft'; showApiNotice(`Не вдалося змінити статус КП: ${error.message}`); }
-      finally { if (select.isConnected) select.disabled = false; }
-    });
+  $$('article[data-id]', list).forEach(article => {
+    const quote = state.quotes.find(item => String(item._id) === article.dataset.id);
+    if (normalizedQuoteStatus(quote?.status) === 'cancelled') $('[data-quote-action="publish"]', article)?.remove();
+    if (normalizedQuoteStatus(quote?.status) === 'confirmed') $('[data-quote-action="delete"]', article)?.remove();
   });
-  $$('.quote-pdf', list).forEach(button => button.addEventListener('click', () => saveQuoteAsPdf(state.quotes.find(item => String(item._id) === button.closest('article').dataset.id))));
-  $$('.quote-access-button', list).forEach(button => button.addEventListener('click', () => openQuoteDialog(state.quotes.find(item => String(item._id) === button.closest('article').dataset.id), true)));
-  $$('.quote-edit', list).forEach(button => button.addEventListener('click', () => openQuoteDialog(state.quotes.find(item => String(item._id) === button.closest('article').dataset.id))));
-  $$('.quote-send', list).forEach(button => button.addEventListener('click', async () => {
-    setBusy(button, true);
-    try { await api(`/api/quotes/${button.closest('article').dataset.id}/send`, { method: 'POST', body: JSON.stringify({}) }); await loadCollection('quotes'); renderQuotes(); }
-    catch (error) { showApiNotice(`Пропозицію збережено, але email не надіслано: ${error.message}`); }
-    finally { if (button.isConnected) setBusy(button, false); }
-  }));
-  $$('.quote-delete', list).forEach(button => button.addEventListener('click', () => removeItem('quotes', button.closest('article').dataset.id)));
+  $$('[data-quote-action]', list).forEach(button => button.addEventListener('click', () => runQuoteAction(button.dataset.quoteAction, state.quotes.find(item => String(item._id) === button.closest('article').dataset.id), button)));
 }
+
+$('#quote-filters')?.addEventListener('click', event => { const button = event.target.closest('[data-quote-filter]'); if (!button) return; quoteFilter = button.dataset.quoteFilter; $$('#quote-filters button').forEach(item => item.classList.toggle('is-active', item === button)); renderQuotes(); });
 
 function renderPurchases() {
   const list = $('#purchase-list');
@@ -867,6 +924,21 @@ let quoteDraftItems = [];
 let quoteCurrency = 'UAH';
 let quoteDragIndex = -1;
 let quoteSourceLeadId = '';
+
+const quoteOpenPublicButton = $('[data-quote-menu="open"]');
+if (quoteOpenPublicButton && !$('[data-quote-menu="share"]')) quoteOpenPublicButton.insertAdjacentHTML('afterend', '<button type="button" data-quote-menu="share">Надіслати через…</button>');
+
+function updateQuoteEditorActions(item = activeQuote) {
+  const status = normalizedQuoteStatus(item?.status || 'draft'); const readonly = status === 'confirmed'; const hasLink = Boolean(item?.publicEnabled && item?.publicToken);
+  quoteDialog.classList.toggle('is-readonly', readonly); $('.quote-readonly-notice').hidden = !readonly;
+  $$('input, textarea, select', quoteForm).forEach(field => { field.disabled = readonly; });
+  quoteField('status').disabled = readonly || !item;
+  Array.from(quoteField('status').options).forEach(option => { option.disabled = ![status,'cancelled'].includes(option.value); });
+  $$('[data-quote-menu]', quoteForm).forEach(button => {
+    const action = button.dataset.quoteMenu;
+    button.hidden = action === 'publish' ? !item || hasLink || readonly || status === 'cancelled' : action === 'copy' || action === 'open' || action === 'share' || action === 'revoke' ? !hasLink : action === 'version' ? !readonly : false;
+  });
+}
 
 function catalogueForQuote() {
   return [
@@ -968,11 +1040,15 @@ function openQuoteDialog(item = null, focusAccess = false) {
   quoteField('validUntil').value = item?.validUntil || localDateAfter(3);
   quoteField('currency').value = item?.currency || 'UAH';
   quoteCurrency = quoteField('currency').value;
-  quoteField('status').value = item?.status || 'draft';
+  quoteField('status').value = normalizedQuoteStatus(item?.status || 'draft');
   quoteField('note').value = item?.note || '';
   $('#quote-dialog-title').textContent = item ? `Редагувати ${item.number || 'пропозицію'}` : 'Нова комерційна пропозиція';
   $('.quote-form-status').textContent = '';
-  quoteProductOptions(); renderQuoteDraftItems(); renderQuoteAccess(item); quoteDialog.showModal();
+  quoteProductOptions(); renderQuoteDraftItems(); renderQuoteAccess(item); updateQuoteEditorActions(item); quoteDialog.showModal();
+  if (item && quoteHasUnreadActivity(item)) {
+    item.adminViewedActivityAt = new Date().toISOString();
+    api(`/api/admin/proposals/${item._id}/mark-activity-seen`, { method:'POST', body:'{}' }).then(() => renderQuotes()).catch(() => {});
+  }
   if (focusAccess) requestAnimationFrame(() => {
     const dropdown = $('.quote-access-dropdown');
     if (dropdown) { dropdown.open = true; dropdown.scrollIntoView({ block:'center', behavior:'smooth' }); }
@@ -989,7 +1065,7 @@ function openQuoteFromLead(lead = {}) {
   quoteDraftItems = (Array.isArray(lead.items) ? lead.items : []).map(item => ({
     kind:'catalog',
     collection:item.collection || 'equipment',
-    productId:String(item.id || ''),
+    productId:String(item.id || ''), productSlug:String(item.id || ''), productUrl:item.id ? `/products/${item.id}` : '',
     name:item.name || 'Товар',
     description:[item.power, item.phase, item.voltage].filter(Boolean).join(' · '),
     quantity:Math.max(1, Math.round(Number(item.quantity) || 1)),
@@ -1012,7 +1088,9 @@ function addQuoteCatalogueItem() {
   const [collection, id] = value.split(':');
   const item = catalogueForQuote().find(product => product._collection === collection && String(product._id) === id); if (!item) return;
   const currency = quoteField('currency').value;
-  quoteDraftItems.push({ kind:'catalog', collection, productId:String(item._id), name:`${item.brand || ''} ${item.model || item.name || ''}`.trim(), description:[item.power || item.spec, item.phase || item.technology || item.category, item.voltage].filter(Boolean).join(' · '), quantity:1, unit:'шт.', unitPrice:quotePriceInCurrency(item, currency, 0, currency) });
+  const description = [item.power || item.spec, item.phase || item.technology || item.category, item.voltage].filter(Boolean).join(' · ');
+  const image = item.thumbnail || (Array.isArray(item.images) ? item.images[0] : '') || item.image || '';
+  quoteDraftItems.push({ kind:'catalog', collection, productId:String(item._id), productSlug:String(item._id), productUrl:`/products/${item._id}`, image, name:`${item.brand || ''} ${item.model || item.name || ''}`.trim(), description, shortDescription:description, quantity:1, unit:'шт.', unitPrice:quotePriceInCurrency(item, currency, 0, currency), discount:0, currency });
   renderQuoteDraftItems();
 }
 
@@ -1029,7 +1107,10 @@ $('#quote-items')?.addEventListener('input', event => {
     const quantity = Math.max(1, Math.round(Number(input.value) || 1));
     input.value = String(quantity);
     quoteDraftItems[index].quantity = quantity;
-  } else quoteDraftItems[index][input.dataset.field] = input.dataset.field === 'unitPrice' ? Number(input.value || 0) : input.value;
+  } else {
+    quoteDraftItems[index][input.dataset.field] = input.dataset.field === 'unitPrice' ? Number(input.value || 0) : input.value;
+    if (input.dataset.field === 'description') quoteDraftItems[index].shortDescription = input.value;
+  }
   updateQuoteTotal();
 });
 function moveQuoteItem(from, to) {
@@ -1068,6 +1149,18 @@ $('.quote-dialog-print')?.addEventListener('click', () => {
   const subtotal = quoteDraftItems.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0), 0);
   saveQuoteAsPdf({ ...activeQuote, ...fields, items:quoteDraftItems.map(item => ({ ...item })), subtotal, createdAt:activeQuote?.createdAt || new Date().toISOString(), number:activeQuote?.number || 'Нове КП' });
 });
+$('[data-quote-menu="preview"]')?.addEventListener('click', () => {
+  const fields = Object.fromEntries(new FormData(quoteForm).entries());
+  const subtotal = quoteDraftItems.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0), 0);
+  previewQuote({ ...activeQuote, ...fields, items:quoteDraftItems.map(item => ({ ...item })), subtotal, createdAt:activeQuote?.createdAt || new Date().toISOString(), number:activeQuote?.number || 'Нове КП' });
+});
+$$('[data-quote-menu]').forEach(button => button.addEventListener('click', async () => {
+  const action = button.dataset.quoteMenu; if (action === 'preview') return;
+  if (!activeQuote) return showApiNotice('Спочатку збережіть чернетку.');
+  if (action === 'copy') { try { await copyText(quotePublicUrl(activeQuote)); showApiNotice('Публічне посилання скопійовано.'); } catch (error) { showApiNotice(error.message); } return; }
+  if (action === 'open') return window.open(quotePublicUrl(activeQuote), '_blank', 'noopener');
+  quoteDialog.close(); await runQuoteAction(action, activeQuote, button);
+}));
 quoteDialog?.addEventListener('cancel', event => event.preventDefault());
 quoteForm?.addEventListener('submit', async event => {
   event.preventDefault();
@@ -1076,20 +1169,31 @@ quoteForm?.addEventListener('submit', async event => {
   const namedItems = quoteDraftItems.filter(item => String(item.name || '').trim());
   if (action === 'send') {
     if (!String(fields.customerName || '').trim()) { $('.quote-form-status').textContent = 'Для надсилання вкажіть ім’я клієнта.'; quoteField('customerName').focus(); return; }
+    if (String(fields.phone || '').replace(/\D/g, '').length < 9) { $('.quote-form-status').textContent = 'Для надсилання вкажіть телефон клієнта.'; quoteField('phone').focus(); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(fields.email || '').trim())) { $('.quote-form-status').textContent = 'Для надсилання вкажіть коректний email клієнта.'; quoteField('email').focus(); return; }
     if (!namedItems.length || namedItems.length !== quoteDraftItems.length) { $('.quote-form-status').textContent = 'Для надсилання додайте щонайменше одну позицію та заповніть усі назви.'; $('#quote-items input[data-field="name"]')?.focus(); return; }
   }
-  const payload = { customerName:fields.customerName, company:fields.company, email:fields.email, phone:fields.phone, city:fields.city, validUntil:fields.validUntil, currency:fields.currency, note:fields.note, items:quoteDraftItems, status:fields.status || 'draft', sourceLeadId:quoteSourceLeadId };
+  const payload = { customerName:fields.customerName, company:fields.company, email:fields.email, phone:fields.phone, city:fields.city, validUntil:fields.validUntil, currency:fields.currency, note:fields.note, items:quoteDraftItems, status:normalizedQuoteStatus(fields.status || activeQuote?.status || 'draft'), sourceLeadId:quoteSourceLeadId };
   if (quoteIsOwner(activeQuote)) payload.sharedWith = selectedQuoteAccess();
   setBusy(button, true); $('.quote-form-status').textContent = action === 'send' ? 'Зберігаємо та надсилаємо…' : 'Зберігаємо…';
   try {
     const saved = await api(activeQuote ? `/api/quotes/${activeQuote._id}` : '/api/quotes', { method:activeQuote ? 'PATCH' : 'POST', body:JSON.stringify(payload) });
-    if (action === 'send') await api(`/api/quotes/${saved._id}/send`, { method:'POST', body:JSON.stringify({}) });
+    let sent = null;
+    if (action === 'send') sent = await api(`/api/quotes/${saved._id}/send`, { method:'POST', body:JSON.stringify({}) });
     await loadCollection('quotes'); renderQuotes(); quoteDialog.close();
+    if (sent?.publicUrl) showQuoteShare(sent.publicUrl, sent.emailDelivered);
   } catch (error) {
     await loadCollection('quotes').catch(() => {}); renderQuotes(); $('.quote-form-status').textContent = action === 'send' ? `Пропозицію збережено, але email не надіслано: ${error.message}` : `Помилка: ${error.message}`;
   } finally { if (button?.isConnected) setBusy(button, false); }
 });
+
+$$('.quote-share-close').forEach(button => button.addEventListener('click', () => $('#quote-share-dialog').close()));
+$('#quote-share-copy')?.addEventListener('click', async () => { await copyText($('#quote-share-url').value); showApiNotice('Публічне посилання скопійовано.'); });
+$('#quote-share-open')?.addEventListener('click', () => window.open($('#quote-share-url').value, '_blank', 'noopener'));
+$('#quote-share-native')?.addEventListener('click', () => { const menu = $('#quote-share-menu'); menu.hidden = !menu.hidden; $('#quote-share-native').setAttribute('aria-expanded', String(!menu.hidden)); });
+$('#quote-share-system')?.addEventListener('click', () => navigator.share?.({ title:'Комерційна пропозиція Voltares', text:'Комерційна пропозиція Voltares', url:$('#quote-share-url').value }).catch(() => {}));
+$$('#quote-share-menu a, #quote-share-menu button').forEach(item => item.addEventListener('click', () => { $('#quote-share-menu').hidden = true; $('#quote-share-native').setAttribute('aria-expanded', 'false'); }));
+document.addEventListener('pointerdown', event => { if (!event.target.closest('.quote-share-picker')) { $('#quote-share-menu')?.setAttribute('hidden', ''); $('#quote-share-native')?.setAttribute('aria-expanded', 'false'); } });
 
 function renderUsers() {
   const list = $('#user-list');
