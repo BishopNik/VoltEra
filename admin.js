@@ -770,7 +770,7 @@ function saveQuoteAsPdf(quote) {
 
 function previewQuote(quote) {
   const publicUrl = quotePublicUrl(quote);
-  if (publicUrl) return window.open(publicUrl, '_blank', 'noopener');
+  if (publicUrl) return window.open(`${publicUrl}?preview=1`, '_blank', 'noopener');
   openPreviewDocument(quotePdfDocument(quote));
 }
 

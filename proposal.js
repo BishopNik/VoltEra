@@ -1,6 +1,7 @@
 (() => {
   const $ = selector => document.querySelector(selector);
   const token = location.pathname.match(/^\/proposal\/([a-f0-9]{64})\/?$/)?.[1] || '';
+  const isPreview = new URLSearchParams(location.search).get('preview') === '1';
   const money = (value, currency) => new Intl.NumberFormat('uk-UA', { style:'currency', currency, maximumFractionDigits:2 }).format(Number(value || 0));
   const date = value => value ? new Intl.DateTimeFormat('uk-UA', { day:'2-digit', month:'2-digit', year:'numeric' }).format(new Date(String(value).length === 10 ? `${value}T12:00:00` : value)) : '—';
   const dateTime = value => value ? new Intl.DateTimeFormat('uk-UA', { dateStyle:'medium', timeStyle:'short' }).format(new Date(value)) : '';
@@ -37,7 +38,8 @@
     $('#proposal-manager').textContent = data.manager?.name || 'Менеджер Voltares';
     $('#proposal-phone').textContent = data.manager?.phone || '+38 067 672 18 52'; $('#proposal-phone').href = `tel:${String(data.manager?.phone || '+380676721852').replace(/[^+\d]/g, '')}`;
     $('#proposal-email').textContent = data.manager?.email || 'ink.torg@gmail.com'; $('#proposal-email').href = `mailto:${data.manager?.email || 'ink.torg@gmail.com'}`;
-    const confirmButton = $('#proposal-confirm'); confirmButton.disabled = confirmed || data.expired || data.status === 'cancelled';
+    const closeButton = $('#proposal-close'); closeButton.disabled = isPreview;
+    const confirmButton = $('#proposal-confirm'); confirmButton.disabled = isPreview || confirmed || data.expired || data.status === 'cancelled';
     if (confirmed) confirmButton.textContent = 'Пропозицію підтверджено'; else if (data.expired) confirmButton.textContent = 'Термін дії закінчився';
     $('#proposal-loading').hidden = true; $('#proposal-error').hidden = true; $('#proposal-content').hidden = false; $('#proposal-actions').hidden = false;
   }
@@ -49,14 +51,14 @@
       const data = await response.json().catch(() => ({})); if (!response.ok) return showError(data.error);
       render(data);
       const key = `proposal_viewed_${token}`;
-      if (!sessionStorage.getItem(key)) {
+      if (!isPreview && !sessionStorage.getItem(key)) {
         sessionStorage.setItem(key, '1');
         fetch(`/api/public/proposals/${token}/view`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body:'{}', keepalive:true }).catch(() => {});
       }
     } catch { showError('NETWORK'); }
   }
 
-  $('#proposal-confirm').addEventListener('click', () => $('#confirm-dialog').showModal());
+  $('#proposal-confirm').addEventListener('click', () => { if (!isPreview) $('#confirm-dialog').showModal(); });
   $('#confirm-dialog').addEventListener('close', async () => {
     if ($('#confirm-dialog').returnValue !== 'confirm') return;
     const button = $('#proposal-confirm'); button.disabled = true; button.textContent = 'Підтверджуємо…';
@@ -71,6 +73,6 @@
       proposal.status = 'confirmed'; proposal.confirmedAt = data.confirmedAt || proposal.confirmedAt; render(proposal); $('#success-dialog').showModal();
     } catch { button.disabled = false; button.textContent = 'Спробувати підтвердити ще раз'; $('#proposal-toast').textContent = 'Не вдалося підтвердити пропозицію. Спробуйте ще раз.'; $('#proposal-toast').hidden = false; }
   });
-  $('#proposal-close').addEventListener('click', () => { window.close(); const toast = $('#proposal-toast'); toast.textContent = 'Ви можете закрити цю сторінку.'; toast.hidden = false; setTimeout(() => { toast.hidden = true; }, 5000); });
+  $('#proposal-close').addEventListener('click', () => { if (isPreview) return; window.close(); const toast = $('#proposal-toast'); toast.textContent = 'Ви можете закрити цю сторінку.'; toast.hidden = false; setTimeout(() => { toast.hidden = true; }, 5000); });
   load();
 })();
