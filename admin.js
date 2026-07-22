@@ -832,7 +832,12 @@ async function copyText(value) {
 function showQuoteShare(url, emailDelivered = null) {
   const dialog = $('#quote-share-dialog'); $('#quote-share-url').value = url;
   $('#quote-share-email-status').textContent = emailDelivered === false ? 'Публічне посилання створено. Email не доставлено — скопіюйте посилання та надішліть його клієнту вручну.' : emailDelivered === true ? 'Email із посиланням успішно надіслано клієнту.' : '';
-  $('#quote-share-native').hidden = typeof navigator.share !== 'function'; dialog.showModal();
+  const message = `Комерційна пропозиція Voltares\n${url}`;
+  $('#quote-share-whatsapp').href = `https://wa.me/?text=${encodeURIComponent(message)}`;
+  $('#quote-share-telegram').href = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent('Комерційна пропозиція Voltares')}`;
+  $('#quote-share-viber').href = `viber://forward?text=${encodeURIComponent(message)}`;
+  $('#quote-share-system').hidden = typeof navigator.share !== 'function';
+  $('#quote-share-menu').hidden = true; $('#quote-share-native').setAttribute('aria-expanded', 'false'); dialog.showModal();
 }
 async function runQuoteAction(action, quote, trigger) {
   if (!quote) return;
@@ -1158,7 +1163,10 @@ quoteForm?.addEventListener('submit', async event => {
 $$('.quote-share-close').forEach(button => button.addEventListener('click', () => $('#quote-share-dialog').close()));
 $('#quote-share-copy')?.addEventListener('click', async () => { await copyText($('#quote-share-url').value); showApiNotice('Публічне посилання скопійовано.'); });
 $('#quote-share-open')?.addEventListener('click', () => window.open($('#quote-share-url').value, '_blank', 'noopener'));
-$('#quote-share-native')?.addEventListener('click', () => navigator.share?.({ title:'Комерційна пропозиція Voltares', url:$('#quote-share-url').value }).catch(() => {}));
+$('#quote-share-native')?.addEventListener('click', () => { const menu = $('#quote-share-menu'); menu.hidden = !menu.hidden; $('#quote-share-native').setAttribute('aria-expanded', String(!menu.hidden)); });
+$('#quote-share-system')?.addEventListener('click', () => navigator.share?.({ title:'Комерційна пропозиція Voltares', text:'Комерційна пропозиція Voltares', url:$('#quote-share-url').value }).catch(() => {}));
+$$('#quote-share-menu a, #quote-share-menu button').forEach(item => item.addEventListener('click', () => { $('#quote-share-menu').hidden = true; $('#quote-share-native').setAttribute('aria-expanded', 'false'); }));
+document.addEventListener('pointerdown', event => { if (!event.target.closest('.quote-share-picker')) { $('#quote-share-menu')?.setAttribute('hidden', ''); $('#quote-share-native')?.setAttribute('aria-expanded', 'false'); } });
 
 function renderUsers() {
   const list = $('#user-list');

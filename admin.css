@@ -183,3 +183,15 @@ td{font-size:14px}
 [data-page="leads"] tbody tr:has(.lead-select:checked){background:#fff8ed}
 [data-page="leads"] table{min-width:1120px}
 @media(max-width:900px){.lead-toolbar-actions{width:100%;justify-content:flex-end}.lead-actions{min-width:190px}}
+
+/* Compact CRM navigation and upward-opening quote actions. */
+.quote-more>div{top:auto;bottom:calc(100% + 7px)}
+.admin-sidebar{padding:18px 14px}
+.admin-logo{margin:0 10px 18px}
+.admin-sidebar nav{gap:1px}
+.admin-nav{min-height:38px;padding:8px 11px;gap:8px;border-radius:8px;line-height:1.2}
+.admin-nav span{font-size:16px}
+.sidebar-bottom{padding:11px 9px}
+
+/* Explicit messenger chooser for public proposal links. */
+.quote-share-picker{position:relative}.quote-share-picker>#quote-share-native{width:100%}.quote-share-menu{position:absolute;z-index:50;right:0;bottom:calc(100% + 8px);display:grid;gap:4px;min-width:220px;padding:8px;border:1px solid var(--line);border-radius:14px;background:#fff;box-shadow:0 18px 50px rgba(12,24,20,.2)}.quote-share-menu[hidden]{display:none}.quote-share-menu strong{padding:8px 10px 5px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}.quote-share-menu a,.quote-share-menu button{display:flex;align-items:center;min-height:42px;padding:9px 12px;border:0;border-radius:9px;background:#fff;color:var(--ink);font-size:13px;font-weight:800;text-decoration:none;cursor:pointer}.quote-share-menu a:hover,.quote-share-menu button:hover{background:var(--orange-soft);color:#9b5508}.quote-share-menu a::before,.quote-share-menu button::before{display:grid;flex:0 0 25px;place-items:center;width:25px;height:25px;margin-right:9px;border-radius:7px;color:#fff;font-size:11px}.quote-share-menu #quote-share-whatsapp::before{content:'W';background:#25d366}.quote-share-menu #quote-share-telegram::before{content:'T';background:#229ed9}.quote-share-menu #quote-share-viber::before{content:'V';background:#7360f2}.quote-share-menu #quote-share-system::before{content:'↗';background:#6f7b75}@media(max-width:700px){.quote-share-picker{width:100%}.quote-share-menu{right:0;left:0;min-width:0}}
