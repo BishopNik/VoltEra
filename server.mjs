@@ -1188,8 +1188,11 @@ async function api(req,res,url){
       if(input.currency!==undefined)input.currency=input.currency==='USD'?'USD':'UAH';
       if(input.status!==undefined){
         const from=normalizedQuoteStatus(previous.status);const to=normalizedQuoteStatus(input.status);const transitions={draft:['draft','sent','cancelled'],sent:['sent','viewed','confirmed','cancelled'],viewed:['viewed','confirmed','cancelled'],cancelled:['cancelled']}[from]||[from];
-        if(!transitions.includes(to))return json(res,409,{error:'INVALID_STATUS_TRANSITION'});
-        input.status=to;if(to==='cancelled')input.publicEnabled=false;
+        if(!transitions.includes(to)){
+          const rank={draft:0,sent:1,viewed:2,confirmed:3,cancelled:4};
+          if(Number(rank[to])<Number(rank[from]))delete input.status;
+          else return json(res,409,{error:'INVALID_STATUS_TRANSITION'});
+        }else{input.status=to;if(to==='cancelled')input.publicEnabled=false;}
       }
       if(input.sourceLeadId!==undefined)input.sourceLeadId=cleanText(input.sourceLeadId,100);
       if(input.sharedWith!==undefined){

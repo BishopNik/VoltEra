@@ -1173,17 +1173,21 @@ quoteForm?.addEventListener('submit', async event => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(fields.email || '').trim())) { $('.quote-form-status').textContent = 'Для надсилання вкажіть коректний email клієнта.'; quoteField('email').focus(); return; }
     if (!namedItems.length || namedItems.length !== quoteDraftItems.length) { $('.quote-form-status').textContent = 'Для надсилання додайте щонайменше одну позицію та заповніть усі назви.'; $('#quote-items input[data-field="name"]')?.focus(); return; }
   }
-  const payload = { customerName:fields.customerName, company:fields.company, email:fields.email, phone:fields.phone, city:fields.city, validUntil:fields.validUntil, currency:fields.currency, note:fields.note, items:quoteDraftItems, status:normalizedQuoteStatus(fields.status || activeQuote?.status || 'draft'), sourceLeadId:quoteSourceLeadId };
+  const payload = { customerName:fields.customerName, company:fields.company, email:fields.email, phone:fields.phone, city:fields.city, validUntil:fields.validUntil, currency:fields.currency, note:fields.note, items:quoteDraftItems, sourceLeadId:quoteSourceLeadId };
+  const selectedStatus = normalizedQuoteStatus(fields.status || activeQuote?.status || 'draft');
+  if (activeQuote && selectedStatus === 'cancelled' && normalizedQuoteStatus(activeQuote.status) !== 'cancelled') payload.status = 'cancelled';
   if (quoteIsOwner(activeQuote)) payload.sharedWith = selectedQuoteAccess();
   setBusy(button, true); $('.quote-form-status').textContent = action === 'send' ? 'Зберігаємо та надсилаємо…' : 'Зберігаємо…';
+  let proposalSaved = false;
   try {
     const saved = await api(activeQuote ? `/api/quotes/${activeQuote._id}` : '/api/quotes', { method:activeQuote ? 'PATCH' : 'POST', body:JSON.stringify(payload) });
+    proposalSaved = true;
     let sent = null;
     if (action === 'send') sent = await api(`/api/quotes/${saved._id}/send`, { method:'POST', body:JSON.stringify({}) });
     await loadCollection('quotes'); renderQuotes(); quoteDialog.close();
     if (sent?.publicUrl) showQuoteShare(sent.publicUrl, sent.emailDelivered);
   } catch (error) {
-    await loadCollection('quotes').catch(() => {}); renderQuotes(); $('.quote-form-status').textContent = action === 'send' ? `Пропозицію збережено, але email не надіслано: ${error.message}` : `Помилка: ${error.message}`;
+    await loadCollection('quotes').catch(() => {}); renderQuotes(); $('.quote-form-status').textContent = action === 'send' && proposalSaved ? `Пропозицію збережено, але не вдалося надіслати: ${error.message}` : `Не вдалося зберегти пропозицію: ${error.message}`;
   } finally { if (button?.isConnected) setBusy(button, false); }
 });
 
