@@ -732,11 +732,57 @@ function saveQuoteAsPdf(quote) {
   openPrintDocument(quotePdfDocument(quote), 'Браузер заблокував вікно PDF. Дозвольте спливні вікна для CRM.');
 }
 
+function quoteIsOwner(quote = null) {
+  if (!quote) return true;
+  if (quote.ownerId) return String(quote.ownerId) === String(currentAdmin?.id || '');
+  if (quote.createdBy) return String(quote.createdBy).toLowerCase() === String(currentAdmin?.name || '').toLowerCase();
+  return currentAdmin?.role === 'admin';
+}
+
+function quoteAccessUsers(quote = {}) {
+  const shared = new Set((quote.sharedWith || []).map(String));
+  return state.users.filter(user => shared.has(String(user._id)));
+}
+
+function quoteAccessSummary(quote = {}) {
+  const names = quoteAccessUsers(quote).map(user => user.username).filter(Boolean);
+  return names.length ? `Спільний доступ: ${names.join(', ')}` : 'Доступ: лише автор';
+}
+
+function renderQuoteAccess(quote = null) {
+  const owner = quote?.createdBy || currentAdmin?.name || '—';
+  const isOwner = quoteIsOwner(quote);
+  const selected = new Set((quote?.sharedWith || []).map(String));
+  const legacyOwner = state.users.find(user => String(user.username || '').toLowerCase() === String(owner).toLowerCase());
+  const ownerId = quote?.ownerId || legacyOwner?._id || currentAdmin?.id || '';
+  const candidates = state.users.filter(user => user.status === 'active' && String(user._id) !== String(ownerId));
+  const ownerOutput = $('#quote-owner');
+  const help = $('#quote-access-help');
+  const list = $('#quote-access-list');
+  if (ownerOutput) ownerOutput.textContent = `Власник: ${owner}`;
+  if (help) help.textContent = isOwner ? 'Позначте співробітників, яким можна переглядати, редагувати, друкувати та надсилати це КП.' : 'Список доступу може змінювати лише власник КП.';
+  if (!list) return;
+  list.className = 'quote-access-list';
+  if (!candidates.length) {
+    list.innerHTML = '<p class="quote-access-empty">Інших активних співробітників немає.</p>';
+    return;
+  }
+  list.innerHTML = candidates.map(user => `<label class="quote-access-person${isOwner ? '' : ' is-disabled'}"><input type="checkbox" data-quote-access-id="${escapeHtml(String(user._id))}" ${selected.has(String(user._id)) ? 'checked' : ''} ${isOwner ? '' : 'disabled'}><i aria-hidden="true"></i><span>${escapeHtml(user.username || 'Співробітник')}</span></label>`).join('');
+}
+
+function selectedQuoteAccess() {
+  return $$('[data-quote-access-id]:checked', $('#quote-access-list')).map(input => input.dataset.quoteAccessId).filter(Boolean);
+}
+
 function renderQuotes() {
   const list = $('#quote-list');
   if (!list) return;
   if (!state.quotes.length) { list.innerHTML = emptyState('Пропозицій ще немає', 'Створіть першу пропозицію з товарів каталогу або власних позицій.'); return; }
-  list.innerHTML = state.quotes.map(quote => `<article data-id="${escapeHtml(String(quote._id))}"><header><div><span class="view-caption">${escapeHtml(quote.number || 'КП')}</span><h3>${escapeHtml(quote.customerName || quote.company || 'Клієнт')}</h3><p>${escapeHtml([quote.company, quote.email, quote.phone].filter(Boolean).join(' · '))}</p></div><label class="quote-status-control"><span>Статус КП</span><select class="quote-status"><option value="draft">Чернетка</option><option value="sent">Надіслано</option><option value="accepted">Підтверджено клієнтом</option><option value="completed">Реалізовано</option><option value="declined">Відхилено</option></select></label></header><ul>${(quote.items || []).slice(0, 5).map(item => `<li><span>${escapeHtml(item.name)}</span><b>${escapeHtml(item.quantity)} ${escapeHtml(item.unit || 'шт.')} · ${escapeHtml(formatMoney(Number(item.quantity) * Number(item.unitPrice), quote.currency))}</b></li>`).join('')}${(quote.items || []).length > 5 ? `<li><span>Ще ${(quote.items || []).length - 5} позицій</span></li>` : ''}</ul><footer><strong>${escapeHtml(formatMoney(quote.subtotal, quote.currency))}</strong><small class="email-delivery ${quote.emailStatus === 'sent' ? 'is-sent' : ''}">${quote.emailStatus === 'sent' ? `Надіслано ${formatDate(quote.sentAt)}` : quote.emailStatus === 'failed' ? `Помилка email: ${escapeHtml(quote.emailError || '')}` : 'Ще не надсилалось'}</small><div><button class="secondary-admin quote-pdf" type="button">Друк / PDF</button><button class="secondary-admin quote-edit" type="button">Редагувати</button><button class="primary-admin quote-send" type="button">${quote.emailStatus === 'sent' ? 'Надіслати повторно' : 'Надіслати'}</button><button class="secondary-admin danger-admin quote-delete" type="button">Видалити</button></div></footer></article>`).join('');
+  list.innerHTML = state.quotes.map(quote => {
+    const owner = quote.createdBy || '—';
+    const canManageAccess = quoteIsOwner(quote);
+    return `<article data-id="${escapeHtml(String(quote._id))}"><header><div><span class="view-caption">${escapeHtml(quote.number || 'КП')}</span><h3>${escapeHtml(quote.customerName || quote.company || 'Клієнт')}</h3><p>${escapeHtml([quote.company, quote.email, quote.phone].filter(Boolean).join(' · '))}</p><small class="quote-access-summary">Власник: ${escapeHtml(owner)} · ${escapeHtml(quoteAccessSummary(quote))}</small></div><label class="quote-status-control"><span>Статус КП</span><select class="quote-status"><option value="draft">Чернетка</option><option value="sent">Надіслано</option><option value="accepted">Підтверджено клієнтом</option><option value="completed">Реалізовано</option><option value="declined">Відхилено</option></select></label></header><ul>${(quote.items || []).slice(0, 5).map(item => `<li><span>${escapeHtml(item.name)}</span><b>${escapeHtml(item.quantity)} ${escapeHtml(item.unit || 'шт.')} · ${escapeHtml(formatMoney(Number(item.quantity) * Number(item.unitPrice), quote.currency))}</b></li>`).join('')}${(quote.items || []).length > 5 ? `<li><span>Ще ${(quote.items || []).length - 5} позицій</span></li>` : ''}</ul><footer><strong>${escapeHtml(formatMoney(quote.subtotal, quote.currency))}</strong><small class="email-delivery ${quote.emailStatus === 'sent' ? 'is-sent' : ''}">${quote.emailStatus === 'sent' ? `Надіслано ${formatDate(quote.sentAt)}` : quote.emailStatus === 'failed' ? `Помилка email: ${escapeHtml(quote.emailError || '')}` : 'Ще не надсилалось'}</small><div><button class="secondary-admin quote-pdf" type="button">Друк / PDF</button>${canManageAccess ? '<button class="secondary-admin quote-access-button" type="button">Доступ</button>' : ''}<button class="secondary-admin quote-edit" type="button">Редагувати</button><button class="primary-admin quote-send" type="button">${quote.emailStatus === 'sent' ? 'Надіслати повторно' : 'Надіслати'}</button>${canManageAccess ? '<button class="secondary-admin danger-admin quote-delete" type="button">Видалити</button>' : ''}</div></footer></article>`;
+  }).join('');
   $$('.quote-status', list).forEach(select => {
     const quote = state.quotes.find(item => String(item._id) === select.closest('article').dataset.id);
     select.value = quote?.status || 'draft';
@@ -748,6 +794,7 @@ function renderQuotes() {
     });
   });
   $$('.quote-pdf', list).forEach(button => button.addEventListener('click', () => saveQuoteAsPdf(state.quotes.find(item => String(item._id) === button.closest('article').dataset.id))));
+  $$('.quote-access-button', list).forEach(button => button.addEventListener('click', () => openQuoteDialog(state.quotes.find(item => String(item._id) === button.closest('article').dataset.id), true)));
   $$('.quote-edit', list).forEach(button => button.addEventListener('click', () => openQuoteDialog(state.quotes.find(item => String(item._id) === button.closest('article').dataset.id))));
   $$('.quote-send', list).forEach(button => button.addEventListener('click', async () => {
     setBusy(button, true);
@@ -841,7 +888,7 @@ function daysFromDates(from, until) {
 }
 
 function quoteValidityLabel(quote = {}) {
-  const days = Math.max(1, Math.round(Number(quote.validDays) || daysFromDates(quote.createdAt, quote.validUntil) || 3));
+  const days = Math.max(1, daysFromDates(quote.createdAt || new Date(), quote.validUntil));
   const until = quote.validUntil || localDateAfter(days, quote.createdAt || new Date());
   const mod10 = days % 10; const mod100 = days % 100;
   const noun = mod10 === 1 && mod100 !== 11 ? 'календарний день' : [2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100) ? 'календарні дні' : 'календарних днів';
@@ -862,7 +909,7 @@ function updateQuoteTotal() {
   $$('#quote-items article').forEach((row, index) => { const line = $('[data-line-total]', row); if (line) line.textContent = formatMoney(Number(quoteDraftItems[index]?.quantity || 0) * Number(quoteDraftItems[index]?.unitPrice || 0), currency); });
 }
 
-function openQuoteDialog(item = null) {
+function openQuoteDialog(item = null, focusAccess = false) {
   activeQuote = item;
   quoteDraftItems = (item?.items || []).map(line => ({ ...line, quantity:Math.max(1, Math.round(Number(line.quantity) || 1)) }));
   quoteForm.reset();
@@ -871,16 +918,15 @@ function openQuoteDialog(item = null) {
   quoteField('email').value = item?.email || '';
   quoteField('phone').value = item?.phone || '';
   quoteField('city').value = item?.city || '';
-  const validDays = Math.max(1, Math.round(Number(item?.validDays) || daysFromDates(item?.createdAt, item?.validUntil) || 3));
-  quoteField('validDays').value = validDays;
-  quoteField('validUntil').value = item?.validUntil || localDateAfter(validDays);
+  quoteField('validUntil').value = item?.validUntil || localDateAfter(3);
   quoteField('currency').value = item?.currency || 'UAH';
   quoteCurrency = quoteField('currency').value;
   quoteField('status').value = item?.status || 'draft';
   quoteField('note').value = item?.note || '';
   $('#quote-dialog-title').textContent = item ? `Редагувати ${item.number || 'пропозицію'}` : 'Нова комерційна пропозиція';
   $('.quote-form-status').textContent = '';
-  quoteProductOptions(); renderQuoteDraftItems(); quoteDialog.showModal();
+  quoteProductOptions(); renderQuoteDraftItems(); renderQuoteAccess(item); quoteDialog.showModal();
+  if (focusAccess) requestAnimationFrame(() => $('.quote-access')?.scrollIntoView({ block:'center', behavior:'smooth' }));
 }
 
 function addQuoteCatalogueItem() {
@@ -937,14 +983,6 @@ $('#quote-items')?.addEventListener('dragend', () => { quoteDragIndex = -1; $$('
 $('#quote-add-product')?.addEventListener('click', addQuoteCatalogueItem);
 $('#quote-add-custom')?.addEventListener('click', addQuoteCustomItem);
 quoteField('currency')?.addEventListener('change', event => convertQuoteCurrency(event.currentTarget.value));
-quoteField('validDays')?.addEventListener('input', event => {
-  const days = Math.max(1, Math.min(365, Math.round(Number(event.currentTarget.value) || 1)));
-  event.currentTarget.value = days;
-  quoteField('validUntil').value = localDateAfter(days);
-});
-quoteField('validUntil')?.addEventListener('change', event => {
-  quoteField('validDays').value = daysFromDates(new Date(), event.currentTarget.value);
-});
 $('.quote-dialog-close')?.addEventListener('click', () => quoteDialog.close());
 $('.quote-dialog-cancel')?.addEventListener('click', () => quoteDialog.close());
 $('.quote-dialog-print')?.addEventListener('click', () => {
@@ -963,7 +1001,8 @@ quoteForm?.addEventListener('submit', async event => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(fields.email || '').trim())) { $('.quote-form-status').textContent = 'Для надсилання вкажіть коректний email клієнта.'; quoteField('email').focus(); return; }
     if (!namedItems.length || namedItems.length !== quoteDraftItems.length) { $('.quote-form-status').textContent = 'Для надсилання додайте щонайменше одну позицію та заповніть усі назви.'; $('#quote-items input[data-field="name"]')?.focus(); return; }
   }
-  const payload = { customerName:fields.customerName, company:fields.company, email:fields.email, phone:fields.phone, city:fields.city, validDays:Math.max(1, Math.min(365, Math.round(Number(fields.validDays) || 3))), validUntil:fields.validUntil, currency:fields.currency, note:fields.note, items:quoteDraftItems, status:fields.status || 'draft' };
+  const payload = { customerName:fields.customerName, company:fields.company, email:fields.email, phone:fields.phone, city:fields.city, validUntil:fields.validUntil, currency:fields.currency, note:fields.note, items:quoteDraftItems, status:fields.status || 'draft' };
+  if (quoteIsOwner(activeQuote)) payload.sharedWith = selectedQuoteAccess();
   setBusy(button, true); $('.quote-form-status').textContent = action === 'send' ? 'Зберігаємо та надсилаємо…' : 'Зберігаємо…';
   try {
     const saved = await api(activeQuote ? `/api/quotes/${activeQuote._id}` : '/api/quotes', { method:activeQuote ? 'PATCH' : 'POST', body:JSON.stringify(payload) });

@@ -585,6 +585,22 @@ async function activeSessionUser(req){
   return account?.status==='active'?sessionUser(account):null;
 }
 async function requireAdmin(req,res){ const user=await activeSessionUser(req); if(!user){json(res,401,{error:'AUTH_REQUIRED'});return null} return user; }
+function isQuoteOwner(user={},quote={}){
+  if(quote.ownerId)return String(quote.ownerId)===String(user.id||'');
+  if(quote.createdBy)return String(quote.createdBy).toLowerCase()===String(user.name||'').toLowerCase();
+  return user.role==='admin';
+}
+function canAccessQuote(user={},quote={}){
+  if(isQuoteOwner(user,quote))return true;
+  const shared=Array.isArray(quote.sharedWith)?quote.sharedWith.map(String):[];
+  return shared.includes(String(user.id||''))||shared.some(value=>value.toLowerCase()===String(user.name||'').toLowerCase());
+}
+async function sanitizeQuoteShares(value,ownerId=''){
+  if(!Array.isArray(value))return [];
+  const requested=new Set(value.map(item=>String(item||'').trim()).filter(Boolean));
+  const users=await store.list('users');
+  return users.filter(user=>user.status==='active'&&String(user._id)!==String(ownerId)&&requested.has(String(user._id))).map(user=>String(user._id));
+}
 async function body(req,limit=2_500_000){
   let size=0,data='';
   for await(const chunk of req){size+=chunk.length;if(size>limit)throw new Error('PAYLOAD_TOO_LARGE');data+=chunk}
@@ -595,7 +611,7 @@ async function body(req,limit=2_500_000){
   throw new Error('UNSUPPORTED_CONTENT_TYPE');
 }
 function compareSafe(a='',b=''){ const left=Buffer.from(String(a)); const right=Buffer.from(String(b)); if(left.length!==right.length)return false; return crypto.timingSafeEqual(left,right); }
-function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','items','status','manager','checkedBy','viewedAt','attribution','emailCopySent','emailCopyId','emailCopyError'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','status','images','homeMode','homeOrder'],solarPanels:['brand','model','power','technology','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','sourceUrl','status','images','homeOrder'],greenProtect:['code','brand','model','name','category','spec','power','phase','voltage','listPrice','purchasePrice','purchaseCurrency','price','priceUsd','description','sourceUrl','status','images'],quotes:['number','customerName','company','email','phone','city','validDays','validUntil','note','items','currency','subtotal','status','createdBy','sentAt','emailStatus','emailId','emailError'],purchases:['supplier','date','amount','currency','customer','list','comment','status','attachments','createdBy']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
+function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','items','status','manager','checkedBy','viewedAt','attribution','emailCopySent','emailCopyId','emailCopyError'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','status','images','homeMode','homeOrder'],solarPanels:['brand','model','power','technology','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','sourceUrl','status','images','homeOrder'],greenProtect:['code','brand','model','name','category','spec','power','phase','voltage','listPrice','purchasePrice','purchaseCurrency','price','priceUsd','description','sourceUrl','status','images'],quotes:['number','customerName','company','email','phone','city','validUntil','note','items','currency','subtotal','status','sharedWith','sentAt','emailStatus','emailId','emailError'],purchases:['supplier','date','amount','currency','customer','list','comment','status','attachments','createdBy']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
 
 function cleanText(value='',limit=500){return String(value??'').trim().slice(0,limit)}
 function validEmail(value=''){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).trim())}
@@ -722,7 +738,9 @@ async function sendLeadCopy(item={}){
 }
 function quoteEmailContent(quote={}){
   const currency=quote.currency||'UAH';
-  const validDays=Math.max(1,Math.round(Number(quote.validDays)||3));
+  const createdDate=new Date(quote.createdAt||Date.now());
+  const reservedDate=new Date(`${quote.validUntil||''}T12:00:00`);
+  const validDays=Number.isNaN(reservedDate.getTime())?3:Math.max(1,Math.round((reservedDate.getTime()-createdDate.getTime())/86_400_000));
   const validDate=String(quote.validUntil||'').split('-').reverse().join('.');
   const rows=(quote.items||[]).map(item=>`<tr><td style="padding:11px;border-bottom:1px solid #e3e5e1"><b>${htmlEscape(item.name)}</b>${item.description?`<br><small style="color:#77827d">${htmlEscape(item.description)}</small>`:''}</td><td style="padding:11px;border-bottom:1px solid #e3e5e1;text-align:center">${htmlEscape(item.quantity)} ${htmlEscape(item.unit)}</td><td style="padding:11px;border-bottom:1px solid #e3e5e1;text-align:right">${htmlEscape(formatMoney(item.unitPrice,currency))}</td><td style="padding:11px;border-bottom:1px solid #e3e5e1;text-align:right"><b>${htmlEscape(formatMoney(Number(item.quantity)*Number(item.unitPrice),currency))}</b></td></tr>`).join('');
   const content=`<p style="font-size:16px;line-height:1.6">Для: <b>${htmlEscape(quote.customerName||quote.company||'Клієнт')}</b>${quote.company?` · ${htmlEscape(quote.company)}`:''}</p><table style="width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden"><thead><tr><th style="padding:11px;text-align:left">Позиція</th><th style="padding:11px">К-сть</th><th style="padding:11px;text-align:right">Ціна</th><th style="padding:11px;text-align:right">Сума</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="3" style="padding:16px;text-align:right"><b>Разом</b></td><td style="padding:16px;text-align:right;font-size:19px"><b>${htmlEscape(formatMoney(quote.subtotal,currency))}</b></td></tr></tfoot></table>${quote.note?`<div style="margin-top:18px;padding:18px;border-radius:14px;background:#fff"><b>Примітка</b><p style="line-height:1.6">${htmlEscape(quote.note)}</p></div>`:''}`;
@@ -780,7 +798,7 @@ async function api(req,res,url){
   if(url.pathname==='/api/auth/me'){const user=await activeSessionUser(req);return user?json(res,200,{user}):json(res,401,{error:'AUTH_REQUIRED'});}
   if(url.pathname==='/api/auth/logout'&&req.method==='POST'){ return json(res,200,{ok:true},{'Set-Cookie':sessionCookie('',0)}); }
   if(url.pathname==='/api/integrations/status'){ if(!await requireAdmin(req,res))return; const contact=await getContactApiStatus(); return json(res,200,{contactApi:contact.available,contactApiConfigured:contact.configured,notifications:contact.available,email: Boolean(RESEND_API_KEY&&EMAIL_FROM),route:contact.route}); }
-  if(url.pathname==='/api/dashboard'){ if(!await requireAdmin(req,res))return; const result={}; for(const type of COLLECTIONS){const items=await store.list(type);const hasUnread=['leads','reviews','questions'].includes(type);result[type]={total:items.length,unread:hasUnread?items.filter(x=>!x.viewedAt).length:0};} return json(res,200,result); }
+  if(url.pathname==='/api/dashboard'){ const user=await requireAdmin(req,res);if(!user)return;const result={};for(const type of COLLECTIONS){let items=await store.list(type);if(type==='quotes')items=items.filter(item=>canAccessQuote(user,item));const hasUnread=['leads','reviews','questions'].includes(type);result[type]={total:items.length,unread:hasUnread?items.filter(x=>!x.viewedAt).length:0};}return json(res,200,result); }
   if(url.pathname==='/api/admin/mark-viewed'&&req.method==='POST'){ if(!await requireAdmin(req,res))return; const input=await body(req); if(!COLLECTIONS.has(input.type))return json(res,400,{error:'INVALID_TYPE'}); await store.markViewed(input.type); return json(res,200,{ok:true}); }
   const mediaMatch=url.pathname.match(/^\/api\/media\/([a-zA-Z0-9_-]+)$/);
   if(mediaMatch&&req.method==='GET'){
@@ -900,10 +918,11 @@ async function api(req,res,url){
     const user=await requireAdmin(req,res);if(!user)return;
     const quote=(await store.list('quotes')).find(item=>String(item._id)===quoteSendMatch[1]);
     if(!quote)return json(res,404,{error:'NOT_FOUND'});
+    if(!canAccessQuote(user,quote))return json(res,403,{error:'QUOTE_ACCESS_DENIED'});
     if(!cleanText(quote.customerName,160)||!validEmail(quote.email)||!Array.isArray(quote.items)||!quote.items.length)return json(res,400,{error:'QUOTE_SEND_FIELDS_REQUIRED'});
     const delivery=await sendEmail({to:quote.email,subject:`Комерційна пропозиція Voltares ${quote.number||''}`.trim(),html:quoteEmailContent(quote),text:`Комерційна пропозиція ${quote.number||''}\nРазом: ${formatMoney(quote.subtotal,quote.currency)}`,idempotencyKey:`quote-${quote._id}-${quote.updatedAt||quote.createdAt}`});
     const protectedStatus=['accepted','completed','declined'].includes(quote.status)?quote.status:null;
-    const updated=await store.update('quotes',quote._id,{status:protectedStatus||(delivery.sent?'sent':quote.status||'draft'),sentAt:delivery.sent?new Date().toISOString():quote.sentAt||null,emailStatus:delivery.sent?'sent':'failed',emailId:delivery.id||'',emailError:delivery.error||'',createdBy:quote.createdBy||user.name});
+    const updated=await store.update('quotes',quote._id,{status:protectedStatus||(delivery.sent?'sent':quote.status||'draft'),sentAt:delivery.sent?new Date().toISOString():quote.sentAt||null,emailStatus:delivery.sent?'sent':'failed',emailId:delivery.id||'',emailError:delivery.error||'',ownerId:quote.ownerId||user.id,createdBy:quote.createdBy||user.name});
     return json(res,delivery.sent?200:502,updated);
   }
   const match=url.pathname.match(/^\/api\/(leads|reviews|questions|faqs|projects|articles|equipment|solarPanels|greenProtect|quotes|purchases)(?:\/([^/]+))?$/); if(!match)return false;
@@ -911,6 +930,7 @@ async function api(req,res,url){
   if(req.method==='GET'){
     if(['leads','quotes','purchases'].includes(type)&&!isAdmin)return json(res,401,{error:'AUTH_REQUIRED'});
     let items=await store.list(type);
+    if(type==='quotes'&&isAdmin)items=items.filter(item=>canAccessQuote(adminUser,item));
     if(!isAdmin){
       if(type==='reviews')items=items.filter(x=>x.status==='published').map(publicReview);
       if(['projects','articles'].includes(type))items=items.filter(x=>x.status==='published'||x.status==='active');
@@ -924,7 +944,7 @@ async function api(req,res,url){
       }
       if(type==='faqs')items=items.filter(x=>x.status==='active').sort((a,b)=>Number(a.order||0)-Number(b.order||0));
     }
-    if(!isAdmin&&id&&!items.some(x=>String(x._id)===id))return json(res,404,{error:'NOT_FOUND'});
+    if(id&&!items.some(x=>String(x._id)===id))return json(res,404,{error:'NOT_FOUND'});
     const result=id?(items.find(x=>String(x._id)===id)||null):items;
     return isAdmin?json(res,200,result):publicJson(req,res,result);
   }
@@ -945,7 +965,7 @@ async function api(req,res,url){
       if(verified.length&&!validEmail(input.email))return json(res,400,{error:'EMAIL_REQUIRED_FOR_CART'});
     }
     if(type==='quotes'){
-      input.items=sanitizeQuoteItems(input.items);input.currency=input.currency==='USD'?'USD':'UAH';input.subtotal=input.items.reduce((sum,item)=>sum+Number(item.quantity)*Number(item.unitPrice),0);input.validDays=Math.round(clampNumber(input.validDays||3,1,365));input.status=['draft','sent','accepted','completed','declined'].includes(input.status)?input.status:'draft';input.createdBy=adminUser?.name||'';input.number=cleanText(input.number||`KP-${new Date().toISOString().slice(0,10).replaceAll('-','')}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`,40);input.emailStatus='not-sent';input.emailId='';input.emailError='';
+      input.items=sanitizeQuoteItems(input.items);input.currency=input.currency==='USD'?'USD':'UAH';input.subtotal=input.items.reduce((sum,item)=>sum+Number(item.quantity)*Number(item.unitPrice),0);input.status=['draft','sent','accepted','completed','declined'].includes(input.status)?input.status:'draft';input.ownerId=String(adminUser?.id||'');input.createdBy=adminUser?.name||'';input.sharedWith=await sanitizeQuoteShares(input.sharedWith,input.ownerId);input.number=cleanText(input.number||`KP-${new Date().toISOString().slice(0,10).replaceAll('-','')}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`,40);input.emailStatus='not-sent';input.emailId='';input.emailError='';
     }
     if(type==='purchases'){input.attachments=sanitizeAttachments(input.attachments);input.status=['planned','ordered','received','cancelled'].includes(input.status)?input.status:'planned';input.currency=['UAH','USD','EUR'].includes(input.currency)?input.currency:'UAH';input.amount=clampNumber(input.amount,0,1_000_000_000);input.createdBy=adminUser?.name||'';}
     if(type==='equipment'){
@@ -970,7 +990,41 @@ async function api(req,res,url){
     if(type==='leads'&&created.email){const delivery=await sendLeadCopy(created);const updated=await store.update('leads',created._id,{emailCopySent:delivery.sent,emailCopyId:delivery.id||'',emailCopyError:delivery.error||''});return json(res,201,updated);}
     return json(res,201,created);
   }
-  if(['PATCH','DELETE'].includes(req.method)){ const user=await requireAdmin(req,res); if(!user)return; if(!id)return json(res,400,{error:'ID_REQUIRED'}); if(req.method==='DELETE')return json(res,(await store.remove(type,id))?200:404,{ok:true}); const previous=(await store.list(type)).find(item=>String(item._id)===id); if(!previous)return json(res,404,{error:'NOT_FOUND'}); const input=sanitize(type,await body(req)); if(type==='equipment'){ if(input.homeMode!==undefined)input.homeMode=['auto','featured','hidden'].includes(input.homeMode)?input.homeMode:'auto'; if(input.homeOrder!==undefined)input.homeOrder=Math.max(0,Number(input.homeOrder||0)); } if(type==='quotes'){if(input.items!==undefined){input.items=sanitizeQuoteItems(input.items);input.subtotal=input.items.reduce((sum,item)=>sum+Number(item.quantity)*Number(item.unitPrice),0)}if(input.validDays!==undefined)input.validDays=Math.round(clampNumber(input.validDays,1,365));if(input.currency!==undefined)input.currency=input.currency==='USD'?'USD':'UAH';if(input.status!==undefined)input.status=['draft','sent','accepted','completed','declined'].includes(input.status)?input.status:'draft';} if(type==='purchases'){if(input.attachments!==undefined)input.attachments=sanitizeAttachments(input.attachments);if(input.amount!==undefined)input.amount=clampNumber(input.amount,0,1_000_000_000);} if(type==='reviews'){ if(input.verified!==undefined){ input.verified=Boolean(input.verified); input.verifiedAt=input.verified?new Date().toISOString():null; input.verifiedBy=input.verified?user.name:''; } const next={...previous,...input}; input.audit=reviewAudit(previous,next,user); } return json(res,200,await store.update(type,id,input)); }
+  if(['PATCH','DELETE'].includes(req.method)){
+    const user=await requireAdmin(req,res);if(!user)return;
+    if(!id)return json(res,400,{error:'ID_REQUIRED'});
+    const previous=(await store.list(type)).find(item=>String(item._id)===id);
+    if(!previous)return json(res,404,{error:'NOT_FOUND'});
+    if(type==='quotes'&&!canAccessQuote(user,previous))return json(res,403,{error:'QUOTE_ACCESS_DENIED'});
+    if(req.method==='DELETE'){
+      if(type==='quotes'&&!isQuoteOwner(user,previous))return json(res,403,{error:'QUOTE_OWNER_ONLY'});
+      return json(res,(await store.remove(type,id))?200:404,{ok:true});
+    }
+    const input=sanitize(type,await body(req));
+    if(type==='equipment'){
+      if(input.homeMode!==undefined)input.homeMode=['auto','featured','hidden'].includes(input.homeMode)?input.homeMode:'auto';
+      if(input.homeOrder!==undefined)input.homeOrder=Math.max(0,Number(input.homeOrder||0));
+    }
+    if(type==='quotes'){
+      if(!previous.ownerId&&isQuoteOwner(user,previous))input.ownerId=String(user.id||'');
+      if(input.items!==undefined){input.items=sanitizeQuoteItems(input.items);input.subtotal=input.items.reduce((sum,item)=>sum+Number(item.quantity)*Number(item.unitPrice),0)}
+      if(input.currency!==undefined)input.currency=input.currency==='USD'?'USD':'UAH';
+      if(input.status!==undefined)input.status=['draft','sent','accepted','completed','declined'].includes(input.status)?input.status:'draft';
+      if(input.sharedWith!==undefined){
+        if(!isQuoteOwner(user,previous))return json(res,403,{error:'QUOTE_OWNER_ONLY'});
+        input.sharedWith=await sanitizeQuoteShares(input.sharedWith,previous.ownerId||user.id);
+      }
+    }
+    if(type==='purchases'){
+      if(input.attachments!==undefined)input.attachments=sanitizeAttachments(input.attachments);
+      if(input.amount!==undefined)input.amount=clampNumber(input.amount,0,1_000_000_000);
+    }
+    if(type==='reviews'){
+      if(input.verified!==undefined){input.verified=Boolean(input.verified);input.verifiedAt=input.verified?new Date().toISOString():null;input.verifiedBy=input.verified?user.name:'';}
+      const next={...previous,...input};input.audit=reviewAudit(previous,next,user);
+    }
+    return json(res,200,await store.update(type,id,input));
+  }
   return json(res,405,{error:'METHOD_NOT_ALLOWED'});
 }
 
