@@ -123,6 +123,13 @@ function openPrintDocument(markup, blockedMessage) {
   setTimeout(() => popup.print(), 250);
 }
 
+function openPreviewDocument(markup) {
+  const popup = window.open('about:blank', '_blank');
+  if (!popup) { showApiNotice('Браузер заблокував вікно попереднього перегляду. Дозвольте спливні вікна для CRM.'); return; }
+  popup.opener = null;
+  popup.document.open(); popup.document.write(markup); popup.document.close(); popup.focus();
+}
+
 function leadPrintDocument(lead = {}) {
   const items = Array.isArray(lead.items) ? lead.items : [];
   const totals = leadTotals(lead);
@@ -761,6 +768,12 @@ function saveQuoteAsPdf(quote) {
   openPrintDocument(quotePdfDocument(quote), 'Браузер заблокував вікно PDF. Дозвольте спливні вікна для CRM.');
 }
 
+function previewQuote(quote) {
+  const publicUrl = quotePublicUrl(quote);
+  if (publicUrl) return window.open(publicUrl, '_blank', 'noopener');
+  openPreviewDocument(quotePdfDocument(quote));
+}
+
 function quoteIsOwner(quote = null) {
   if (!quote) return true;
   if (quote.ownerId) return String(quote.ownerId) === String(currentAdmin?.id || '');
@@ -817,6 +830,7 @@ $('#quote-access-list')?.addEventListener('change', updateQuoteAccessLabel);
 document.addEventListener('pointerdown', event => {
   const dropdown = $('.quote-access-dropdown');
   if (dropdown?.open && !dropdown.contains(event.target)) dropdown.open = false;
+  $$('.quote-more[open], .quote-action-menu[open]').forEach(menu => { if (!menu.contains(event.target)) menu.open = false; });
 });
 
 let quoteFilter = 'all';
@@ -843,7 +857,9 @@ async function runQuoteAction(action, quote, trigger) {
   if (!quote) return;
   try {
     if (action === 'edit') return openQuoteDialog(quote);
-    if (action === 'pdf' || action === 'preview') return saveQuoteAsPdf(quote);
+    if (action === 'pdf') return saveQuoteAsPdf(quote);
+    if (action === 'preview') return previewQuote(quote);
+    if (action === 'share') { const url = quotePublicUrl(quote); if (!url) throw new Error('Спочатку створіть публічне посилання.'); showQuoteShare(url); return; }
     if (action === 'access') return openQuoteDialog(quote, true);
     if (action === 'delete') return removeItem('quotes', quote._id);
     if (action === 'copy') { await copyText(quotePublicUrl(quote)); showApiNotice('Публічне посилання скопійовано.'); return; }
@@ -905,6 +921,9 @@ let quoteCurrency = 'UAH';
 let quoteDragIndex = -1;
 let quoteSourceLeadId = '';
 
+const quoteOpenPublicButton = $('[data-quote-menu="open"]');
+if (quoteOpenPublicButton && !$('[data-quote-menu="share"]')) quoteOpenPublicButton.insertAdjacentHTML('afterend', '<button type="button" data-quote-menu="share">Надіслати через…</button>');
+
 function updateQuoteEditorActions(item = activeQuote) {
   const status = normalizedQuoteStatus(item?.status || 'draft'); const readonly = status === 'confirmed'; const hasLink = Boolean(item?.publicEnabled && item?.publicToken);
   quoteDialog.classList.toggle('is-readonly', readonly); $('.quote-readonly-notice').hidden = !readonly;
@@ -913,7 +932,7 @@ function updateQuoteEditorActions(item = activeQuote) {
   Array.from(quoteField('status').options).forEach(option => { option.disabled = ![status,'cancelled'].includes(option.value); });
   $$('[data-quote-menu]', quoteForm).forEach(button => {
     const action = button.dataset.quoteMenu;
-    button.hidden = action === 'publish' ? !item || hasLink || readonly || status === 'cancelled' : action === 'copy' || action === 'open' || action === 'revoke' ? !hasLink : action === 'version' ? !readonly : false;
+    button.hidden = action === 'publish' ? !item || hasLink || readonly || status === 'cancelled' : action === 'copy' || action === 'open' || action === 'share' || action === 'revoke' ? !hasLink : action === 'version' ? !readonly : false;
   });
 }
 
@@ -1126,7 +1145,11 @@ $('.quote-dialog-print')?.addEventListener('click', () => {
   const subtotal = quoteDraftItems.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0), 0);
   saveQuoteAsPdf({ ...activeQuote, ...fields, items:quoteDraftItems.map(item => ({ ...item })), subtotal, createdAt:activeQuote?.createdAt || new Date().toISOString(), number:activeQuote?.number || 'Нове КП' });
 });
-$('[data-quote-menu="preview"]')?.addEventListener('click', () => $('.quote-dialog-print')?.click());
+$('[data-quote-menu="preview"]')?.addEventListener('click', () => {
+  const fields = Object.fromEntries(new FormData(quoteForm).entries());
+  const subtotal = quoteDraftItems.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0), 0);
+  previewQuote({ ...activeQuote, ...fields, items:quoteDraftItems.map(item => ({ ...item })), subtotal, createdAt:activeQuote?.createdAt || new Date().toISOString(), number:activeQuote?.number || 'Нове КП' });
+});
 $$('[data-quote-menu]').forEach(button => button.addEventListener('click', async () => {
   const action = button.dataset.quoteMenu; if (action === 'preview') return;
   if (!activeQuote) return showApiNotice('Спочатку збережіть чернетку.');
