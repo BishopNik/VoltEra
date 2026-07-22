@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="referrer" content="no-referrer">
+  <title>Комерційна пропозиція | Voltares</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/proposal.css?v=20260722-1">
+  <style>[hidden]{display:none!important}</style>
+  <script src="/proposal.js?v=20260722-1" defer></script>
+</head>
+<body>
+  <header class="proposal-header">
+    <a href="/" aria-label="Voltares — головна"><img src="/assets/brand/ink-logo-transparent.png" alt="Voltares"></a>
+    <span>КОМЕРЦІЙНА ПРОПОЗИЦІЯ</span>
+  </header>
+  <main id="proposal-app" aria-live="polite">
+    <section class="proposal-state" id="proposal-loading"><i></i><h1>Завантажуємо пропозицію</h1><p>Будь ласка, зачекайте кілька секунд.</p></section>
+    <section class="proposal-state" id="proposal-error" hidden><b>!</b><h1 id="proposal-error-title">Посилання недійсне</h1><p id="proposal-error-text">Перевірте адресу або зверніться до менеджера Voltares.</p><a href="tel:+380676721852">Зателефонувати менеджеру</a></section>
+    <div id="proposal-content" hidden>
+      <section class="proposal-hero">
+        <div><p class="eyebrow">ПРОПОЗИЦІЯ <span id="proposal-number"></span></p><h1>Комплектація та вартість</h1><p>Підготовлено для <strong id="proposal-customer"></strong></p></div>
+        <dl><div><dt>Створено</dt><dd id="proposal-created"></dd></div><div><dt>Діє до</dt><dd id="proposal-valid"></dd></div><div><dt>Версія</dt><dd id="proposal-version"></dd></div></dl>
+      </section>
+      <aside class="proposal-warning" id="proposal-warning" hidden><strong>Термін дії цієї комерційної пропозиції закінчився.</strong><span>Для уточнення актуальності зверніться до менеджера.</span></aside>
+      <aside class="proposal-confirmed" id="proposal-confirmed" hidden><strong>Цю комерційну пропозицію вже підтверджено.</strong><span id="proposal-confirmed-at"></span></aside>
+      <section class="proposal-items"><div class="section-heading"><span>ОБЛАДНАННЯ ТА РОБОТИ</span><h2>Склад пропозиції</h2></div><div id="proposal-items"></div></section>
+      <section class="proposal-summary"><div><span>Загальна вартість</span><strong id="proposal-total"></strong><small>у валюті пропозиції</small></div><article id="proposal-note-wrap" hidden><h2>Умови та коментар</h2><p id="proposal-note"></p></article></section>
+      <section class="proposal-contact"><div><span>ВАШ МЕНЕДЖЕР</span><h2 id="proposal-manager"></h2><p>Готові уточнити наявність, строки доставки, оплату та монтаж.</p></div><div><a id="proposal-phone" href="tel:+380676721852"></a><a id="proposal-email" href="mailto:ink.torg@gmail.com"></a></div></section>
+    </div>
+  </main>
+  <footer class="proposal-actions" id="proposal-actions" hidden><button type="button" class="close-action" id="proposal-close">Закрити</button><button type="button" class="confirm-action" id="proposal-confirm">Підтверджую пропозицію</button></footer>
+  <dialog id="confirm-dialog"><form method="dialog"><button class="dialog-close" value="cancel" aria-label="Закрити">×</button><span>ПІДТВЕРДЖЕННЯ</span><h2>Підтвердити комерційну пропозицію?</h2><p>Після підтвердження менеджер Voltares отримає повідомлення та зв’яжеться з вами.</p><div><button value="cancel" class="secondary">Скасувати</button><button value="confirm" id="confirm-submit">Підтвердити</button></div></form></dialog>
+  <dialog id="success-dialog"><form method="dialog"><b>✓</b><h2>Дякуємо!</h2><p>Комерційну пропозицію підтверджено.<br>Менеджер Voltares зв’яжеться з вами найближчим часом.</p><button>Закрити</button></form></dialog>
+  <div class="toast" id="proposal-toast" role="status" hidden>Ви можете закрити цю сторінку.</div>
+</body>
+</html>
