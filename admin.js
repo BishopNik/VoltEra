@@ -832,6 +832,10 @@ document.addEventListener('pointerdown', event => {
   if (dropdown?.open && !dropdown.contains(event.target)) dropdown.open = false;
   $$('.quote-more[open], .quote-action-menu[open]').forEach(menu => { if (!menu.contains(event.target)) menu.open = false; });
 });
+document.addEventListener('click', event => {
+  const action = event.target.closest('.quote-more button, .quote-action-menu button');
+  if (action) action.closest('details').open = false;
+});
 
 let quoteFilter = 'all';
 const quoteStatusLabels = { draft:'Чернетка', sent:'Надіслано', viewed:'Переглянуто', confirmed:'Підтверджено', cancelled:'Скасовано', accepted:'Підтверджено', completed:'Підтверджено', declined:'Скасовано' };
