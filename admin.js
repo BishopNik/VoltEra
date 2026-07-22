@@ -66,6 +66,11 @@ const statusLabels = {
 };
 let currentAdmin = null;
 let pendingApiRequests = 0;
+const employeeViewerStorageKey = 'voltares_home';
+
+function rememberEmployeeViewer(user = {}) {
+  try { localStorage.setItem(employeeViewerStorageKey, JSON.stringify({ home:true, user:user.name || '', savedAt:new Date().toISOString() })); } catch {}
+}
 
 function updateApiLoading(delta) {
   pendingApiRequests = Math.max(0, pendingApiRequests + delta);
@@ -855,7 +860,9 @@ function showQuoteShare(url, emailDelivered = null) {
   $('#quote-share-telegram').href = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent('Комерційна пропозиція Voltares')}`;
   $('#quote-share-viber').href = `viber://forward?text=${encodeURIComponent(message)}`;
   $('#quote-share-system').hidden = typeof navigator.share !== 'function';
-  $('#quote-share-menu').hidden = true; $('#quote-share-native').setAttribute('aria-expanded', 'false'); dialog.showModal();
+  $('#quote-share-menu').hidden = true; $('#quote-share-native').setAttribute('aria-expanded', 'false');
+  if (quoteDialog?.open) quoteDialog.close();
+  if (!dialog.open) dialog.showModal();
 }
 async function runQuoteAction(action, quote, trigger) {
   if (!quote) return;
@@ -1184,8 +1191,13 @@ quoteForm?.addEventListener('submit', async event => {
     proposalSaved = true;
     let sent = null;
     if (action === 'send') sent = await api(`/api/quotes/${saved._id}/send`, { method:'POST', body:JSON.stringify({}) });
+    if (action === 'send') {
+      if (!sent?.publicUrl) throw new Error('Публічне посилання не створено.');
+      quoteDialog.close(); showQuoteShare(sent.publicUrl, sent.emailDelivered);
+      await loadCollection('quotes').then(renderQuotes).catch(() => {});
+      return;
+    }
     await loadCollection('quotes'); renderQuotes(); quoteDialog.close();
-    if (sent?.publicUrl) showQuoteShare(sent.publicUrl, sent.emailDelivered);
   } catch (error) {
     await loadCollection('quotes').catch(() => {}); renderQuotes(); $('.quote-form-status').textContent = action === 'send' && proposalSaved ? `Пропозицію збережено, але не вдалося надіслати: ${error.message}` : `Не вдалося зберегти пропозицію: ${error.message}`;
   } finally { if (button?.isConnected) setBusy(button, false); }
@@ -1480,6 +1492,7 @@ $('#logout')?.addEventListener('click', endAdminSession);
 api('/api/auth/me')
   .then(data => {
     currentAdmin = data.user;
+    rememberEmployeeViewer(currentAdmin);
     $$('[data-admin-shell]').forEach(element => { element.hidden = false; });
     const loadingTitle = $('#admin-loading-title');
     const loadingMessage = $('#admin-loading-message');

@@ -1023,12 +1023,15 @@ async function api(req,res,url){
     const quote=await store.quoteByToken(token);
     if(!quote)return json(res,404,{error:'NOT_FOUND'});
     if(!quote.publicEnabled)return json(res,410,{error:'LINK_REVOKED'});
-    if(action==='get'&&req.method==='GET')return json(res,200,serializePublicProposal(quote),{'Cache-Control':'private, no-store','X-Robots-Tag':'noindex, nofollow, noarchive'});
+    const employeeViewer=Boolean(await activeSessionUser(req));
+    if(action==='get'&&req.method==='GET')return json(res,200,{...serializePublicProposal(quote),employeeViewer},{'Cache-Control':'private, no-store','X-Robots-Tag':'noindex, nofollow, noarchive'});
     if(action==='view'&&req.method==='POST'){
+      if(employeeViewer)return json(res,200,{ok:true,status:normalizedQuoteStatus(quote.status),employeeViewer:true});
       const viewed=await store.recordQuoteView(token,new Date().toISOString());
       return viewed?json(res,200,{ok:true,status:normalizedQuoteStatus(viewed.status)}):json(res,410,{error:'LINK_REVOKED'});
     }
     if(action==='confirm'&&req.method==='POST'){
+      if(employeeViewer)return json(res,409,{error:'EMPLOYEE_PREVIEW_ONLY'});
       if(proposalExpired(quote))return json(res,409,{error:'PROPOSAL_EXPIRED'});
       const result=await store.confirmQuote(token,new Date().toISOString());
       if(!result.quote)return json(res,404,{error:'NOT_FOUND'});

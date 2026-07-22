@@ -39,6 +39,9 @@ test('public proposal lifecycle is private, idempotent and revocable',async t=>{
 
   assert.equal((await fetch(`${baseUrl}/api/public/proposals/${token}/view`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).status,200);
   const login=await fetch(`${baseUrl}/api/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:'admin',password:'test-password-123'})});assert.equal(login.status,200);const cookie=String(login.headers.get('set-cookie')||'').split(';')[0];
+  const employeeProposal=await fetch(`${baseUrl}/api/public/proposals/${token}`,{headers:{Cookie:cookie}});assert.equal(employeeProposal.status,200);assert.equal((await employeeProposal.json()).employeeViewer,true);
+  const employeeView=await fetch(`${baseUrl}/api/public/proposals/${token}/view`,{method:'POST',headers:{'Content-Type':'application/json',Cookie:cookie},body:'{}'});assert.equal(employeeView.status,200);assert.equal((await employeeView.json()).employeeViewer,true);
+  assert.equal((await fetch(`${baseUrl}/api/public/proposals/${token}/confirm`,{method:'POST',headers:{'Content-Type':'application/json',Cookie:cookie},body:'{}'})).status,409);
   const staleUpdate=await fetch(`${baseUrl}/api/quotes/proposal-test`,{method:'PATCH',headers:{'Content-Type':'application/json',Cookie:cookie},body:JSON.stringify({status:'sent',note:'Оновлено менеджером'})});assert.equal(staleUpdate.status,200);assert.equal((await staleUpdate.json()).status,'viewed');
   const confirmation=await fetch(`${baseUrl}/api/public/proposals/${token}/confirm`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});assert.equal(confirmation.status,200);assert.equal((await confirmation.json()).ok,true);
   const repeated=await fetch(`${baseUrl}/api/public/proposals/${token}/confirm`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});assert.equal(repeated.status,200);assert.equal((await repeated.json()).alreadyConfirmed,true);
@@ -46,5 +49,5 @@ test('public proposal lifecycle is private, idempotent and revocable',async t=>{
   const stored=JSON.parse(await readFile(path.join(dataDirectory,'db.json'),'utf8')).quotes.find(item=>item._id==='proposal-test');assert.equal(stored.status,'confirmed');assert.equal(stored.viewsCount,1);assert.ok(stored.firstViewedAt);assert.ok(stored.confirmedAt);
   assert.equal((await fetch(`${baseUrl}/api/public/proposals/${revokedToken}`)).status,410);
   assert.equal((await fetch(`${baseUrl}/api/public/proposals/not-a-token`)).status,400);
-  const page=await fetch(`${baseUrl}/proposal/${token}`);assert.equal(page.status,200);assert.match(page.headers.get('x-robots-tag')||'',/noarchive/);assert.match(await page.text(),/<meta name="robots" content="noindex, nofollow, noarchive">/);
+  const page=await fetch(`${baseUrl}/proposal/${token}`);assert.equal(page.status,200);assert.match(page.headers.get('x-robots-tag')||'',/noarchive/);const pageHtml=await page.text();assert.match(pageHtml,/<meta name="robots" content="noindex, nofollow, noarchive">/);assert.match(pageHtml,/На сайт Voltares/);assert.match(pageHtml,/proposal-staff-mode/);
 });

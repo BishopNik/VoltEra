@@ -8,8 +8,8 @@
   <title>Комерційна пропозиція | Voltares</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/proposal.css?v=20260722-1">
-  <style>[hidden]{display:none!important}.proposal-header-actions{display:flex;align-items:center;gap:18px}.proposal-header-actions>span{color:#99a9a1}.proposal-site-link{padding:11px 15px;border:1px solid #ffffff2e;border-radius:10px;color:#fff;text-decoration:none;font-size:13px;font-weight:800;transition:border-color .2s,background .2s}.proposal-site-link:hover{border-color:#d8ef69;background:#ffffff0d}@media(max-width:620px){.proposal-header-actions{gap:8px}.proposal-header-actions>span{display:none}.proposal-site-link{padding:9px 11px;font-size:12px}}</style>
-  <script src="/proposal.js?v=20260722-2" defer></script>
+  <style>[hidden]{display:none!important}.proposal-header-actions{display:flex;align-items:center;gap:18px}.proposal-header-actions>span{color:#99a9a1}.proposal-site-link{padding:11px 15px;border:1px solid #ffffff2e;border-radius:10px;color:#fff;text-decoration:none;font-size:13px;font-weight:800;transition:border-color .2s,background .2s}.proposal-site-link:hover{border-color:#d8ef69;background:#ffffff0d}.proposal-actions .site-action{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:0 22px;border-radius:11px;background:#164f3c;color:#fff;text-decoration:none;font-size:13px;font-weight:850}@media(max-width:620px){.proposal-header-actions{gap:8px}.proposal-header-actions>span{display:none}.proposal-site-link{padding:9px 11px;font-size:12px}.proposal-actions{grid-template-columns:1fr 1fr}.proposal-actions .confirm-action{grid-column:1/3;grid-row:1}.proposal-actions .site-action{grid-column:1;grid-row:2;min-height:48px}.proposal-actions .close-action{grid-column:2;grid-row:2}}</style>
+  <script src="/proposal.js?v=20260723-3" defer></script>
 </head>
 <body>
   <header class="proposal-header">
@@ -25,13 +25,14 @@
         <dl><div><dt>Створено</dt><dd id="proposal-created"></dd></div><div><dt>Діє до</dt><dd id="proposal-valid"></dd></div><div><dt>Версія</dt><dd id="proposal-version"></dd></div></dl>
       </section>
       <aside class="proposal-warning" id="proposal-warning" hidden><strong>Термін дії цієї комерційної пропозиції закінчився.</strong><span>Для уточнення актуальності зверніться до менеджера.</span></aside>
+      <aside class="proposal-confirmed" id="proposal-staff-mode" hidden><strong>Перегляд співробітником Voltares.</strong><span>Цей перегляд не враховується як клієнтський, а дії клієнта вимкнено.</span></aside>
       <aside class="proposal-confirmed" id="proposal-confirmed" hidden><strong>Цю комерційну пропозицію вже підтверджено.</strong><span id="proposal-confirmed-at"></span></aside>
       <section class="proposal-items"><div class="section-heading"><span>ОБЛАДНАННЯ ТА РОБОТИ</span><h2>Склад пропозиції</h2></div><div id="proposal-items"></div></section>
       <section class="proposal-summary"><div><span>Загальна вартість</span><strong id="proposal-total"></strong><small>у валюті пропозиції</small></div><article id="proposal-note-wrap" hidden><h2>Умови та коментар</h2><p id="proposal-note"></p></article></section>
       <section class="proposal-contact"><div><span>ВАШ МЕНЕДЖЕР</span><h2 id="proposal-manager"></h2><p>Готові уточнити наявність, строки доставки, оплату та монтаж.</p></div><div><a id="proposal-phone" href="tel:+380676721852"></a><a id="proposal-email" href="mailto:ink.torg@gmail.com"></a></div></section>
     </div>
   </main>
-  <footer class="proposal-actions" id="proposal-actions" hidden><button type="button" class="close-action" id="proposal-close">Закрити</button><button type="button" class="confirm-action" id="proposal-confirm">Підтверджую пропозицію</button></footer>
+  <footer class="proposal-actions" id="proposal-actions" hidden><a class="site-action" href="/" target="_blank" rel="noopener">На сайт Voltares ↗</a><button type="button" class="close-action" id="proposal-close">Закрити</button><button type="button" class="confirm-action" id="proposal-confirm">Підтверджую пропозицію</button></footer>
   <dialog id="confirm-dialog"><form method="dialog"><button class="dialog-close" value="cancel" aria-label="Закрити">×</button><span>ПІДТВЕРДЖЕННЯ</span><h2>Підтвердити комерційну пропозицію?</h2><p>Після підтвердження менеджер Voltares отримає повідомлення та зв’яжеться з вами.</p><div><button value="cancel" class="secondary">Скасувати</button><button value="confirm" id="confirm-submit">Підтвердити</button></div></form></dialog>
   <dialog id="success-dialog"><form method="dialog"><b>✓</b><h2>Дякуємо!</h2><p>Комерційну пропозицію підтверджено.<br>Менеджер Voltares зв’яжеться з вами найближчим часом.</p><button>Закрити</button></form></dialog>
   <div class="toast" id="proposal-toast" role="status" hidden>Ви можете закрити цю сторінку.</div>

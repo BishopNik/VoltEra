@@ -19,7 +19,7 @@ loginForm.addEventListener('submit',async event=>{
   const formData=new FormData(loginForm);
   try{
     const response=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(formData))});
-    if(response.ok){location.href='/admin.html';return;}
+    if(response.ok){const data=await response.json().catch(()=>({}));try{localStorage.setItem('voltares_home',JSON.stringify({home:true,user:data.user?.name||String(formData.get('user')||''),savedAt:new Date().toISOString()}))}catch{}location.href='/admin.html';return;}
     loginError.textContent='Невірний логін або пароль';
   }catch{
     loginError.textContent='Не вдалося підключитися до CRM. Спробуйте ще раз.';
