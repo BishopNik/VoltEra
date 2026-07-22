@@ -765,14 +765,26 @@ function renderQuoteAccess(quote = null) {
   list.className = 'quote-access-list';
   if (!candidates.length) {
     list.innerHTML = '<p class="quote-access-empty">Інших активних співробітників немає.</p>';
+    updateQuoteAccessLabel();
     return;
   }
   list.innerHTML = candidates.map(user => `<label class="quote-access-person${isOwner ? '' : ' is-disabled'}"><input type="checkbox" data-quote-access-id="${escapeHtml(String(user._id))}" ${selected.has(String(user._id)) ? 'checked' : ''} ${isOwner ? '' : 'disabled'}><i aria-hidden="true"></i><span>${escapeHtml(user.username || 'Співробітник')}</span></label>`).join('');
+  updateQuoteAccessLabel();
 }
 
 function selectedQuoteAccess() {
   return $$('[data-quote-access-id]:checked', $('#quote-access-list')).map(input => input.dataset.quoteAccessId).filter(Boolean);
 }
+
+function updateQuoteAccessLabel() {
+  const output = $('#quote-access-summary-label');
+  if (!output) return;
+  const checked = $$('[data-quote-access-id]:checked', $('#quote-access-list'));
+  const noun = checked.length >= 2 && checked.length <= 4 ? 'співробітники' : 'співробітників';
+  output.textContent = checked.length === 0 ? 'Лише автор' : checked.length === 1 ? checked[0].closest('label')?.querySelector('span')?.textContent || '1 співробітник' : `${checked.length} ${noun}`;
+}
+
+$('#quote-access-list')?.addEventListener('change', updateQuoteAccessLabel);
 
 function renderQuotes() {
   const list = $('#quote-list');
@@ -926,7 +938,10 @@ function openQuoteDialog(item = null, focusAccess = false) {
   $('#quote-dialog-title').textContent = item ? `Редагувати ${item.number || 'пропозицію'}` : 'Нова комерційна пропозиція';
   $('.quote-form-status').textContent = '';
   quoteProductOptions(); renderQuoteDraftItems(); renderQuoteAccess(item); quoteDialog.showModal();
-  if (focusAccess) requestAnimationFrame(() => $('.quote-access')?.scrollIntoView({ block:'center', behavior:'smooth' }));
+  if (focusAccess) requestAnimationFrame(() => {
+    const dropdown = $('.quote-access-dropdown');
+    if (dropdown) { dropdown.open = true; dropdown.scrollIntoView({ block:'center', behavior:'smooth' }); }
+  });
 }
 
 function addQuoteCatalogueItem() {
