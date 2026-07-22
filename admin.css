@@ -165,3 +165,18 @@ td{font-size:14px}
 .quote-status-control{display:grid;gap:5px;min-width:210px;margin:0!important}.quote-status-control span{color:var(--muted);font-size:11px;font-weight:800}.quote-status-control select{min-height:42px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-weight:800;cursor:pointer}.quote-status-control select:hover,.quote-status-control select:focus{border-color:var(--orange)}.quote-status-control select:disabled{opacity:.6;cursor:wait}
 @media(max-width:1100px){.quote-items>article{grid-template-columns:28px minmax(220px,1fr) 80px 65px 110px 36px}.quote-items [data-line-total]{grid-column:2/6}.quote-customer-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.quote-picker{grid-template-columns:1fr 1fr}.quote-picker label{grid-column:1/-1}}
 @media(max-width:700px){.quote-list article>header,.purchase-list article>header,.quote-list>article>footer,.purchase-list>article>footer{display:grid}.quote-customer-grid,.quote-picker{grid-template-columns:1fr}.quote-access-panel{position:static;width:100%;margin-top:7px;box-shadow:none}.quote-items>article{grid-template-columns:62px 1fr 36px}.quote-line-order{grid-column:1;grid-row:1}.quote-line-fields{grid-column:2}.quote-items>article>label{grid-column:2}.quote-items [data-line-total]{grid-column:2;text-align:left}.quote-line-remove{grid-column:3;grid-row:1}.quote-dialog .dialog-actions{display:grid}.quote-dialog .dialog-actions button{width:100%}}
+
+/* Aligned quote controls and lead batch actions. */
+.quote-customer-grid>label,.quote-customer-grid>.quote-access-dropdown{align-self:start;display:grid;grid-template-rows:20px 48px;row-gap:6px;margin:8px 0;line-height:20px}
+.quote-customer-grid>label>.quote-field-label{grid-row:1;align-self:start;color:var(--muted);font-size:14px;line-height:20px}
+.quote-customer-grid>label>input,.quote-customer-grid>label>select{height:48px;min-height:48px;margin:0}
+.quote-access-dropdown::before{grid-row:1;line-height:20px}
+.quote-access-dropdown>summary{grid-row:2;height:48px;min-height:48px;padding:0 13px}
+.quote-access-dropdown>summary strong{grid-column:1;grid-row:1;align-self:center;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.quote-access-dropdown>summary>i{position:static;grid-column:2;grid-row:1;align-self:center;justify-self:end;font-size:18px}
+.lead-toolbar-actions,.lead-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lead-select-cell{width:44px;text-align:center}.lead-select-checkbox{width:20px;height:20px;margin:0;accent-color:var(--orange);cursor:pointer}
+#lead-bulk-delete:disabled{opacity:.48;cursor:not-allowed}.lead-quote{color:var(--green)}
+[data-page="leads"] tbody tr:has(.lead-select:checked){background:#fff8ed}
+[data-page="leads"] table{min-width:1120px}
+@media(max-width:900px){.lead-toolbar-actions{width:100%;justify-content:flex-end}.lead-actions{min-width:190px}}

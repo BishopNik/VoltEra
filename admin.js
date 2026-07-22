@@ -37,6 +37,8 @@ const titles = {
 const collections = ['leads', 'reviews', 'questions', 'faqs', 'projects', 'articles', 'equipment', 'solarPanels', 'greenProtect', 'quotes', 'purchases', 'users'];
 const unreadViews = new Set(['leads', 'reviews', 'questions']);
 const statusOrder = ['new', 'work', 'calc', 'done'];
+const selectedLeadIds = new Set();
+let visibleLeadIds = [];
 const statusLabels = {
   new: ['Нова', 'status-new'],
   work: ['В роботі', 'status-work'],
@@ -346,17 +348,26 @@ function renderLeads() {
     const haystack = [lead.name, lead.phone, lead.email, lead.city, lead.need, lead.object].join(' ').toLowerCase();
     return (!query || haystack.includes(query)) && (status === 'all' || lead.status === status);
   });
-  if (!items.length) { tbody.innerHTML = '<tr><td colspan="7">Розділ порожній або немає збігів за фільтром.</td></tr>'; return; }
+  visibleLeadIds = items.map(lead => String(lead._id));
+  const availableIds = new Set(state.leads.map(lead => String(lead._id)));
+  [...selectedLeadIds].forEach(id => { if (!availableIds.has(id)) selectedLeadIds.delete(id); });
+  if (!items.length) { tbody.innerHTML = '<tr><td colspan="8">Розділ порожній або немає збігів за фільтром.</td></tr>'; updateLeadSelectionUi(); return; }
   tbody.innerHTML = items.map(lead => `
     <tr data-id="${lead._id}">
+      <td class="lead-select-cell"><input class="lead-select-checkbox lead-select" type="checkbox" aria-label="Вибрати заявку ${escapeHtml(String(lead._id).slice(0,8))}" ${selectedLeadIds.has(String(lead._id)) ? 'checked' : ''}></td>
       <td>#${escapeHtml(lead._id).slice(0, 8)}<span>${formatDate(lead.createdAt)}</span></td>
       <td><strong>${escapeHtml(lead.name)}</strong><span>${escapeHtml(lead.phone || lead.email || '—')}</span></td>
       <td>${escapeHtml(lead.object || '—')} · ${escapeHtml(lead.city || '—')}</td>
       <td>${leadItemsSummary(lead)}</td>
       <td><strong>${escapeHtml(lead.manager || 'ще ніхто')}</strong><span>Перевірив: ${escapeHtml(lead.checkedBy || 'ще не перевірено')}</span></td>
       <td>${statusBadge(lead.status || 'new', true)}</td>
-      <td><div class="lead-actions"><button class="secondary-admin lead-edit" type="button">Змінити</button><button class="secondary-admin danger-admin lead-delete" type="button">Видалити</button></div></td>
+      <td><div class="lead-actions"><button class="secondary-admin lead-quote" type="button">Створити КП</button><button class="secondary-admin lead-edit" type="button">Змінити</button><button class="secondary-admin danger-admin lead-delete" type="button">Видалити</button></div></td>
     </tr>`).join('');
+  $$('.lead-select', tbody).forEach(input => input.addEventListener('change', () => {
+    const id = input.closest('tr').dataset.id;
+    if (input.checked) selectedLeadIds.add(id); else selectedLeadIds.delete(id);
+    updateLeadSelectionUi();
+  }));
   $$('.status-cycle', tbody).forEach(button => button.addEventListener('click', async () => {
     const row = button.closest('tr');
     const lead = state.leads.find(item => String(item._id) === row.dataset.id);
@@ -373,12 +384,30 @@ function renderLeads() {
     const lead = state.leads.find(item => String(item._id) === button.closest('tr').dataset.id);
     openContentDialog('leads', lead);
   }));
+  $$('.lead-quote', tbody).forEach(button => button.addEventListener('click', () => {
+    const lead = state.leads.find(item => String(item._id) === button.closest('tr').dataset.id);
+    if (lead) openQuoteFromLead(lead);
+  }));
   $$('.lead-delete', tbody).forEach(button => button.addEventListener('click', async () => {
     if (!confirm('Видалити заявку з CRM?')) return;
     setBusy(button, true);
     await api(`/api/leads/${button.closest('tr').dataset.id}`, { method: 'DELETE' });
     await loadCollection('leads'); await refreshDashboard(); renderLeads();
   }));
+  updateLeadSelectionUi();
+}
+
+function updateLeadSelectionUi() {
+  const selectAll = $('#lead-select-all');
+  const bulkButton = $('#lead-bulk-delete');
+  const count = $('#lead-selected-count');
+  const visibleSelected = visibleLeadIds.filter(id => selectedLeadIds.has(id)).length;
+  if (selectAll) {
+    selectAll.checked = visibleLeadIds.length > 0 && visibleSelected === visibleLeadIds.length;
+    selectAll.indeterminate = visibleSelected > 0 && visibleSelected < visibleLeadIds.length;
+  }
+  if (count) count.textContent = String(selectedLeadIds.size);
+  if (bulkButton) bulkButton.disabled = selectedLeadIds.size === 0;
 }
 
 function renderReviews() {
@@ -797,7 +826,7 @@ function renderQuotes() {
   list.innerHTML = state.quotes.map(quote => {
     const owner = quote.createdBy || '—';
     const canManageAccess = quoteIsOwner(quote);
-    return `<article data-id="${escapeHtml(String(quote._id))}"><header><div><span class="view-caption">${escapeHtml(quote.number || 'КП')}</span><h3>${escapeHtml(quote.customerName || quote.company || 'Клієнт')}</h3><p>${escapeHtml([quote.company, quote.email, quote.phone].filter(Boolean).join(' · '))}</p><small class="quote-access-summary">Власник: ${escapeHtml(owner)} · ${escapeHtml(quoteAccessSummary(quote))}</small></div><label class="quote-status-control"><span>Статус КП</span><select class="quote-status"><option value="draft">Чернетка</option><option value="sent">Надіслано</option><option value="accepted">Підтверджено клієнтом</option><option value="completed">Реалізовано</option><option value="declined">Відхилено</option></select></label></header><ul>${(quote.items || []).slice(0, 5).map(item => `<li><span>${escapeHtml(item.name)}</span><b>${escapeHtml(item.quantity)} ${escapeHtml(item.unit || 'шт.')} · ${escapeHtml(formatMoney(Number(item.quantity) * Number(item.unitPrice), quote.currency))}</b></li>`).join('')}${(quote.items || []).length > 5 ? `<li><span>Ще ${(quote.items || []).length - 5} позицій</span></li>` : ''}</ul><footer><strong>${escapeHtml(formatMoney(quote.subtotal, quote.currency))}</strong><small class="email-delivery ${quote.emailStatus === 'sent' ? 'is-sent' : ''}">${quote.emailStatus === 'sent' ? `Надіслано ${formatDate(quote.sentAt)}` : quote.emailStatus === 'failed' ? `Помилка email: ${escapeHtml(quote.emailError || '')}` : 'Ще не надсилалось'}</small><div><button class="secondary-admin quote-pdf" type="button">Друк / PDF</button>${canManageAccess ? '<button class="secondary-admin quote-access-button" type="button">Доступ</button>' : ''}<button class="secondary-admin quote-edit" type="button">Редагувати</button><button class="primary-admin quote-send" type="button">${quote.emailStatus === 'sent' ? 'Надіслати повторно' : 'Надіслати'}</button>${canManageAccess ? '<button class="secondary-admin danger-admin quote-delete" type="button">Видалити</button>' : ''}</div></footer></article>`;
+    return `<article data-id="${escapeHtml(String(quote._id))}"><header><div><span class="view-caption">${escapeHtml(quote.number || 'КП')}</span><h3>${escapeHtml(quote.customerName || quote.company || 'Клієнт')}</h3><p>${escapeHtml([quote.company, quote.email, quote.phone].filter(Boolean).join(' · '))}</p><small class="quote-access-summary">Власник: ${escapeHtml(owner)} · ${escapeHtml(quoteAccessSummary(quote))}${quote.sourceLeadId ? ` · із заявки #${escapeHtml(String(quote.sourceLeadId).slice(0, 8))}` : ''}</small></div><label class="quote-status-control"><span>Статус КП</span><select class="quote-status"><option value="draft">Чернетка</option><option value="sent">Надіслано</option><option value="accepted">Підтверджено клієнтом</option><option value="completed">Реалізовано</option><option value="declined">Відхилено</option></select></label></header><ul>${(quote.items || []).slice(0, 5).map(item => `<li><span>${escapeHtml(item.name)}</span><b>${escapeHtml(item.quantity)} ${escapeHtml(item.unit || 'шт.')} · ${escapeHtml(formatMoney(Number(item.quantity) * Number(item.unitPrice), quote.currency))}</b></li>`).join('')}${(quote.items || []).length > 5 ? `<li><span>Ще ${(quote.items || []).length - 5} позицій</span></li>` : ''}</ul><footer><strong>${escapeHtml(formatMoney(quote.subtotal, quote.currency))}</strong><small class="email-delivery ${quote.emailStatus === 'sent' ? 'is-sent' : ''}">${quote.emailStatus === 'sent' ? `Надіслано ${formatDate(quote.sentAt)}` : quote.emailStatus === 'failed' ? `Помилка email: ${escapeHtml(quote.emailError || '')}` : 'Ще не надсилалось'}</small><div><button class="secondary-admin quote-pdf" type="button">Друк / PDF</button>${canManageAccess ? '<button class="secondary-admin quote-access-button" type="button">Доступ</button>' : ''}<button class="secondary-admin quote-edit" type="button">Редагувати</button><button class="primary-admin quote-send" type="button">${quote.emailStatus === 'sent' ? 'Надіслати повторно' : 'Надіслати'}</button>${canManageAccess ? '<button class="secondary-admin danger-admin quote-delete" type="button">Видалити</button>' : ''}</div></footer></article>`;
   }).join('');
   $$('.quote-status', list).forEach(select => {
     const quote = state.quotes.find(item => String(item._id) === select.closest('article').dataset.id);
@@ -837,6 +866,7 @@ let activeQuote = null;
 let quoteDraftItems = [];
 let quoteCurrency = 'UAH';
 let quoteDragIndex = -1;
+let quoteSourceLeadId = '';
 
 function catalogueForQuote() {
   return [
@@ -927,6 +957,7 @@ function updateQuoteTotal() {
 
 function openQuoteDialog(item = null, focusAccess = false) {
   activeQuote = item;
+  quoteSourceLeadId = String(item?.sourceLeadId || '');
   quoteDraftItems = (item?.items || []).map(line => ({ ...line, quantity:Math.max(1, Math.round(Number(line.quantity) || 1)) }));
   quoteForm.reset();
   quoteField('customerName').value = item?.customerName || '';
@@ -946,6 +977,34 @@ function openQuoteDialog(item = null, focusAccess = false) {
     const dropdown = $('.quote-access-dropdown');
     if (dropdown) { dropdown.open = true; dropdown.scrollIntoView({ block:'center', behavior:'smooth' }); }
   });
+}
+
+function openQuoteFromLead(lead = {}) {
+  openQuoteDialog();
+  quoteSourceLeadId = String(lead._id || '');
+  quoteField('customerName').value = lead.name || '';
+  quoteField('email').value = lead.email || '';
+  quoteField('phone').value = lead.phone || '';
+  quoteField('city').value = lead.city || '';
+  quoteDraftItems = (Array.isArray(lead.items) ? lead.items : []).map(item => ({
+    kind:'catalog',
+    collection:item.collection || 'equipment',
+    productId:String(item.id || ''),
+    name:item.name || 'Товар',
+    description:[item.power, item.phase, item.voltage].filter(Boolean).join(' · '),
+    quantity:Math.max(1, Math.round(Number(item.quantity) || 1)),
+    unit:'шт.',
+    unitPrice:priceNumber(item.price)
+  }));
+  const reference = String(lead._id || '').slice(0, 8);
+  quoteField('note').value = [
+    `Створено із заявки #${reference}`,
+    lead.object ? `Тип об’єкта: ${lead.object}` : '',
+    lead.need ? `Потреба: ${lead.need}` : '',
+    lead.comment || ''
+  ].filter(Boolean).join('\n');
+  $('#quote-dialog-title').textContent = `Нове КП із заявки #${reference}`;
+  renderQuoteDraftItems();
 }
 
 function addQuoteCatalogueItem() {
@@ -1020,7 +1079,7 @@ quoteForm?.addEventListener('submit', async event => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(fields.email || '').trim())) { $('.quote-form-status').textContent = 'Для надсилання вкажіть коректний email клієнта.'; quoteField('email').focus(); return; }
     if (!namedItems.length || namedItems.length !== quoteDraftItems.length) { $('.quote-form-status').textContent = 'Для надсилання додайте щонайменше одну позицію та заповніть усі назви.'; $('#quote-items input[data-field="name"]')?.focus(); return; }
   }
-  const payload = { customerName:fields.customerName, company:fields.company, email:fields.email, phone:fields.phone, city:fields.city, validUntil:fields.validUntil, currency:fields.currency, note:fields.note, items:quoteDraftItems, status:fields.status || 'draft' };
+  const payload = { customerName:fields.customerName, company:fields.company, email:fields.email, phone:fields.phone, city:fields.city, validUntil:fields.validUntil, currency:fields.currency, note:fields.note, items:quoteDraftItems, status:fields.status || 'draft', sourceLeadId:quoteSourceLeadId };
   if (quoteIsOwner(activeQuote)) payload.sharedWith = selectedQuoteAccess();
   setBusy(button, true); $('.quote-form-status').textContent = action === 'send' ? 'Зберігаємо та надсилаємо…' : 'Зберігаємо…';
   try {
@@ -1251,6 +1310,31 @@ $('.admin-menu')?.addEventListener('click', () => $('.admin-sidebar').classList.
 $('#review-filter')?.addEventListener('change', renderReviews);
 $('#lead-search')?.addEventListener('input', renderLeads);
 $('#lead-status-filter')?.addEventListener('change', renderLeads);
+$('#lead-select-all')?.addEventListener('change', event => {
+  visibleLeadIds.forEach(id => {
+    if (event.currentTarget.checked) selectedLeadIds.add(id);
+    else selectedLeadIds.delete(id);
+  });
+  renderLeads();
+});
+$('#lead-bulk-delete')?.addEventListener('click', async event => {
+  const button = event.currentTarget;
+  const ids = [...selectedLeadIds];
+  if (!ids.length || !confirm(`Видалити вибрані заявки (${ids.length})? Цю дію не можна скасувати.`)) return;
+  setBusy(button, true);
+  try {
+    const result = await api('/api/leads/bulk-delete', { method:'POST', body:JSON.stringify({ ids }) });
+    selectedLeadIds.clear();
+    await loadCollection('leads');
+    await refreshDashboard();
+    renderLeads();
+    showApiNotice(`Видалено заявок: ${Number(result.deleted || 0)}.`);
+  } catch (error) {
+    showApiNotice(`Не вдалося видалити вибрані заявки: ${error.message}`);
+  } finally {
+    if (button.isConnected) setBusy(button, false);
+  }
+});
 $('#add-lead')?.addEventListener('click', () => openContentDialog('leads'));
 $('#add-quote')?.addEventListener('click', () => openQuoteDialog());
 $('#add-purchase')?.addEventListener('click', () => openContentDialog('purchases'));

@@ -611,7 +611,7 @@ async function body(req,limit=2_500_000){
   throw new Error('UNSUPPORTED_CONTENT_TYPE');
 }
 function compareSafe(a='',b=''){ const left=Buffer.from(String(a)); const right=Buffer.from(String(b)); if(left.length!==right.length)return false; return crypto.timingSafeEqual(left,right); }
-function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','items','status','manager','checkedBy','viewedAt','attribution','emailCopySent','emailCopyId','emailCopyError'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','status','images','homeMode','homeOrder'],solarPanels:['brand','model','power','technology','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','sourceUrl','status','images','homeOrder'],greenProtect:['code','brand','model','name','category','spec','power','phase','voltage','listPrice','purchasePrice','purchaseCurrency','price','priceUsd','description','sourceUrl','status','images'],quotes:['number','customerName','company','email','phone','city','validUntil','note','items','currency','subtotal','status','sharedWith','sentAt','emailStatus','emailId','emailError'],purchases:['supplier','date','amount','currency','customer','list','comment','status','attachments','createdBy']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
+function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','items','status','manager','checkedBy','viewedAt','attribution','emailCopySent','emailCopyId','emailCopyError'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','status','images','homeMode','homeOrder'],solarPanels:['brand','model','power','technology','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','sourceUrl','status','images','homeOrder'],greenProtect:['code','brand','model','name','category','spec','power','phase','voltage','listPrice','purchasePrice','purchaseCurrency','price','priceUsd','description','sourceUrl','status','images'],quotes:['number','customerName','company','email','phone','city','validUntil','note','items','currency','subtotal','status','sharedWith','sourceLeadId','sentAt','emailStatus','emailId','emailError'],purchases:['supplier','date','amount','currency','customer','list','comment','status','attachments','createdBy']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
 
 function cleanText(value='',limit=500){return String(value??'').trim().slice(0,limit)}
 function validEmail(value=''){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).trim())}
@@ -925,6 +925,15 @@ async function api(req,res,url){
     const updated=await store.update('quotes',quote._id,{status:protectedStatus||(delivery.sent?'sent':quote.status||'draft'),sentAt:delivery.sent?new Date().toISOString():quote.sentAt||null,emailStatus:delivery.sent?'sent':'failed',emailId:delivery.id||'',emailError:delivery.error||'',ownerId:quote.ownerId||user.id,createdBy:quote.createdBy||user.name});
     return json(res,delivery.sent?200:502,updated);
   }
+  if(url.pathname==='/api/leads/bulk-delete'&&req.method==='POST'){
+    if(!await requireAdmin(req,res))return;
+    const input=await body(req);
+    const ids=[...new Set((Array.isArray(input.ids)?input.ids:[]).map(id=>String(id||'').trim()).filter(id=>/^[a-zA-Z0-9_-]{1,100}$/.test(id)))].slice(0,200);
+    if(!ids.length)return json(res,400,{error:'IDS_REQUIRED'});
+    let deleted=0;
+    for(const id of ids)if(await store.remove('leads',id))deleted+=1;
+    return json(res,200,{ok:true,deleted,requested:ids.length});
+  }
   const match=url.pathname.match(/^\/api\/(leads|reviews|questions|faqs|projects|articles|equipment|solarPanels|greenProtect|quotes|purchases)(?:\/([^/]+))?$/); if(!match)return false;
   const [,type,id]=match; const adminUser=await activeSessionUser(req); const isAdmin=Boolean(adminUser);
   if(req.method==='GET'){
@@ -965,7 +974,7 @@ async function api(req,res,url){
       if(verified.length&&input.email&&!validEmail(input.email))return json(res,400,{error:'INVALID_EMAIL_FOR_CART'});
     }
     if(type==='quotes'){
-      input.items=sanitizeQuoteItems(input.items);input.currency=input.currency==='USD'?'USD':'UAH';input.subtotal=input.items.reduce((sum,item)=>sum+Number(item.quantity)*Number(item.unitPrice),0);input.status=['draft','sent','accepted','completed','declined'].includes(input.status)?input.status:'draft';input.ownerId=String(adminUser?.id||'');input.createdBy=adminUser?.name||'';input.sharedWith=await sanitizeQuoteShares(input.sharedWith,input.ownerId);input.number=cleanText(input.number||`KP-${new Date().toISOString().slice(0,10).replaceAll('-','')}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`,40);input.emailStatus='not-sent';input.emailId='';input.emailError='';
+      input.items=sanitizeQuoteItems(input.items);input.currency=input.currency==='USD'?'USD':'UAH';input.subtotal=input.items.reduce((sum,item)=>sum+Number(item.quantity)*Number(item.unitPrice),0);input.status=['draft','sent','accepted','completed','declined'].includes(input.status)?input.status:'draft';input.ownerId=String(adminUser?.id||'');input.createdBy=adminUser?.name||'';input.sharedWith=await sanitizeQuoteShares(input.sharedWith,input.ownerId);input.sourceLeadId=cleanText(input.sourceLeadId,100);input.number=cleanText(input.number||`KP-${new Date().toISOString().slice(0,10).replaceAll('-','')}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`,40);input.emailStatus='not-sent';input.emailId='';input.emailError='';
     }
     if(type==='purchases'){input.attachments=sanitizeAttachments(input.attachments);input.status=['planned','ordered','received','cancelled'].includes(input.status)?input.status:'planned';input.currency=['UAH','USD','EUR'].includes(input.currency)?input.currency:'UAH';input.amount=clampNumber(input.amount,0,1_000_000_000);input.createdBy=adminUser?.name||'';}
     if(type==='equipment'){
@@ -1010,6 +1019,7 @@ async function api(req,res,url){
       if(input.items!==undefined){input.items=sanitizeQuoteItems(input.items);input.subtotal=input.items.reduce((sum,item)=>sum+Number(item.quantity)*Number(item.unitPrice),0)}
       if(input.currency!==undefined)input.currency=input.currency==='USD'?'USD':'UAH';
       if(input.status!==undefined)input.status=['draft','sent','accepted','completed','declined'].includes(input.status)?input.status:'draft';
+      if(input.sourceLeadId!==undefined)input.sourceLeadId=cleanText(input.sourceLeadId,100);
       if(input.sharedWith!==undefined){
         if(!isQuoteOwner(user,previous))return json(res,403,{error:'QUOTE_OWNER_ONLY'});
         input.sharedWith=await sanitizeQuoteShares(input.sharedWith,previous.ownerId||user.id);
