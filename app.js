@@ -592,6 +592,116 @@ function addActiveEquipmentToCart() {
   const button = $('.equipment-add-to-cart', equipmentDialog);
   if (button) { button.classList.add('is-confirmed'); window.setTimeout(() => button.classList.remove('is-confirmed'), 700); }
 }
+
+const homepageCartDialog = $('#homepage-cart-dialog');
+const homepageCartItems = $('#homepage-cart-items');
+const homepageCartTotal = $('#homepage-cart-total');
+const homepageCartForm = $('.homepage-cart-form');
+const homepageCartStatus = $('.homepage-cart-status');
+function homepageCartNumericPrice(item = {}) {
+  const digits = String(item.price || '').replace(/[^\d]/g, '');
+  return digits ? Number(digits) : 0;
+}
+function homepageCartRate(cart = readHomepageCart()) {
+  const rates = cart.map(item => {
+    const uah = homepageCartNumericPrice(item);
+    const usd = Number(item.priceUsd || 0);
+    return uah > 0 && usd > 0 ? uah / usd : 0;
+  }).filter(rate => rate >= 20 && rate <= 100).sort((a, b) => a - b);
+  if (!rates.length) return 44;
+  return rates[Math.floor(rates.length / 2)];
+}
+function homepageCartPrices(item = {}, rate = 44) {
+  let uah = homepageCartNumericPrice(item);
+  let usd = Number(item.priceUsd || 0);
+  if (!uah && usd) uah = usd * rate;
+  if (!usd && uah) usd = uah / rate;
+  return { uah, usd, known: uah > 0 || usd > 0 };
+}
+function saveHomepageCart(cart) {
+  localStorage.setItem(equipmentCartKey, JSON.stringify(cart.slice(0, 60)));
+  updateHomepageCartAction(null);
+  renderHomepageCart();
+}
+function renderHomepageCart() {
+  if (!homepageCartItems || !homepageCartTotal || !homepageCartForm) return;
+  const cart = readHomepageCart();
+  homepageCartItems.innerHTML = cart.length ? cart.map((item, index) => `<article class="homepage-cart-item" data-index="${index}">${item.image ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}">` : '<span class="homepage-cart-placeholder">⚡</span>'}<div><small>${escapeHtml([item.power, item.phase, item.voltage].filter(Boolean).join(' · '))}</small><strong>${escapeHtml(item.name)}</strong><b>${escapeHtml(equipmentPriceLabel(item))}</b></div><div class="homepage-cart-quantity"><button type="button" data-action="decrease" aria-label="${escapeHtml(uiText('Зменшити кількість', 'Decrease quantity'))}">−</button><output aria-label="${escapeHtml(uiText('Кількість', 'Quantity'))}">${Number(item.quantity || 1)}</output><button type="button" data-action="increase" aria-label="${escapeHtml(uiText('Збільшити кількість', 'Increase quantity'))}">＋</button></div><button class="homepage-cart-remove" type="button" data-action="remove" aria-label="${escapeHtml(uiText('Видалити', 'Remove'))} ${escapeHtml(item.name)}">×</button></article>`).join('') : `<div class="homepage-cart-empty"><b>${escapeHtml(uiText('Кошик поки порожній.', 'Your cart is empty.'))}</b><p>${escapeHtml(uiText('Додайте потрібні товари в розділі обладнання або в повному каталозі.', 'Add products from the equipment section or the full catalogue.'))}</p></div>`;
+  const rate = homepageCartRate(cart);
+  const total = cart.reduce((sum, item) => {
+    const prices = homepageCartPrices(item, rate);
+    const quantity = Number(item.quantity || 1);
+    sum.uah += prices.uah * quantity;
+    sum.usd += prices.usd * quantity;
+    return sum;
+  }, { uah:0, usd:0 });
+  const unknown = cart.some(item => !homepageCartPrices(item, rate).known);
+  homepageCartTotal.textContent = `${Math.round(total.uah).toLocaleString('uk-UA')} грн · $${Math.round(total.usd).toLocaleString('en-US')}${unknown ? uiText(' + за запитом', ' + on request') : ''}`;
+  $('button[type="submit"]', homepageCartForm).disabled = !cart.length;
+  $('.homepage-cart-clear', homepageCartForm).disabled = !cart.length;
+}
+function openHomepageCart(event) {
+  event?.preventDefault();
+  if (!homepageCartDialog) return;
+  if (equipmentDialog?.open) {
+    equipmentRestoreScroll = false;
+    closeEquipmentDialog();
+    unlockEquipmentPage();
+    equipmentRestoreScroll = true;
+  }
+  renderHomepageCart();
+  homepageCartStatus.textContent = '';
+  if (!homepageCartDialog.open) homepageCartDialog.showModal();
+}
+$$('.homepage-cart-trigger, .equipment-open-cart').forEach(trigger => trigger.addEventListener('click', openHomepageCart));
+$('.homepage-cart-close')?.addEventListener('click', () => homepageCartDialog?.close());
+homepageCartDialog?.addEventListener('cancel', event => event.preventDefault());
+homepageCartItems?.addEventListener('click', event => {
+  const button = event.target.closest('button[data-action]');
+  if (!button) return;
+  const cart = readHomepageCart();
+  const index = Number(button.closest('[data-index]')?.dataset.index);
+  const item = cart[index];
+  if (!item) return;
+  if (button.dataset.action === 'increase') item.quantity = Math.min(999, Number(item.quantity || 1) + 1);
+  if (button.dataset.action === 'decrease') item.quantity = Math.max(1, Number(item.quantity || 1) - 1);
+  if (button.dataset.action === 'remove') cart.splice(index, 1);
+  saveHomepageCart(cart);
+});
+$('.homepage-cart-clear')?.addEventListener('click', () => {
+  saveHomepageCart([]);
+  homepageCartStatus.textContent = uiText('Кошик очищено.', 'Cart cleared.');
+});
+homepageCartForm?.addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const cart = readHomepageCart();
+  if (!cart.length || !form.reportValidity()) return;
+  const fields = Object.fromEntries(new FormData(form).entries());
+  const submit = $('button[type="submit"]', form);
+  submit.disabled = true;
+  submit.classList.add('is-loading');
+  homepageCartStatus.textContent = fields.email ? uiText('Зберігаємо комплект і надсилаємо копію…', 'Saving the set and sending your copy…') : uiText('Зберігаємо комплект…', 'Saving the set…');
+  const response = await fetch('/api/leads', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ name:fields.name, phone:fields.phone, email:fields.email || '', city:fields.city || '', object:'Комплект обладнання', need:`Комплексний запит: ${cart.reduce((sum, item) => sum + Number(item.quantity || 1), 0)} позицій`, comment:fields.comment || '', items:cart.map(item => ({ id:item.id, collection:item.collection, quantity:item.quantity })), website:fields.website || '' }) }).catch(() => null);
+  const result = response ? await response.json().catch(() => ({})) : {};
+  submit.classList.remove('is-loading');
+  if (!response?.ok) {
+    submit.disabled = false;
+    homepageCartStatus.textContent = result.error === 'INVALID_EMAIL_FOR_CART' ? uiText('Перевірте email для копії запиту або залиште поле порожнім.', 'Check the email for your copy or leave it blank.') : uiText('Не вдалося надіслати комплект. Перевірте поля та спробуйте ще раз.', 'Could not send the set. Check the fields and try again.');
+    return;
+  }
+  saveHomepageCart([]);
+  form.reset();
+  const requestNumber = result._id ? ` №${String(result._id).slice(-8)}` : '';
+  homepageCartStatus.textContent = !fields.email
+    ? uiText(`Заявку${requestNumber} збережено. Інженер зв’яжеться з вами.`, `Enquiry${requestNumber} saved. An engineer will contact you.`)
+    : result.emailCopySent
+      ? uiText(`Заявку${requestNumber} збережено. Копія вже у вашій пошті.`, `Enquiry${requestNumber} saved. The copy is in your inbox.`)
+      : uiText(`Заявку${requestNumber} збережено, але копію не вдалося надіслати. Інженер усе одно отримав її.`, `Enquiry${requestNumber} saved, but the email copy could not be sent. The engineer still received it.`);
+  window.setTimeout(() => { if (homepageCartDialog?.open) homepageCartDialog.close(); }, 1800);
+});
+renderHomepageCart();
+if (location.hash === '#cart') openHomepageCart();
 function fitEquipmentCardTitles() {
   equipmentTitleFitFrame = 0;
   $$('.equipment-card h3', publicEquipment).forEach(title => {

@@ -962,7 +962,7 @@ async function api(req,res,url){
       const requested=sanitizeLeadItems(input.items);const verified=[];
       for(const requestItem of requested){const product=(await store.list(requestItem.collection)).find(item=>String(item._id)===requestItem.id&&item.status==='active');if(!product)continue;verified.push({collection:requestItem.collection,id:String(product._id),name:`${product.brand||''} ${product.model||product.name||''}`.trim(),power:cleanText(product.power||product.spec,100),phase:cleanText(product.phase||product.technology||product.category,100),voltage:cleanText(product.voltage,100),price:cleanText(product.price||'За запитом',100),priceUsd:clampNumber(product.priceUsd,0,10_000_000),quantity:requestItem.quantity});}
       input.items=verified;
-      if(verified.length&&!validEmail(input.email))return json(res,400,{error:'EMAIL_REQUIRED_FOR_CART'});
+      if(verified.length&&input.email&&!validEmail(input.email))return json(res,400,{error:'INVALID_EMAIL_FOR_CART'});
     }
     if(type==='quotes'){
       input.items=sanitizeQuoteItems(input.items);input.currency=input.currency==='USD'?'USD':'UAH';input.subtotal=input.items.reduce((sum,item)=>sum+Number(item.quantity)*Number(item.unitPrice),0);input.status=['draft','sent','accepted','completed','declined'].includes(input.status)?input.status:'draft';input.ownerId=String(adminUser?.id||'');input.createdBy=adminUser?.name||'';input.sharedWith=await sanitizeQuoteShares(input.sharedWith,input.ownerId);input.number=cleanText(input.number||`KP-${new Date().toISOString().slice(0,10).replaceAll('-','')}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`,40);input.emailStatus='not-sent';input.emailId='';input.emailError='';

@@ -785,6 +785,10 @@ function updateQuoteAccessLabel() {
 }
 
 $('#quote-access-list')?.addEventListener('change', updateQuoteAccessLabel);
+document.addEventListener('pointerdown', event => {
+  const dropdown = $('.quote-access-dropdown');
+  if (dropdown?.open && !dropdown.contains(event.target)) dropdown.open = false;
+});
 
 function renderQuotes() {
   const list = $('#quote-list');

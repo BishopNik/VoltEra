@@ -288,7 +288,11 @@ $('.catalog-enquiry-form').addEventListener('submit', async event => {
   formStatus.textContent = response?.ok ? (fields.email && result.emailCopySent ? 'Запит прийнято. Копію надіслано на email.' : 'Запит прийнято. Інженер зв’яжеться з вами.') : 'Не вдалося надіслати. Перевірте ім’я та телефон.';
 });
 
-$('.catalog-cart-trigger').addEventListener('click', () => { renderCart(); cartDialog.showModal(); });
+$('.catalog-cart-trigger').addEventListener('click', () => {
+  renderCart();
+  $('.catalog-cart-status').textContent = '';
+  cartDialog.showModal();
+});
 $('.catalog-cart-close').addEventListener('click', () => cartDialog.close());
 cartDialog.addEventListener('cancel', event => event.preventDefault());
 $('.catalog-cart-clear').addEventListener('click', () => {
@@ -310,22 +314,29 @@ $('.catalog-cart-form').addEventListener('submit', async event => {
   if (!cart.length || !form.reportValidity()) return;
   const fields = Object.fromEntries(new FormData(form).entries());
   const submit = $('button[type="submit"]', form); const formStatus = $('.catalog-cart-status', form);
-  submit.disabled = true; submit.classList.add('is-loading'); formStatus.textContent = 'Зберігаємо комплект і надсилаємо копію…';
-  const response = await fetch('/api/leads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: fields.name, phone: fields.phone, email: fields.email, city: fields.city || '', object: 'Комплект обладнання', need: `Комплексний запит: ${cart.reduce((sum, item) => sum + Number(item.quantity || 1), 0)} позицій`, comment: fields.comment || '', items: cart.map(item => ({ id: item.id, collection: item.collection, quantity: item.quantity })), website: fields.website || '' }) }).catch(() => null);
+  submit.disabled = true; submit.classList.add('is-loading');
+  formStatus.textContent = fields.email ? 'Зберігаємо комплект і надсилаємо копію…' : 'Зберігаємо комплект…';
+  const response = await fetch('/api/leads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: fields.name, phone: fields.phone, email: fields.email || '', city: fields.city || '', object: 'Комплект обладнання', need: `Комплексний запит: ${cart.reduce((sum, item) => sum + Number(item.quantity || 1), 0)} позицій`, comment: fields.comment || '', items: cart.map(item => ({ id: item.id, collection: item.collection, quantity: item.quantity })), website: fields.website || '' }) }).catch(() => null);
   const result = response ? await response.json().catch(() => ({})) : {};
   submit.classList.remove('is-loading');
   if (response?.ok) {
     cart = []; saveCart(); form.reset();
     const requestNumber = result._id ? ` №${String(result._id).slice(-8)}` : '';
-    formStatus.textContent = result.emailCopySent ? `Заявку${requestNumber} збережено. Копія вже у вашій пошті.` : `Заявку${requestNumber} збережено, але копію не вдалося надіслати. Інженер усе одно отримав її.`;
+    formStatus.textContent = !fields.email
+      ? `Заявку${requestNumber} збережено. Інженер зв’яжеться з вами.`
+      : result.emailCopySent
+        ? `Заявку${requestNumber} збережено. Копія вже у вашій пошті.`
+        : `Заявку${requestNumber} збережено, але копію не вдалося надіслати. Інженер усе одно отримав її.`;
     setTimeout(() => { if (cartDialog.open) cartDialog.close(); }, 1400);
   } else {
     submit.disabled = false;
-    formStatus.textContent = result.error === 'EMAIL_REQUIRED_FOR_CART' ? 'Вкажіть коректний email для копії запиту.' : 'Не вдалося надіслати комплект. Перевірте поля та спробуйте ще раз.';
+    formStatus.textContent = result.error === 'INVALID_EMAIL_FOR_CART' ? 'Перевірте email для копії запиту або залиште поле порожнім.' : 'Не вдалося надіслати комплект. Перевірте поля та спробуйте ще раз.';
   }
 });
 
 renderCart();
-loadCatalog().then(() => {
-  if (location.hash === '#cart') { renderCart(); cartDialog.showModal(); }
-});
+if (location.hash === '#cart') {
+  $('.catalog-cart-status').textContent = '';
+  cartDialog.showModal();
+}
+loadCatalog();
