@@ -78,24 +78,64 @@ const updateSiteLoading = delta => {
   }
 };
 const apiCache = new Map();
+const PUBLIC_CACHE_PREFIX = 'voltares-public-api-v1:';
+const PUBLIC_REVALIDATE_AFTER = 60 * 1000;
+const PUBLIC_CACHE_TYPES = new Set(['reviews','questions','faqs','projects','articles','equipment','solarPanels','greenProtect']);
+function readPublicApiCache(type) {
+  if (!PUBLIC_CACHE_TYPES.has(type)) return null;
+  try {
+    const cached = JSON.parse(localStorage.getItem(`${PUBLIC_CACHE_PREFIX}${type}`) || 'null');
+    return cached?.data && Array.isArray(cached.data) ? cached : null;
+  } catch { return null; }
+}
+function writePublicApiCache(type, data, { etag = '', savedAt = Date.now() } = {}) {
+  if (!PUBLIC_CACHE_TYPES.has(type) || !Array.isArray(data)) return;
+  try { localStorage.setItem(`${PUBLIC_CACHE_PREFIX}${type}`, JSON.stringify({ savedAt, checkedAt:Date.now(), etag, data })); } catch {}
+}
+async function fetchPublicApi(type, cached = null, background = false) {
+  if (!background) updateSiteLoading(1);
+  try {
+    const response = await fetch(`/api/${type}`, { headers:cached?.etag ? {'If-None-Match':cached.etag} : {} }).catch(() => null);
+    if (response?.status === 304 && cached?.data) {
+      writePublicApiCache(type, cached.data, { etag:cached.etag, savedAt:Number(cached.savedAt || Date.now()) });
+      return { data:cached.data, changed:false };
+    }
+    const result = response?.ok ? await response.json() : null;
+    if (!Array.isArray(result)) return { data:cached?.data ?? null, changed:false };
+    const etag = response.headers.get('etag') || '';
+    const changed = !cached || (etag ? etag !== cached.etag : JSON.stringify(result) !== JSON.stringify(cached.data));
+    writePublicApiCache(type, result, { etag });
+    return { data:result, changed };
+  } finally {
+    if (!background) updateSiteLoading(-1);
+  }
+}
+function revalidatePublicApi(type, cached) {
+  fetchPublicApi(type, cached, true).then(({ data, changed }) => {
+    if (!Array.isArray(data)) return;
+    apiCache.set(type, Promise.resolve(data));
+    if (changed) window.dispatchEvent(new CustomEvent('voltares:collection-updated', { detail:{ type } }));
+  });
+}
 const apiList = async (type, { fresh = false } = {}) => {
   if (!fresh && apiCache.has(type)) return apiCache.get(type);
-  const request = (async () => {
-  updateSiteLoading(1);
-  try {
-    const response = await fetch(`/api/${type}`).catch(() => null);
-    return response?.ok ? response.json() : null;
-  } finally {
-    updateSiteLoading(-1);
+  const cached = !fresh ? readPublicApiCache(type) : null;
+  if (cached) {
+    apiCache.set(type, Promise.resolve(cached.data));
+    if (Date.now() - Number(cached.checkedAt || cached.savedAt || 0) >= PUBLIC_REVALIDATE_AFTER) revalidatePublicApi(type, cached);
+    return cached.data;
   }
-  })();
+  const request = fetchPublicApi(type, null, false).then(result => result.data);
   apiCache.set(type, request);
   const result = await request;
   if (result === null) apiCache.delete(type);
   else apiCache.set(type, Promise.resolve(result));
   return result;
 };
-const invalidateApiCache = type => apiCache.delete(type);
+const invalidateApiCache = type => {
+  apiCache.delete(type);
+  try { localStorage.removeItem(`${PUBLIC_CACHE_PREFIX}${type}`); } catch {}
+};
 const loadingMarkup = label => `<div class="section-loader"><i></i><span>${escapeHtml(label)}</span></div>`;
 const emptyMarkup = (title, text) => `<div class="section-empty"><div><strong>${escapeHtml(title)}</strong>${escapeHtml(text)}</div></div>`;
 
@@ -508,6 +548,7 @@ const equipmentNext = $('#equipment-next');
 const equipmentPageLabel = $('#equipment-page-label');
 const equipmentAllLink = $('#equipment-all-link');
 const equipmentImageLightbox = $('#equipment-image-lightbox');
+const equipmentCartKey = 'voltares-catalog-cart-v1';
 const equipmentItems = new Map();
 const equipmentPageSize = 6;
 let equipmentData = [];
@@ -519,6 +560,148 @@ let equipmentBodyStyle = null;
 let activeEquipmentItem = null;
 let activeEquipmentBrand = 'all';
 let equipmentTitleFitFrame = 0;
+function readHomepageCart() {
+  try { const value = JSON.parse(localStorage.getItem(equipmentCartKey) || '[]'); return Array.isArray(value) ? value : []; }
+  catch { return []; }
+}
+function updateHomepageCartAction(item = activeEquipmentItem) {
+  const cart = readHomepageCart();
+  const collection = item?._collection || 'equipment';
+  const count = cart.reduce((sum, entry) => sum + Number(entry.quantity || 0), 0);
+  $$('.homepage-cart-count').forEach(element => { element.textContent = count; });
+  $$('.homepage-cart-label').forEach(element => { element.textContent = uiText('Кошик', 'Cart'); });
+  const inCart = item?._id && cart.some(entry => entry.id === String(item._id) && entry.collection === collection);
+  const button = $('.equipment-add-to-cart', equipmentDialog);
+  const link = $('.equipment-open-cart', equipmentDialog);
+  if (button) { button.classList.toggle('is-added', Boolean(inCart)); button.firstChild.textContent = inCart ? uiText('Додати ще один ', 'Add one more ') : uiText('Додати до кошика ', 'Add to cart '); }
+  if (link) link.firstChild.textContent = count ? uiText(`Відкрити кошик (${count}) і надіслати `, `Open cart (${count}) and send `) : uiText('Відкрити кошик і надіслати ', 'Open cart and send ');
+}
+updateHomepageCartAction(null);
+window.addEventListener('pageshow', () => updateHomepageCartAction(null));
+window.addEventListener('storage', event => { if (event.key === equipmentCartKey) updateHomepageCartAction(null); });
+function addActiveEquipmentToCart() {
+  const item = activeEquipmentItem;
+  if (!item?._id) return;
+  const cart = readHomepageCart();
+  const collection = item._collection || 'equipment';
+  const existing = cart.find(entry => entry.id === String(item._id) && entry.collection === collection);
+  if (existing) existing.quantity = Math.min(999, Number(existing.quantity || 1) + 1);
+  else cart.push({ id:String(item._id), collection, name:`${item.brand || ''} ${item.model || item.name || ''}`.trim(), power:item.power || item.spec || '', phase:item.phase || item.technology || item.category || '', voltage:item.voltage || '', price:item.price || '', priceUsd:Number(item.priceUsd || 0), image:(Array.isArray(item.images) ? item.images[0] : '') || item.thumbnail || item.image || '', quantity:1 });
+  localStorage.setItem(equipmentCartKey, JSON.stringify(cart.slice(0, 60)));
+  updateHomepageCartAction(item);
+  const button = $('.equipment-add-to-cart', equipmentDialog);
+  if (button) { button.classList.add('is-confirmed'); window.setTimeout(() => button.classList.remove('is-confirmed'), 700); }
+}
+
+const homepageCartDialog = $('#homepage-cart-dialog');
+const homepageCartItems = $('#homepage-cart-items');
+const homepageCartTotal = $('#homepage-cart-total');
+const homepageCartForm = $('.homepage-cart-form');
+const homepageCartStatus = $('.homepage-cart-status');
+function homepageCartNumericPrice(item = {}) {
+  const digits = String(item.price || '').replace(/[^\d]/g, '');
+  return digits ? Number(digits) : 0;
+}
+function homepageCartRate(cart = readHomepageCart()) {
+  const rates = cart.map(item => {
+    const uah = homepageCartNumericPrice(item);
+    const usd = Number(item.priceUsd || 0);
+    return uah > 0 && usd > 0 ? uah / usd : 0;
+  }).filter(rate => rate >= 20 && rate <= 100).sort((a, b) => a - b);
+  if (!rates.length) return 44;
+  return rates[Math.floor(rates.length / 2)];
+}
+function homepageCartPrices(item = {}, rate = 44) {
+  let uah = homepageCartNumericPrice(item);
+  let usd = Number(item.priceUsd || 0);
+  if (!uah && usd) uah = usd * rate;
+  if (!usd && uah) usd = uah / rate;
+  return { uah, usd, known: uah > 0 || usd > 0 };
+}
+function saveHomepageCart(cart) {
+  localStorage.setItem(equipmentCartKey, JSON.stringify(cart.slice(0, 60)));
+  updateHomepageCartAction(null);
+  renderHomepageCart();
+}
+function renderHomepageCart() {
+  if (!homepageCartItems || !homepageCartTotal || !homepageCartForm) return;
+  const cart = readHomepageCart();
+  homepageCartItems.innerHTML = cart.length ? cart.map((item, index) => `<article class="homepage-cart-item" data-index="${index}">${item.image ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}">` : '<span class="homepage-cart-placeholder">⚡</span>'}<div><small>${escapeHtml([item.power, item.phase, item.voltage].filter(Boolean).join(' · '))}</small><strong>${escapeHtml(item.name)}</strong><b>${escapeHtml(equipmentPriceLabel(item))}</b></div><div class="homepage-cart-quantity"><button type="button" data-action="decrease" aria-label="${escapeHtml(uiText('Зменшити кількість', 'Decrease quantity'))}">−</button><output aria-label="${escapeHtml(uiText('Кількість', 'Quantity'))}">${Number(item.quantity || 1)}</output><button type="button" data-action="increase" aria-label="${escapeHtml(uiText('Збільшити кількість', 'Increase quantity'))}">＋</button></div><button class="homepage-cart-remove" type="button" data-action="remove" aria-label="${escapeHtml(uiText('Видалити', 'Remove'))} ${escapeHtml(item.name)}">×</button></article>`).join('') : `<div class="homepage-cart-empty"><b>${escapeHtml(uiText('Кошик поки порожній.', 'Your cart is empty.'))}</b><p>${escapeHtml(uiText('Додайте потрібні товари в розділі обладнання або в повному каталозі.', 'Add products from the equipment section or the full catalogue.'))}</p></div>`;
+  const rate = homepageCartRate(cart);
+  const total = cart.reduce((sum, item) => {
+    const prices = homepageCartPrices(item, rate);
+    const quantity = Number(item.quantity || 1);
+    sum.uah += prices.uah * quantity;
+    sum.usd += prices.usd * quantity;
+    return sum;
+  }, { uah:0, usd:0 });
+  const unknown = cart.some(item => !homepageCartPrices(item, rate).known);
+  homepageCartTotal.textContent = `${Math.round(total.uah).toLocaleString('uk-UA')} грн · $${Math.round(total.usd).toLocaleString('en-US')}${unknown ? uiText(' + за запитом', ' + on request') : ''}`;
+  $('button[type="submit"]', homepageCartForm).disabled = !cart.length;
+  $('.homepage-cart-clear', homepageCartForm).disabled = !cart.length;
+}
+function openHomepageCart(event) {
+  event?.preventDefault();
+  if (!homepageCartDialog) return;
+  if (equipmentDialog?.open) {
+    equipmentRestoreScroll = false;
+    closeEquipmentDialog();
+    unlockEquipmentPage();
+    equipmentRestoreScroll = true;
+  }
+  renderHomepageCart();
+  homepageCartStatus.textContent = '';
+  if (!homepageCartDialog.open) homepageCartDialog.showModal();
+}
+$$('.homepage-cart-trigger, .equipment-open-cart').forEach(trigger => trigger.addEventListener('click', openHomepageCart));
+$('.homepage-cart-close')?.addEventListener('click', () => homepageCartDialog?.close());
+homepageCartDialog?.addEventListener('cancel', event => event.preventDefault());
+homepageCartItems?.addEventListener('click', event => {
+  const button = event.target.closest('button[data-action]');
+  if (!button) return;
+  const cart = readHomepageCart();
+  const index = Number(button.closest('[data-index]')?.dataset.index);
+  const item = cart[index];
+  if (!item) return;
+  if (button.dataset.action === 'increase') item.quantity = Math.min(999, Number(item.quantity || 1) + 1);
+  if (button.dataset.action === 'decrease') item.quantity = Math.max(1, Number(item.quantity || 1) - 1);
+  if (button.dataset.action === 'remove') cart.splice(index, 1);
+  saveHomepageCart(cart);
+});
+$('.homepage-cart-clear')?.addEventListener('click', () => {
+  saveHomepageCart([]);
+  homepageCartStatus.textContent = uiText('Кошик очищено.', 'Cart cleared.');
+});
+homepageCartForm?.addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const cart = readHomepageCart();
+  if (!cart.length || !form.reportValidity()) return;
+  const fields = Object.fromEntries(new FormData(form).entries());
+  const submit = $('button[type="submit"]', form);
+  submit.disabled = true;
+  submit.classList.add('is-loading');
+  homepageCartStatus.textContent = fields.email ? uiText('Зберігаємо комплект і надсилаємо копію…', 'Saving the set and sending your copy…') : uiText('Зберігаємо комплект…', 'Saving the set…');
+  const response = await fetch('/api/leads', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ name:fields.name, phone:fields.phone, email:fields.email || '', city:fields.city || '', object:'Комплект обладнання', need:`Комплексний запит: ${cart.reduce((sum, item) => sum + Number(item.quantity || 1), 0)} позицій`, comment:fields.comment || '', items:cart.map(item => ({ id:item.id, collection:item.collection, quantity:item.quantity })), website:fields.website || '' }) }).catch(() => null);
+  const result = response ? await response.json().catch(() => ({})) : {};
+  submit.classList.remove('is-loading');
+  if (!response?.ok) {
+    submit.disabled = false;
+    homepageCartStatus.textContent = result.error === 'INVALID_EMAIL_FOR_CART' ? uiText('Перевірте email для копії запиту або залиште поле порожнім.', 'Check the email for your copy or leave it blank.') : uiText('Не вдалося надіслати комплект. Перевірте поля та спробуйте ще раз.', 'Could not send the set. Check the fields and try again.');
+    return;
+  }
+  saveHomepageCart([]);
+  form.reset();
+  const requestNumber = result._id ? ` №${String(result._id).slice(-8)}` : '';
+  homepageCartStatus.textContent = !fields.email
+    ? uiText(`Заявку${requestNumber} збережено. Інженер зв’яжеться з вами.`, `Enquiry${requestNumber} saved. An engineer will contact you.`)
+    : result.emailCopySent
+      ? uiText(`Заявку${requestNumber} збережено. Копія вже у вашій пошті.`, `Enquiry${requestNumber} saved. The copy is in your inbox.`)
+      : uiText(`Заявку${requestNumber} збережено, але копію не вдалося надіслати. Інженер усе одно отримав її.`, `Enquiry${requestNumber} saved, but the email copy could not be sent. The engineer still received it.`);
+  window.setTimeout(() => { if (homepageCartDialog?.open) homepageCartDialog.close(); }, 1800);
+});
+renderHomepageCart();
+if (location.hash === '#cart') openHomepageCart();
 function fitEquipmentCardTitles() {
   equipmentTitleFitFrame = 0;
   $$('.equipment-card h3', publicEquipment).forEach(title => {
@@ -708,6 +891,7 @@ async function openEquipment(item) {
   $('[data-equipment-field="power"]', equipmentDialog).textContent = item.power || '—';
   $('[data-equipment-field="grid"]', equipmentDialog).textContent = [item.phase, item.voltage].filter(Boolean).join(' · ') || '—';
   $('[data-equipment-field="price"]', equipmentDialog).textContent = equipmentPriceLabel(item);
+  updateHomepageCartAction(item);
   const orderForm = $('.equipment-order-form', equipmentDialog);
   const orderStatus = $('.equipment-order-status', equipmentDialog);
   const extraFields = $('.equipment-extra-fields', equipmentDialog);
@@ -760,6 +944,7 @@ $('.equipment-more-toggle')?.addEventListener('click', event => {
   fields.hidden = expanded;
   $('span', button).textContent = expanded ? '↓' : '↑';
 });
+$('.equipment-add-to-cart')?.addEventListener('click', addActiveEquipmentToCart);
 
 $('.equipment-order-form')?.addEventListener('submit', async event => {
   event.preventDefault();
@@ -1331,3 +1516,19 @@ window.addEventListener('scroll', requestSectionNavigationUpdate, { passive: tru
 window.addEventListener('resize', requestSectionNavigationUpdate);
 updateSectionNavigation();
 enhanceClickableHints();
+
+// Cached sections paint immediately. When a lightweight ETag check detects
+// newer CRM content, refresh only the affected block without reloading page.
+window.addEventListener('voltares:collection-updated', event => {
+  const loaders = {
+    reviews:loadReviews,
+    projects:loadProjects,
+    equipment:loadPublicEquipment,
+    solarPanels:() => loadCatalogExtension('solarPanels', '#public-solar-panels', 8),
+    greenProtect:() => loadCatalogExtension('greenProtect', '#public-green-protect', 8),
+    articles:loadArticles,
+    questions:loadTopics,
+    faqs:loadFaqs
+  };
+  loaders[event.detail?.type]?.();
+});

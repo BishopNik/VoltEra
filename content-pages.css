@@ -13,3 +13,8 @@ a,button,[role="button"],summary,select{transition:transform .18s,border-color .
 button:disabled{cursor:not-allowed;opacity:.4}
 @media(hover:hover){:is(a[href],button:not(:disabled),[role="button"],summary,select):hover{filter:brightness(1.08);transform:translateY(-2px)}:is(button:not(:disabled),[role="button"],summary):hover{border-color:var(--accent);box-shadow:0 9px 26px #0004}.gallery-item:hover{border-color:var(--accent);box-shadow:0 16px 38px #0005}}
 :is(a[href],button,[role="button"],summary,select,input,textarea):focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 76%,white);outline-offset:3px}
+/* Keep standalone-page navigation typography identical to the main site. */
+body{font-family:Inter,Manrope,"Helvetica Neue",Arial,sans-serif}
+.page-header .page-container{height:82px}
+.page-nav{gap:27px;font-size:13px;font-weight:800}
+.page-button{font-size:13px}

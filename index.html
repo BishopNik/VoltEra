@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>try{const theme=localStorage.getItem('voltera-theme')||localStorage.getItem('ink-theme')||'dark';document.documentElement.dataset.theme=theme;localStorage.setItem('voltera-theme',theme)}catch{}</script>
   <title>Інвертори Deye в Україні та резервне живлення | Voltares</title>
   <meta name="description" content="Інвертори Deye, Anenji й Easun, LiFePO4 батареї та сонячні системи під ключ в Україні. Підбір, монтаж, ціни й сервіс Voltares / ІНК.">
   <meta name="keywords" content="інвертори Deye Україна, купити інвертор Deye, інвертор для дому, акумулятор для інвертора, резервне живлення, гібридний інвертор, LiFePO4 акумулятор, сонячні панелі">
@@ -14,7 +15,7 @@
   <link rel="alternate" hreflang="x-default" href="https://www.voltares.pp.ua/">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="/site.webmanifest">
-  <link rel="stylesheet" href="/styles.css?v=20260720-1"><link rel="stylesheet" href="/ui-overrides.css?v=20260719-3">
+  <link rel="stylesheet" href="/styles.css?v=20260722-1"><link rel="stylesheet" href="/ui-overrides.css?v=20260721-1">
   <script>const q=new URLSearchParams(location.search);if(q.get('catalog')==='all')location.replace('/catalog.html');if(q.has('lang')){q.delete('lang');history.replaceState(null,'',location.pathname+(q.size?`?${q}`:'')+location.hash)}</script>
   <meta property="og:type" content="website">
   <meta property="og:locale" content="uk_UA">
@@ -59,13 +60,14 @@
       </nav>
       <div class="nav-actions">
         <div class="phone-menu"><a class="phone" href="tel:+380676721852"><span>+38 067</span> 672 18 52</a><div class="phone-dropdown" aria-label="Усі телефони ІНК"><a href="tel:+380676721852">+38 067 672 18 52</a><a href="tel:+380676795803">+38 067 679 58 03</a><a href="tel:+380679844153">+38 067 984 41 53</a></div></div>
+        <a class="header-cart-link homepage-cart-trigger" href="#cart" aria-label="Відкрити кошик"><span class="homepage-cart-label">Кошик</span><i class="homepage-cart-count">0</i></a>
         <button class="icon-button theme-toggle" type="button" aria-label="Змінити тему"><span aria-hidden="true">◐</span></button>
         <a class="button button-small" href="#consultation">Консультація</a>
         <button class="menu-toggle" type="button" aria-label="Відкрити меню" aria-expanded="false"><span></span><span></span></button>
       </div>
     </div>
     <div class="mobile-nav" aria-hidden="true">
-      <a href="#inverters">Інвертори</a><a href="#equipment">Обладнання</a><a href="/calculators.html">Калькулятори</a><a href="#projects">Фото об'єктів</a><a href="#journal">Журнал</a><a href="#reviews">Відгуки</a><a href="/faq.html">FAQ</a><a href="#consultation">Консультація</a>
+      <a href="#inverters">Інвертори</a><a href="#equipment">Обладнання</a><a class="homepage-cart-trigger" href="#cart">Кошик (<span class="homepage-cart-count">0</span>)</a><a href="/calculators.html">Калькулятори</a><a href="#projects">Фото об'єктів</a><a href="#journal">Журнал</a><a href="#reviews">Відгуки</a><a href="/faq.html">FAQ</a><a href="#consultation">Консультація</a>
     </div>
   </header>
 
@@ -160,6 +162,11 @@
           <button id="equipment-next" type="button" aria-label="Наступні товари" title="Наступні товари">→</button>
           <a id="equipment-all-link" href="/catalog.html">Увесь каталог ↗</a>
         </nav>
+        <aside class="equipment-cart-guide reveal" aria-label="Як зібрати комплект обладнання">
+          <div><span>КОШИК / КОМПЛЕКТ</span><strong>Потрібно кілька товарів?</strong><p>У повному каталозі натискайте «До кошика» на потрібних позиціях, змініть кількість і надішліть весь комплект одним запитом.</p></div>
+          <ol><li><b>01</b>Відкрийте каталог</li><li><b>02</b>Додайте товари</li><li><b>03</b>Надішліть кошик</li></ol>
+          <a href="/catalog.html">Зібрати комплект <span>↗</span></a>
+        </aside>
       </div>
     </section>
 
@@ -284,14 +291,15 @@
 
   <dialog class="project-dialog" id="project-dialog" aria-labelledby="project-dialog-title"><button class="project-dialog-close" type="button" aria-label="Закрити проєкт">×</button><img src="/assets/projects/home-backup.jpg" alt=""><div><p class="eyebrow">Паспорт об'єкта</p><h2 id="project-dialog-title">Будинок / Київщина</h2><p class="project-dialog-copy">Система Deye 8 kW з резервом 20 kWh. Критичні лінії: свердловина, котел, холодильник, кухня та два робочі місця.</p><dl><div><dt>Автономність</dt><dd>до 24 год</dd></div><div><dt>Перемикання</dt><dd>&lt; 10 мс</dd></div><div><dt>Монтаж</dt><dd>2 дні</dd></div></dl></div></dialog>
 
-  <dialog class="equipment-dialog" id="equipment-dialog" aria-labelledby="equipment-dialog-title"><button class="equipment-dialog-close" type="button" aria-label="Закрити обладнання">×</button><img src="/assets/projects/home-backup.jpg" alt=""><div><p class="eyebrow">Каталог обладнання</p><h2 id="equipment-dialog-title"></h2><div class="equipment-dialog-copy"></div><dl><div><dt>Потужність</dt><dd data-equipment-field="power">—</dd></div><div><dt>Фази / Тип</dt><dd data-equipment-field="grid">—</dd></div><div><dt>Ціна</dt><dd data-equipment-field="price">За запитом</dd></div></dl><form class="equipment-order-form" method="post" action="/api/leads"><label class="form-trap">Ваш сайт<input name="website" tabindex="-1" autocomplete="off"></label><div class="equipment-order-main"><div class="field-row"><label>Ім'я *<input name="name" autocomplete="name" required placeholder="Як до вас звертатись?"></label><label>Телефон *<input name="phone" type="tel" autocomplete="tel" required placeholder="+38 0__ ___ __ __"></label></div><p class="equipment-required-note">* Обов'язкові лише ім'я та телефон.</p><button class="equipment-order-submit" type="submit">Надіслати запит ↗</button><button class="equipment-more-toggle" type="button" aria-expanded="false">Додати більше інформації <span>↓</span></button><div class="equipment-extra-fields" hidden><label>Нотатка<textarea name="note" rows="3" placeholder="Ваше питання, бажана кількість або інша інформація"></textarea></label><div class="field-row"><label>Email<input name="email" type="email" autocomplete="email" placeholder="name@example.com"></label><label>Місто<input name="city" autocomplete="address-level2" placeholder="Ваше місто"></label></div></div></div><div class="equipment-order-status" role="status" aria-live="polite"></div></form></div></dialog>
+  <dialog class="equipment-dialog" id="equipment-dialog" aria-labelledby="equipment-dialog-title"><button class="equipment-dialog-close" type="button" aria-label="Закрити обладнання">×</button><img src="/assets/projects/home-backup.jpg" alt=""><div><p class="eyebrow">Каталог обладнання</p><h2 id="equipment-dialog-title"></h2><div class="equipment-dialog-copy"></div><dl><div><dt>Потужність</dt><dd data-equipment-field="power">—</dd></div><div><dt>Фази / Тип</dt><dd data-equipment-field="grid">—</dd></div><div><dt>Ціна</dt><dd data-equipment-field="price">За запитом</dd></div></dl><div class="equipment-cart-actions"><button class="equipment-add-to-cart" type="button">Додати до кошика <span>＋</span></button><a class="equipment-open-cart" href="/catalog.html#cart">Відкрити кошик і надіслати <span>↗</span></a></div><form class="equipment-order-form" method="post" action="/api/leads"><label class="form-trap">Ваш сайт<input name="website" tabindex="-1" autocomplete="off"></label><div class="equipment-order-main"><div class="field-row"><label>Ім'я *<input name="name" autocomplete="name" required placeholder="Як до вас звертатись?"></label><label>Телефон *<input name="phone" type="tel" autocomplete="tel" required placeholder="+38 0__ ___ __ __"></label></div><p class="equipment-required-note">* Обов'язкові лише ім'я та телефон.</p><button class="equipment-order-submit" type="submit">Надіслати запит ↗</button><button class="equipment-more-toggle" type="button" aria-expanded="false">Додати більше інформації <span>↓</span></button><div class="equipment-extra-fields" hidden><label>Нотатка<textarea name="note" rows="3" placeholder="Ваше питання, бажана кількість або інша інформація"></textarea></label><div class="field-row"><label>Email<input name="email" type="email" autocomplete="email" placeholder="name@example.com"></label><label>Місто<input name="city" autocomplete="address-level2" placeholder="Ваше місто"></label></div></div></div><div class="equipment-order-status" role="status" aria-live="polite"></div></form></div></dialog>
+  <dialog class="homepage-cart-dialog" id="homepage-cart-dialog" aria-labelledby="homepage-cart-title"><button class="homepage-cart-close" type="button" aria-label="Закрити кошик">×</button><header><p class="eyebrow">Кошик обладнання</p><h2 id="homepage-cart-title">Зберіть систему одним запитом.</h2><p>Додайте потрібні позиції. Інженер перевірить сумісність, уточнить кількість і підготує фінальну комплектацію.</p></header><div class="homepage-cart-items" id="homepage-cart-items"></div><div class="homepage-cart-summary"><span>Попередня сума товарів</span><strong id="homepage-cart-total">0 грн · $0</strong><small>Без монтажу та позицій із ціною «за запитом».</small></div><form class="homepage-cart-form"><label class="form-trap">Website<input name="website" tabindex="-1" autocomplete="off"></label><div class="homepage-cart-form-row"><label>Ваше ім'я *<input name="name" required autocomplete="name" placeholder="Як до вас звертатись?"></label><label>Телефон *<input name="phone" type="tel" required autocomplete="tel" placeholder="+38 0__ ___ __ __"></label></div><div class="homepage-cart-form-row"><label>Email для копії запиту (необов'язково)<input name="email" type="email" autocomplete="email" placeholder="name@example.com"></label><label>Місто<input name="city" autocomplete="address-level2" placeholder="Ваше місто"></label></div><label>Коментар<textarea name="comment" rows="3" placeholder="Що важливо врахувати: об'єкт, монтаж, термін, особливі побажання"></textarea></label><div class="homepage-cart-form-actions"><button class="homepage-cart-clear" type="button">Очистити кошик</button><button type="submit"><span>Надіслати комплект</span><b aria-hidden="true">↗</b></button></div><p class="homepage-cart-status" role="status" aria-live="polite"></p></form></dialog>
   <dialog class="equipment-image-lightbox" id="equipment-image-lightbox" aria-label="Збільшене фото товару"><button class="equipment-image-lightbox-close" type="button" aria-label="Закрити збільшене фото">×</button><img src="" alt=""></dialog>
 
   <dialog class="answer-dialog" id="answer-dialog" aria-labelledby="answer-dialog-title"><button class="answer-dialog-close" type="button" aria-label="Закрити відповідь">×</button><p class="eyebrow">Коротко про важливе</p><h2 id="answer-dialog-title"></h2><div class="answer-dialog-copy"></div></dialog>
 
   <dialog class="selector-dialog" id="selector-dialog" aria-label="Швидкий підбір енергосистеми"><button class="dialog-close" type="button" aria-label="Закрити">×</button><div class="selector-progress"><i></i></div><div class="selector-content"><p class="eyebrow">AI-підбір / 01</p><h2>Де потрібна енергія?</h2><div class="selector-options"><button type="button" data-answer="Квартира">Квартира <span>→</span></button><button type="button" data-answer="Будинок">Приватний будинок <span>→</span></button><button type="button" data-answer="Бізнес">Бізнес <span>→</span></button></div><p class="selector-hint">3 питання · близько 90 секунд</p></div></dialog>
 
-<script src="/app.js?v=20260720-1" defer></script>
+<script src="/app.js?v=20260722-1" defer></script>
   <script>
     if (!['localhost', '127.0.0.1'].includes(location.hostname)) {
       const analytics = document.createElement('script');

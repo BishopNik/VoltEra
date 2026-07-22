@@ -1,0 +1,6 @@
+/* Shared header and listing rhythm for server-rendered and static public pages. */
+.page-header .page-container{height:82px}
+.page-nav{gap:27px;font-family:Inter,Manrope,"Helvetica Neue",Arial,sans-serif;font-size:13px;font-weight:800}
+.page-button{font-family:Inter,Manrope,"Helvetica Neue",Arial,sans-serif;font-size:13px}
+@media(min-width:1201px){.category-products{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(min-width:901px) and (max-width:1200px){.category-products{grid-template-columns:repeat(3,minmax(0,1fr))}}

@@ -363,7 +363,10 @@
     "normalize-equipment-images-2026-07-18-v1",
     "set-equipment-retail-prices-2026-07-19-v2",
     "set-equipment-commerce-fields-2026-07-19-v1",
-    "add-pv-panels-and-green-protect-2026-07-20-v1"
+    "add-pv-panels-and-green-protect-2026-07-20-v1",
+    "clean-pv-catalog-2026-07-20-v1",
+    "set-green-protect-purchase-prices-2026-07-20-v1",
+    "set-pv-catalog-media-and-usage-2026-07-21-v2"
   ],
   "solarPanels": [
     {
@@ -378,14 +381,15 @@
       "purchaseCurrency": "USD",
       "price": "3 990 грн",
       "priceUsd": 90,
-      "description": "TW Solar TWMND-54HB440W BF — сонячна панель 440 W. Актуальну наявність, логістику та сумісність зі схемою станції підтвердить інженер.",
+      "description": "TW Solar TWMND-54HB440W BF — сонячна панель 440 W для дахових і наземних домашніх СЕС. Панель можна придбати окремо або разом із комплектом для підключення.",
       "images": [
-        "/assets/catalog/solar-panel.svg"
+        "https://static.tildacdn.one/stor6161-6136-4830-a362-336632633732/37745904.jpg"
       ],
       "status": "active",
       "homeOrder": 1,
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "sourceUrl": "https://soncedar.org/equipment/solar_panel/tproduct/331143915-702966801902-tw-solar-tongwei-440-vt-monokristalchna"
     },
     {
       "_id": "suntech-440-bf",
@@ -399,14 +403,15 @@
       "purchaseCurrency": "USD",
       "price": "3 990 грн",
       "priceUsd": 90,
-      "description": "Suntech STP440S-C54/Nshb BF — сонячна панель 440 W. Актуальну наявність, логістику та сумісність зі схемою станції підтвердить інженер.",
+      "description": "Suntech STP440S-C54/Nshb BF — сонячна панель 440 W для дахових і наземних домашніх СЕС. Панель можна придбати окремо або разом із комплектом для підключення.",
       "images": [
-        "/assets/catalog/solar-panel.svg"
+        "https://static.wixstatic.com/media/264abb_2d650a535d064493a3f0c9db305f897e~mv2.png/v1/fit/w_500,h_500,q_90/file.png"
       ],
       "status": "active",
       "homeOrder": 2,
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "sourceUrl": "https://www.suntech-power.com/wp-content/uploads/download/product-specification/EN_STP420-440S-C54-Nshb.pdf"
     },
     {
       "_id": "sunova-610",
@@ -420,14 +425,15 @@
       "purchaseCurrency": "USD",
       "price": "4 990 грн",
       "priceUsd": 113,
-      "description": "Sunova SS-BG610-66MDH — сонячна панель 610 W. Актуальну наявність, логістику та сумісність зі схемою станції підтвердить інженер.",
+      "description": "Sunova SS-BG610-66MDH — сонячна панель 610 W для великих дахових, наземних і комерційних СЕС. Панель можна придбати окремо або разом із комплектом для підключення.",
       "images": [
-        "/assets/catalog/solar-panel.svg"
+        "https://www.meugerador.com.br/cdn/shop/files/Painel_Solar_Sunova_610W_Bifacial_Frame_Aluminio_Diagonal.png?v=1779799728"
       ],
       "status": "active",
       "homeOrder": 3,
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "sourceUrl": "https://www.sunova-solar.com/attached/file/en/datasheet/L-Series/Tangra%20L%20Pro%20HD%20%28610-630%29-66MDH-G11-30mm.pdf"
     },
     {
       "_id": "aiko-610",
@@ -441,14 +447,15 @@
       "purchaseCurrency": "USD",
       "price": "5 290 грн",
       "priceUsd": 120,
-      "description": "AIKO A610-MAH72Mw — сонячна панель 610 W. Актуальну наявність, логістику та сумісність зі схемою станції підтвердить інженер.",
+      "description": "AIKO A610-MAH72Mw — сонячна панель 610 W для дахових, наземних і комерційних СЕС. Панель можна придбати окремо або разом із комплектом для підключення.",
       "images": [
-        "/assets/catalog/solar-panel.svg"
+        "https://www.solarics.de/cdn/shop/files/Solarics_3f77f80f-1375-4413-ae80-03002e471859.png?v=1709740257"
       ],
       "status": "active",
       "homeOrder": 4,
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "sourceUrl": "https://www.solarics.de/products/aiko-solarmodul-aiko-a610-mah72mw"
     },
     {
       "_id": "longi-615-bf",
@@ -462,14 +469,15 @@
       "purchaseCurrency": "USD",
       "price": "5 290 грн",
       "priceUsd": 120,
-      "description": "LONGi Hi-MO X10 615W BF — сонячна панель 615 W. Актуальну наявність, логістику та сумісність зі схемою станції підтвердить інженер.",
+      "description": "LONGi Hi-MO X10 615W BF — сонячна панель 615 W для великих дахових, наземних і комерційних СЕС. Панель можна придбати окремо або разом із комплектом для підключення.",
       "images": [
-        "/assets/catalog/solar-panel.svg"
+        "https://static.longi.com/Images_412x612_11869e6bbf.png"
       ],
       "status": "active",
       "homeOrder": 5,
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "sourceUrl": "https://www.longi.com/en/products/modules/hi-mo-7/"
     },
     {
       "_id": "longi-630",
@@ -483,14 +491,15 @@
       "purchaseCurrency": "USD",
       "price": "5 290 грн",
       "priceUsd": 120,
-      "description": "LONGi Hi-MO 7 630W — сонячна панель 630 W. Актуальну наявність, логістику та сумісність зі схемою станції підтвердить інженер.",
+      "description": "LONGi Hi-MO 7 630W — сонячна панель 630 W для наземних і промислових СЕС. Панель можна придбати окремо або разом із комплектом для підключення.",
       "images": [
-        "/assets/catalog/solar-panel.svg"
+        "https://static.longi.com/Images_412x612_11869e6bbf.png"
       ],
       "status": "active",
       "homeOrder": 6,
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "sourceUrl": "https://www.longi.com/en/products/modules/hi-mo-7/"
     },
     {
       "_id": "tw-solar-640-bf",
@@ -504,14 +513,15 @@
       "purchaseCurrency": "USD",
       "price": "5 390 грн",
       "priceUsd": 122,
-      "description": "TW Solar TWMNH-66HD640W BF — сонячна панель 640 W. Актуальну наявність, логістику та сумісність зі схемою станції підтвердить інженер.",
+      "description": "TW Solar TWMNH-66HD640W BF — сонячна панель 640 W для наземних і промислових СЕС. Панель можна придбати окремо або разом із комплектом для підключення.",
       "images": [
-        "/assets/catalog/solar-panel.svg"
+        "https://vinur.com.ua/image/catalog/product/7063/sonyachna-batareya-640vt-n-type-dual-glass-bifacial-twmnh-66hd640-cable-400-200-mm-tongwei-jpg-1.jpg"
       ],
       "status": "active",
       "homeOrder": 7,
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "sourceUrl": "https://vinur.com.ua/ua/products/solnechnie-batarei/komplektuyushie/solnechnye-paneli/twmnh-66hd640"
     },
     {
       "_id": "aiko-645-bf",
@@ -525,14 +535,15 @@
       "purchaseCurrency": "USD",
       "price": "6 290 грн",
       "priceUsd": 142,
-      "description": "AIKO A645-MAH78Db BF — сонячна панель 645 W. Актуальну наявність, логістику та сумісність зі схемою станції підтвердить інженер.",
+      "description": "AIKO A645-MAH78Db BF — сонячна панель 645 W для наземних, комерційних і промислових СЕС. Панель можна придбати окремо або разом із комплектом для підключення.",
       "images": [
-        "/assets/catalog/solar-panel.svg"
+        "https://aikosolar.com/wp-content/uploads/2024/11/Polaris-1N-Plus-66-Dual-Glass-635W-665W-detail.jpg"
       ],
       "status": "active",
       "homeOrder": 8,
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "sourceUrl": "https://aikosolar.com/en/products/stellar-1nplus66-dual-glass/"
     }
   ],
   "greenProtect": [
@@ -550,13 +561,16 @@
       "phase": "Автоматичні вимикачі",
       "voltage": "DC",
       "spec": "2P · C16 · DC",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/001903230",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/001903230/en-GB/photo/001903230_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 439,
+      "purchaseCurrency": "UAH",
+      "description": "ETIMAT P10 DC 2p C 16A використовується для захисту DC-ліній сонячної станції від перевантаження та короткого замикання. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-1903231",
@@ -572,13 +586,16 @@
       "phase": "Автоматичні вимикачі",
       "voltage": "DC",
       "spec": "2P · C20 · DC",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/001903231",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/001903231/en-GB/photo/001903231_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 450,
+      "purchaseCurrency": "UAH",
+      "description": "ETIMAT P10 DC 2p C 20A використовується для захисту DC-ліній сонячної станції від перевантаження та короткого замикання. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-1903232",
@@ -594,13 +611,16 @@
       "phase": "Автоматичні вимикачі",
       "voltage": "DC",
       "spec": "2P · C25 · DC",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/001903232",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/001903232/en-GB/photo/001903232_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 453,
+      "purchaseCurrency": "UAH",
+      "description": "ETIMAT P10 DC 2p C 25A використовується для захисту DC-ліній сонячної станції від перевантаження та короткого замикання. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-1903233",
@@ -616,13 +636,16 @@
       "phase": "Автоматичні вимикачі",
       "voltage": "DC",
       "spec": "2P · C32 · DC",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/001903233",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/001903233/en-GB/photo/001903233_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 521,
+      "purchaseCurrency": "UAH",
+      "description": "ETIMAT P10 DC 2p C 32A використовується для захисту DC-ліній сонячної станції від перевантаження та короткого замикання. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-1903234",
@@ -638,13 +661,16 @@
       "phase": "Автоматичні вимикачі",
       "voltage": "DC",
       "spec": "2P · C40 · DC",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/001903234",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/001903234/en-GB/photo/001903234_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 578,
+      "purchaseCurrency": "UAH",
+      "description": "ETIMAT P10 DC 2p C 40A використовується для захисту DC-ліній сонячної станції від перевантаження та короткого замикання. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-1903235",
@@ -660,13 +686,16 @@
       "phase": "Автоматичні вимикачі",
       "voltage": "DC",
       "spec": "2P · C50 · DC",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/001903235",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/001903235/en-GB/photo/001903235_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 713,
+      "purchaseCurrency": "UAH",
+      "description": "ETIMAT P10 DC 2p C 50A використовується для захисту DC-ліній сонячної станції від перевантаження та короткого замикання. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-1903236",
@@ -682,13 +711,16 @@
       "phase": "Автоматичні вимикачі",
       "voltage": "DC",
       "spec": "2P · C63 · DC",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/001903236",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/001903236/en-GB/photo/001903236_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 740,
+      "purchaseCurrency": "UAH",
+      "description": "ETIMAT P10 DC 2p C 63A використовується для захисту DC-ліній сонячної станції від перевантаження та короткого замикання. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-2625075",
@@ -704,13 +736,16 @@
       "phase": "Запобіжники gPV",
       "voltage": "DC",
       "spec": "10A · 1000V DC",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/002625075",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/002625075/en-GB/photo/002625075_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 105,
+      "purchaseCurrency": "UAH",
+      "description": "CH 10×38 gPV 10A 1000V використовується для захисту фотоелектричних стрінгів від надструму та короткого замикання. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-2625080",
@@ -726,13 +761,16 @@
       "phase": "Запобіжники gPV",
       "voltage": "DC",
       "spec": "15A · 1000V DC",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/002625080",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/002625080/en-GB/photo/002625080_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 105,
+      "purchaseCurrency": "UAH",
+      "description": "CH 10×38 gPV 15A 1000V використовується для захисту фотоелектричних стрінгів від надструму та короткого замикання. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-2625081",
@@ -748,13 +786,16 @@
       "phase": "Запобіжники gPV",
       "voltage": "DC",
       "spec": "16A · 1000V DC",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/002625081",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/002625081/en-GB/photo/002625081_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 105,
+      "purchaseCurrency": "UAH",
+      "description": "CH 10×38 gPV 16A 1000V використовується для захисту фотоелектричних стрінгів від надструму та короткого замикання. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-2625085",
@@ -770,13 +811,16 @@
       "phase": "Запобіжники gPV",
       "voltage": "DC",
       "spec": "20A · 1000V DC",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/002625085",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/002625085/en-GB/photo/002625085_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 105,
+      "purchaseCurrency": "UAH",
+      "description": "CH 10×38 gPV 20A 1000V використовується для захисту фотоелектричних стрінгів від надструму та короткого замикання. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-2625139",
@@ -792,13 +836,16 @@
       "phase": "Запобіжники gPV",
       "voltage": "DC",
       "spec": "25A · 1000V DC",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/002625139",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/002625139/en-GB/photo/002625139_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 130,
+      "purchaseCurrency": "UAH",
+      "description": "CH 10×38 gPV 25A 1000V використовується для захисту фотоелектричних стрінгів від надструму та короткого замикання. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-2540201",
@@ -814,13 +861,16 @@
       "phase": "Тримачі запобіжників",
       "voltage": "DC",
       "spec": "1P · 25A · 1000V",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/002540201",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/002540201/en-GB/photo/002540201_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 112,
+      "purchaseCurrency": "UAH",
+      "description": "EFH 10 1P 25A 1000V DC використовується для встановлення та безпечної заміни gPV-запобіжників у DC-щиті. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-2540211",
@@ -836,13 +886,16 @@
       "phase": "Тримачі запобіжників",
       "voltage": "DC",
       "spec": "1P LED · 25A · 1000V",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/002540211",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/002540211/en-GB/photo/002540211_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 216,
+      "purchaseCurrency": "UAH",
+      "description": "EFH 10 1P LED 25A 1000V DC використовується для встановлення та безпечної заміни gPV-запобіжників у DC-щиті. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-2540203",
@@ -858,13 +911,16 @@
       "phase": "Тримачі запобіжників",
       "voltage": "DC",
       "spec": "2P · 25A · 1000V",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/002540203",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/002540203/en-GB/photo/002540203_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 223,
+      "purchaseCurrency": "UAH",
+      "description": "EFH 10 2P 25A 1000V DC використовується для встановлення та безпечної заміни gPV-запобіжників у DC-щиті. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-2540213",
@@ -880,13 +936,16 @@
       "phase": "Тримачі запобіжників",
       "voltage": "DC",
       "spec": "2P LED · 25A · 1000V",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/002540213",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/002540213/en-GB/photo/002540213_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 487,
+      "purchaseCurrency": "UAH",
+      "description": "EFH 10 2P LED 25A 1000V DC використовується для встановлення та безпечної заміни gPV-запобіжників у DC-щиті. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-2440735",
@@ -902,13 +961,16 @@
       "phase": "Захист від перенапруги",
       "voltage": "DC",
       "spec": "T2 · 600V DC · 20kA",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/002440735",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/002440735/en-GB/photo/002440735_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 2467,
+      "purchaseCurrency": "UAH",
+      "description": "ETITEC M T2 PV 600/20 Y використовується для захисту інвертора й DC-ліній СЕС від імпульсних та грозових перенапруг. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-2440515",
@@ -924,13 +986,16 @@
       "phase": "Захист від перенапруги",
       "voltage": "DC",
       "spec": "T2 · 1100V DC · 20kA",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/002440515",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/002440515/en-GB/photo/002440515_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 2434,
+      "purchaseCurrency": "UAH",
+      "description": "ETITEC M T2 PV 1100/20 Y використовується для захисту інвертора й DC-ліній СЕС від імпульсних та грозових перенапруг. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-2440580",
@@ -946,13 +1011,16 @@
       "phase": "Захист від перенапруги",
       "voltage": "DC",
       "spec": "T1+T2 · 1100V DC",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/002440580",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/002440580/en-GB/photo/002440580_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 3177,
+      "purchaseCurrency": "UAH",
+      "description": "ETITEC EM T12 PV 1100/6.25 Y використовується для захисту інвертора й DC-ліній СЕС від імпульсних та грозових перенапруг. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-2440517",
@@ -968,13 +1036,16 @@
       "phase": "Захист від перенапруги",
       "voltage": "DC",
       "spec": "T2 · 1500V DC · 20kA",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/002440517",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/002440517/en-GB/photo/002440517_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 3110,
+      "purchaseCurrency": "UAH",
+      "description": "ETITEC M T2 PV 1500/20 Y використовується для захисту інвертора й DC-ліній СЕС від імпульсних та грозових перенапруг. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-4660060",
@@ -990,13 +1061,16 @@
       "phase": "DC роз’єднувачі",
       "voltage": "DC",
       "spec": "2P · 16A DC",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/004660060",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/004660060/en-GB/photo/004660060_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 1318,
+      "purchaseCurrency": "UAH",
+      "description": "LS 16 SMA A2 2P 16A DC використовується для ручного безпечного відключення сонячних панелей від інвертора. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-4660063",
@@ -1012,13 +1086,16 @@
       "phase": "DC роз’єднувачі",
       "voltage": "DC",
       "spec": "4P · 16A DC",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/004660063",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/004660063/en-GB/photo/004660063_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 1487,
+      "purchaseCurrency": "UAH",
+      "description": "LS 16 SMA A4 4P 16A DC використовується для ручного безпечного відключення сонячних панелей від інвертора. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-4660061",
@@ -1034,13 +1111,16 @@
       "phase": "DC роз’єднувачі",
       "voltage": "DC",
       "spec": "2P · 25A DC",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/004660061",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/004660061/en-GB/photo/004660061_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 1521,
+      "purchaseCurrency": "UAH",
+      "description": "LS 25 SMA A2 2P 25A DC використовується для ручного безпечного відключення сонячних панелей від інвертора. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-4660064",
@@ -1056,13 +1136,16 @@
       "phase": "DC роз’єднувачі",
       "voltage": "DC",
       "spec": "4P · 25A DC",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/004660064",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/004660064/en-GB/photo/004660064_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 1927,
+      "purchaseCurrency": "UAH",
+      "description": "LS 25 SMA A4 4P 25A DC використовується для ручного безпечного відключення сонячних панелей від інвертора. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-4660062",
@@ -1078,13 +1161,16 @@
       "phase": "DC роз’єднувачі",
       "voltage": "DC",
       "spec": "2P · 32A DC",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/004660062",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/004660062/en-GB/photo/004660062_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 1808,
+      "purchaseCurrency": "UAH",
+      "description": "LS 32 SMA A2 2P 32A DC використовується для ручного безпечного відключення сонячних панелей від інвертора. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-4660065",
@@ -1100,13 +1186,16 @@
       "phase": "DC роз’єднувачі",
       "voltage": "DC",
       "spec": "4P · 32A DC",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/004660065",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/004660065/en-GB/photo/004660065_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 2129,
+      "purchaseCurrency": "UAH",
+      "description": "LS 32 SMA A4 4P 32A DC використовується для ручного безпечного відключення сонячних панелей від інвертора. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-4661854",
@@ -1122,13 +1211,16 @@
       "phase": "Рубильники навантаження",
       "voltage": "DC",
       "spec": "2P · 160A · 1000V DC",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/004661854",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/004661854/en-GB/photo/004661854_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 4394,
+      "purchaseCurrency": "UAH",
+      "description": "LBS 160 2P DC1000 використовується для комутації та ізоляції високострумових DC-ліній сонячної станції. Компонент можна придбати окремо у потрібній кількості."
     },
     {
       "_id": "eti-4661855",
@@ -1144,13 +1236,18 @@
       "phase": "Рубильники навантаження",
       "voltage": "DC",
       "spec": "2P · 250A · 1000V DC",
-      "sourceUrl": "https://www.eti.ua/produktsiya-ua/international/photovoltaic-battery-fuses-and-devices-green-protect",
+      "sourceUrl": "https://www.eti.ua/produktsiya-ua/004661855",
       "images": [
-        "/assets/catalog/green-protect.svg"
+        "https://www.eti.ua/media/eti/images/product_db/idents/004661855/en-GB/photo/004661855_Photo.webp"
       ],
       "status": "active",
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-20T13:08:27.356Z"
+      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "purchasePrice": 5340,
+      "purchaseCurrency": "UAH",
+      "description": "LBS 250 2P DC1000 використовується для комутації та ізоляції високострумових DC-ліній сонячної станції. Компонент можна придбати окремо у потрібній кількості."
     }
-  ]
+  ],
+  "quotes": [],
+  "purchases": []
 }
