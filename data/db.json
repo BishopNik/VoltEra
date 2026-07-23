@@ -54,9 +54,9 @@
       ],
       "description": "DEYE SE-G5.1 Pro-B — літій-залізо-фосфатний акумулятор 51.2 В, 100 А·год (5.12 кВт·год) для систем резервного та автономного живлення. Оснащений інтелектуальною BMS, має ресурс понад 6000 циклів та підтримує масштабування системи.\n\n## Основні переваги\n\n- LiFePO₄ 51.2 В / 100 А·год\n- Ємність 5.12 кВт·год\n- 6000+ циклів\n- Вбудована BMS\n- Паралельне підключення\n- Висока безпека\n- Для інверторів Deye та інших\n- Для дому й бізнесу",
       "createdAt": "2026-07-18T16:27:37.459Z",
-      "updatedAt": "2026-07-19T11:02:20.285Z",
+      "updatedAt": "2026-07-23T08:21:26.557Z",
       "priceUsd": 880,
-      "purchasePrice": 800,
+      "purchasePrice": 770,
       "purchaseCurrency": "USD"
     },
     {
@@ -73,9 +73,9 @@
       ],
       "description": "DEYE SE-F5 Pro-C — сучасна акумуляторна батарея LiFePO₄ 51.2 В, 100 А·год для систем накопичення енергії. Відзначається високою ефективністю, довговічністю та підтримкою паралельного підключення.\n\n## Основні переваги\n\n- LiFePO₄ 51.2 В / 100 А·год\n- Ємність 5.12 кВт·год\n- 6000+ циклів\n- Інтелектуальна BMS\n- Масштабування системи\n- Швидке заряджання\n- Простий монтаж\n- Для домашніх СЕС",
       "createdAt": "2026-07-18T16:27:37.459Z",
-      "updatedAt": "2026-07-19T11:02:20.285Z",
+      "updatedAt": "2026-07-23T08:21:26.557Z",
       "priceUsd": 870,
-      "purchasePrice": 780,
+      "purchasePrice": 760,
       "purchaseCurrency": "USD"
     },
     {
@@ -92,7 +92,7 @@
       ],
       "description": "SUN-6K-SG05LP1-AM2-P — гібридний інвертор 6 кВт із підтримкою акумуляторів 48 В, MPPT-контролером та чистою синусоїдою для резервного й автономного живлення.\n\n## Основні переваги\n\n- Потужність 6 кВт\n- MPPT-контролер\n- Чиста синусоїда\n- Робота без АКБ\n- Wi-Fi моніторинг\n- LiFePO₄ Ready\n- Високий ККД\n- Для дому та бізнесу",
       "createdAt": "2026-07-18T16:27:37.459Z",
-      "updatedAt": "2026-07-19T11:02:20.285Z",
+      "updatedAt": "2026-07-23T08:21:26.557Z",
       "priceUsd": 815,
       "purchasePrice": 770,
       "purchaseCurrency": "USD"
@@ -104,16 +104,16 @@
       "power": "8 kW",
       "phase": "1 фаза",
       "voltage": "48 V",
-      "price": "55 900 грн",
+      "price": "52 900 грн",
       "status": "active",
       "images": [
         "/assets/equipment/deye-sun-sg01lp1.png"
       ],
       "description": "Deye SUN-8K-SG01LP1-EU — однофазний гібридний інвертор 8 кВт для сонячних електростанцій із підтримкою акумуляторів 48 В.\n\n## Основні переваги\n\n- Потужність 8 кВт\n- MPPT-контролер\n- Wi-Fi моніторинг\n- Робота без АКБ\n- Чиста синусоїда\n- LiFePO₄ Ready\n- Високий ККД\n- Резервне живлення",
       "createdAt": "2026-07-18T16:27:37.459Z",
-      "updatedAt": "2026-07-19T11:02:20.285Z",
-      "priceUsd": 1265,
-      "purchasePrice": 1100,
+      "updatedAt": "2026-07-23T08:21:26.557Z",
+      "priceUsd": 1195,
+      "purchasePrice": 1080,
       "purchaseCurrency": "USD"
     },
     {
@@ -123,16 +123,16 @@
       "power": "10 kW",
       "phase": "1 фаза",
       "voltage": "48 V",
-      "price": "79 900 грн",
+      "price": "74 900 грн",
       "status": "active",
       "images": [
         "/assets/equipment/deye-sun-sg01lp1.png"
       ],
       "description": "Deye SUN-10K-SG02LP1-EU-AM3 — однофазний гібридний інвертор 10 кВт для ефективних систем резервного та автономного електроживлення.\n\n## Основні переваги\n\n- Потужність 10 кВт\n- MPPT-контролер\n- Підтримка 48 В АКБ\n- Wi-Fi моніторинг\n- Робота без АКБ\n- Чиста синусоїда\n- Висока ефективність\n- Для приватних СЕС",
       "createdAt": "2026-07-18T16:27:37.459Z",
-      "updatedAt": "2026-07-19T11:02:20.285Z",
-      "priceUsd": 1810,
-      "purchasePrice": 1600,
+      "updatedAt": "2026-07-23T08:21:26.557Z",
+      "priceUsd": 1695,
+      "purchasePrice": 1530,
       "purchaseCurrency": "USD"
     },
     {
@@ -142,16 +142,16 @@
       "power": "12 kW",
       "phase": "1 фаза",
       "voltage": "48 V",
-      "price": "82 900 грн",
+      "price": "76 900 грн",
       "status": "active",
       "images": [
         "/assets/equipment/deye-sun-sg01lp1.png"
       ],
       "description": "Deye SUN-12K-SG02LP1-EU-AM3 — потужний однофазний гібридний інвертор 12 кВт із підтримкою сонячних панелей та акумуляторів LiFePO₄.\n\n## Основні переваги\n\n- Потужність 12 кВт\n- MPPT-контролер\n- Wi-Fi керування\n- Робота без АКБ\n- LiFePO₄ Ready\n- Чиста синусоїда\n- Високий ККД\n- Для великих будинків",
       "createdAt": "2026-07-18T16:27:37.459Z",
-      "updatedAt": "2026-07-19T11:02:20.285Z",
-      "priceUsd": 1875,
-      "purchasePrice": 1650,
+      "updatedAt": "2026-07-23T08:21:26.557Z",
+      "priceUsd": 1740,
+      "purchasePrice": 1570,
       "purchaseCurrency": "USD"
     },
     {
@@ -161,16 +161,16 @@
       "power": "12 kW",
       "phase": "3 фази",
       "voltage": "48 V",
-      "price": "82 900 грн",
+      "price": "78 900 грн",
       "status": "active",
       "images": [
         "/assets/equipment/deye-sun-sg05lp3.png"
       ],
       "description": "Deye SUN-12K-SG05LP3-EU — трифазний гібридний інвертор 12 кВт для сучасних сонячних електростанцій та резервного живлення.\n\n## Основні переваги\n\n- Потужність 12 кВт\n- Трифазний\n- MPPT-контролер\n- Робота без АКБ\n- Wi-Fi моніторинг\n- LiFePO₄ Ready\n- Чиста синусоїда\n- Для дому й бізнесу",
       "createdAt": "2026-07-18T16:27:37.459Z",
-      "updatedAt": "2026-07-19T11:02:20.285Z",
-      "priceUsd": 1875,
-      "purchasePrice": 1720,
+      "updatedAt": "2026-07-23T08:21:26.557Z",
+      "priceUsd": 1785,
+      "purchasePrice": 1600,
       "purchaseCurrency": "USD"
     },
     {
@@ -180,16 +180,16 @@
       "power": "15 kW",
       "phase": "3 фази",
       "voltage": "48 V",
-      "price": "99 900 грн",
+      "price": "89 900 грн",
       "status": "active",
       "images": [
         "/assets/equipment/deye-sun-sg05lp3-14-20.png"
       ],
       "description": "Deye SUN-15K-SG05LP3-EU-SM2 — трифазний гібридний інвертор 15 кВт для комерційних та приватних сонячних електростанцій.\n\n## Основні переваги\n\n- Потужність 15 кВт\n- Трифазний\n- MPPT-контролер\n- Wi-Fi керування\n- Робота без АКБ\n- LiFePO₄ Ready\n- Високий ККД\n- Для бізнесу",
       "createdAt": "2026-07-18T16:27:37.459Z",
-      "updatedAt": "2026-07-19T11:02:20.285Z",
-      "priceUsd": 2260,
-      "purchasePrice": 1960,
+      "updatedAt": "2026-07-23T08:21:26.557Z",
+      "priceUsd": 2035,
+      "purchasePrice": 1800,
       "purchaseCurrency": "USD"
     },
     {
@@ -199,16 +199,16 @@
       "power": "20 kW",
       "phase": "3 фази",
       "voltage": "48 V",
-      "price": "122 900 грн",
+      "price": "119 900 грн",
       "status": "active",
       "images": [
         "/assets/equipment/deye-sun-sg05lp3-14-20.png"
       ],
       "description": "Deye SUN-20K-SG05LP3-EU-SM2 — трифазний гібридний інвертор 20 кВт для потужних систем накопичення та генерації електроенергії.\n\n## Основні переваги\n\n- Потужність 20 кВт\n- Трифазний\n- MPPT-контролер\n- Wi-Fi моніторинг\n- LiFePO₄ Ready\n- Робота без АКБ\n- Чиста синусоїда\n- Для підприємств",
       "createdAt": "2026-07-18T16:27:37.459Z",
-      "updatedAt": "2026-07-19T11:02:20.285Z",
-      "priceUsd": 2780,
-      "purchasePrice": 2550,
+      "updatedAt": "2026-07-23T08:21:26.557Z",
+      "priceUsd": 2710,
+      "purchasePrice": 2370,
       "purchaseCurrency": "USD"
     },
     {
@@ -218,16 +218,16 @@
       "power": "30 kW",
       "phase": "3 фази",
       "voltage": "HV",
-      "price": "139 900 грн",
+      "price": "129 900 грн",
       "status": "active",
       "images": [
         "/assets/equipment/deye-sun-30k-sg02hp3.png"
       ],
       "description": "Deye SUN-30K-SG02HP3-EU-BM3 — високовольтний трифазний гібридний інвертор 30 кВт для комерційних сонячних електростанцій.\n\n## Основні переваги\n\n- Потужність 30 кВт\n- Високовольтні АКБ\n- MPPT-контролер\n- Wi-Fi моніторинг\n- Високий ККД\n- Трифазний\n- Для комерційних СЕС\n- Надійний захист",
       "createdAt": "2026-07-18T16:27:37.459Z",
-      "updatedAt": "2026-07-19T11:02:20.285Z",
-      "priceUsd": 3165,
-      "purchasePrice": 2850,
+      "updatedAt": "2026-07-23T08:21:26.557Z",
+      "priceUsd": 2940,
+      "purchasePrice": 2620,
       "purchaseCurrency": "USD"
     },
     {
@@ -237,16 +237,16 @@
       "power": "50 kW",
       "phase": "3 фази",
       "voltage": "HV",
-      "price": "204 900 грн",
+      "price": "202 900 грн",
       "status": "active",
       "images": [
         "/assets/equipment/deye-sun-50k-sg01hp3.jpg"
       ],
       "description": "Deye SUN-50K-SG01HP3-EU-BM4 — високовольтний гібридний інвертор 50 кВт для великих комерційних та промислових об’єктів.\n\n## Основні переваги\n\n- Потужність 50 кВт\n- Високовольтні АКБ\n- Трифазний\n- MPPT-контролер\n- Високий ККД\n- Wi-Fi/Ethernet\n- Для промисловості\n- Максимальна надійність",
       "createdAt": "2026-07-18T16:27:37.459Z",
-      "updatedAt": "2026-07-19T11:02:20.285Z",
-      "priceUsd": 4640,
-      "purchasePrice": 4150,
+      "updatedAt": "2026-07-23T08:21:26.557Z",
+      "priceUsd": 4590,
+      "purchasePrice": 4120,
       "purchaseCurrency": "USD"
     },
     {
@@ -256,16 +256,16 @@
       "power": "80 kW",
       "phase": "3 фази",
       "voltage": "HV",
-      "price": "289 900 грн",
+      "price": "264 900 грн",
       "status": "active",
       "images": [
         "/assets/equipment/deye-sun-80k-sg02hp3.png"
       ],
       "description": "Deye SUN-80K-SG02HP3-EU-EM6 — високопродуктивний трифазний інвертор 80 кВт для промислових систем накопичення енергії.\n\n## Основні переваги\n\n- Потужність 80 кВт\n- Високовольтні АКБ\n- MPPT-контролер\n- Високий ККД\n- Трифазний\n- Розширений моніторинг\n- Для великих СЕС\n- Промислове застосування",
       "createdAt": "2026-07-18T16:27:37.459Z",
-      "updatedAt": "2026-07-19T11:02:20.285Z",
-      "priceUsd": 6560,
-      "purchasePrice": 5950,
+      "updatedAt": "2026-07-23T08:21:26.557Z",
+      "priceUsd": 5990,
+      "purchasePrice": 5520,
       "purchaseCurrency": "USD"
     },
     {
@@ -282,9 +282,9 @@
       ],
       "description": "Deye BOS-G PRO — високовольтний модульний акумулятор LiFePO₄ 51.2 В, 100 А·год для професійних систем накопичення енергії.\n\n## Основні переваги\n\n- LiFePO₄ 51.2 В / 100 А·год\n- Високовольтна система\n- 6000+ циклів\n- Вбудована BMS\n- Модульне розширення\n- Висока безпека\n- Для комерційних СЕС\n- Простий монтаж",
       "createdAt": "2026-07-18T16:27:37.459Z",
-      "updatedAt": "2026-07-19T11:02:20.285Z",
+      "updatedAt": "2026-07-23T08:21:26.557Z",
       "priceUsd": 880,
-      "purchasePrice": 770,
+      "purchasePrice": 760,
       "purchaseCurrency": "USD"
     },
     {
@@ -301,7 +301,7 @@
       ],
       "description": "BMS Deye BOS-G-PDU-2 — система керування високовольтними акумуляторами з робочою напругою 200–1000 В та струмом 100 А, що забезпечує безпечну та стабільну роботу батарейних систем.\n\n## Основні переваги\n\n- Діапазон 200–1000 В\n- Струм до 100 А\n- Контроль батарей\n- Балансування комірок\n- Захист системи\n- CAN та RS485\n- Проста інтеграція\n- Висока надійність",
       "createdAt": "2026-07-18T16:27:37.459Z",
-      "updatedAt": "2026-07-19T11:02:20.285Z",
+      "updatedAt": "2026-07-23T08:21:26.557Z",
       "priceUsd": 880,
       "purchasePrice": 780,
       "purchaseCurrency": "USD"
@@ -320,10 +320,48 @@
       ],
       "description": "Стійка Deye призначена для встановлення до 12 високовольтних акумуляторних модулів BOS-G PRO. Забезпечує надійне розміщення, вентиляцію та зручне обслуговування системи.\n\n## Основні переваги\n\n- До 12 акумуляторів\n- Міцна конструкція\n- Простий монтаж\n- Зручне обслуговування\n- Ефективне охолодження\n- Компактне розміщення\n- Для систем BOS-G PRO\n- Професійне виконання",
       "createdAt": "2026-07-18T16:27:37.459Z",
-      "updatedAt": "2026-07-19T11:02:20.285Z",
+      "updatedAt": "2026-07-23T08:21:26.557Z",
       "priceUsd": 430,
       "purchasePrice": 360,
       "purchaseCurrency": "USD"
+    },
+    {
+      "_id": "deye-rw-f16",
+      "brand": "DEYE",
+      "model": "RW-F16",
+      "power": "16 kWh",
+      "phase": "LiFePO₄",
+      "voltage": "51.2 V",
+      "price": "94 900 грн",
+      "status": "active",
+      "images": [
+        "https://deye.com/wp-content/uploads/2025/01/rw-f16-768x768.jpg"
+      ],
+      "description": "DEYE RW-F16 — низьковольтний акумулятор LiFePO₄ 51.2 В, 314 А·год із номінальною ємністю 16 кВт·год для резервного та автономного живлення будинку або бізнесу.\n\n## Основні переваги\n\n- Ємність 16 кВт·год\n- Корисна енергія 14.4 кВт·год\n- Потужність до 8 кВт\n- Понад 6000 циклів\n- Струм заряду та розряду до 160 А\n- До 32 батарей паралельно\n- Віддалений моніторинг через інвертор Deye\n- Настінний або підлоговий монтаж",
+      "priceUsd": 2140,
+      "purchasePrice": 1820,
+      "purchaseCurrency": "USD",
+      "createdAt": "2026-07-23T08:21:26.557Z",
+      "updatedAt": "2026-07-23T08:21:26.557Z"
+    },
+    {
+      "_id": "felicity-fla48314-eu",
+      "brand": "FELICITY SOLAR",
+      "model": "FLA48314-EU",
+      "power": "16 kWh",
+      "phase": "LiFePO₄",
+      "voltage": "51.2 V",
+      "price": "89 900 грн",
+      "status": "active",
+      "images": [
+        "https://eu.felicitysolar.com/wp-content/uploads/2025/06/FLA48314-EU.82.png"
+      ],
+      "description": "Felicity Solar FLA48314-EU — низьковольтний акумулятор LiFePO₄ 51.2 В на 16 кВт·год для домашніх і комерційних систем накопичення енергії. Модель адаптована до роботи за низьких температур і підтримує віддалений моніторинг.\n\n## Основні переваги\n\n- Ємність 16 кВт·год\n- LiFePO₄ 51.2 В\n- Понад 8000 циклів\n- Вбудована BMS\n- Wi-Fi та Bluetooth\n- RS485 / CAN\n- Масштабування до 240 кВт·год\n- Підігрів для роботи в холодний період",
+      "priceUsd": 2030,
+      "purchasePrice": 1770,
+      "purchaseCurrency": "USD",
+      "createdAt": "2026-07-23T08:21:26.557Z",
+      "updatedAt": "2026-07-23T08:21:26.557Z"
     }
   ],
   "users": [
@@ -366,7 +404,9 @@
     "add-pv-panels-and-green-protect-2026-07-20-v1",
     "clean-pv-catalog-2026-07-20-v1",
     "set-green-protect-purchase-prices-2026-07-20-v1",
-    "set-pv-catalog-media-and-usage-2026-07-21-v2"
+    "set-pv-catalog-media-and-usage-2026-07-21-v2",
+    "supplier-catalog-and-prices-2026-07-23-v1",
+    "public-commercial-proposals-2026-07-22-v1"
   ],
   "solarPanels": [
     {
@@ -388,7 +428,7 @@
       "status": "active",
       "homeOrder": 1,
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "updatedAt": "2026-07-23T08:21:26.557Z",
       "sourceUrl": "https://soncedar.org/equipment/solar_panel/tproduct/331143915-702966801902-tw-solar-tongwei-440-vt-monokristalchna"
     },
     {
@@ -410,7 +450,7 @@
       "status": "active",
       "homeOrder": 2,
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "updatedAt": "2026-07-23T08:21:26.557Z",
       "sourceUrl": "https://www.suntech-power.com/wp-content/uploads/download/product-specification/EN_STP420-440S-C54-Nshb.pdf"
     },
     {
@@ -432,7 +472,7 @@
       "status": "active",
       "homeOrder": 3,
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "updatedAt": "2026-07-23T08:21:26.557Z",
       "sourceUrl": "https://www.sunova-solar.com/attached/file/en/datasheet/L-Series/Tangra%20L%20Pro%20HD%20%28610-630%29-66MDH-G11-30mm.pdf"
     },
     {
@@ -454,7 +494,7 @@
       "status": "active",
       "homeOrder": 4,
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "updatedAt": "2026-07-23T08:21:26.557Z",
       "sourceUrl": "https://www.solarics.de/products/aiko-solarmodul-aiko-a610-mah72mw"
     },
     {
@@ -476,7 +516,7 @@
       "status": "active",
       "homeOrder": 5,
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "updatedAt": "2026-07-23T08:21:26.557Z",
       "sourceUrl": "https://www.longi.com/en/products/modules/hi-mo-7/"
     },
     {
@@ -498,7 +538,7 @@
       "status": "active",
       "homeOrder": 6,
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "updatedAt": "2026-07-23T08:21:26.557Z",
       "sourceUrl": "https://www.longi.com/en/products/modules/hi-mo-7/"
     },
     {
@@ -520,7 +560,7 @@
       "status": "active",
       "homeOrder": 7,
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "updatedAt": "2026-07-23T08:21:26.557Z",
       "sourceUrl": "https://vinur.com.ua/ua/products/solnechnie-batarei/komplektuyushie/solnechnye-paneli/twmnh-66hd640"
     },
     {
@@ -531,10 +571,10 @@
       "technology": "ABC N-type · двостороння",
       "phase": "ABC N-type · двостороння",
       "voltage": "",
-      "purchasePrice": 114.65,
+      "purchasePrice": 106.43,
       "purchaseCurrency": "USD",
-      "price": "6 290 грн",
-      "priceUsd": 142,
+      "price": "5 490 грн",
+      "priceUsd": 124,
       "description": "AIKO A645-MAH78Db BF — сонячна панель 645 W для наземних, комерційних і промислових СЕС. Панель можна придбати окремо або разом із комплектом для підключення.",
       "images": [
         "https://aikosolar.com/wp-content/uploads/2024/11/Polaris-1N-Plus-66-Dual-Glass-635W-665W-detail.jpg"
@@ -542,8 +582,74 @@
       "status": "active",
       "homeOrder": 8,
       "createdAt": "2026-07-20T13:08:27.356Z",
-      "updatedAt": "2026-07-21T14:28:49.268Z",
+      "updatedAt": "2026-07-23T08:21:26.557Z",
       "sourceUrl": "https://aikosolar.com/en/products/stellar-1nplus66-dual-glass/"
+    },
+    {
+      "_id": "longi-620-bf",
+      "brand": "LONGi",
+      "model": "LR8-66HGD-620M BF",
+      "power": "620 W",
+      "technology": "N-type · двостороння",
+      "phase": "N-type · двостороння",
+      "voltage": "",
+      "purchasePrice": 102.3,
+      "purchaseCurrency": "USD",
+      "price": "4 790 грн",
+      "priceUsd": 108,
+      "description": "LONGi LR8-66HGD-620M BF — сонячна панель 620 W для великих дахових, наземних і комерційних СЕС. Панель можна придбати окремо або разом із комплектом для підключення.",
+      "sourceUrl": "https://www.longi.com/en/products/modules/hi-mo-7/",
+      "images": [
+        "https://static.longi.com/Images_412x612_11869e6bbf.png"
+      ],
+      "status": "active",
+      "homeOrder": 9,
+      "createdAt": "2026-07-23T08:21:26.557Z",
+      "updatedAt": "2026-07-23T08:21:26.557Z"
+    },
+    {
+      "_id": "jinko-620-bf",
+      "brand": "Jinko Solar",
+      "model": "JKM620N-66HL4M-BDV",
+      "power": "620 W",
+      "technology": "TOPCon N-type · двостороння",
+      "phase": "TOPCon N-type · двостороння",
+      "voltage": "",
+      "purchasePrice": 102.3,
+      "purchaseCurrency": "USD",
+      "price": "5 190 грн",
+      "priceUsd": 117,
+      "description": "Jinko Solar JKM620N-66HL4M-BDV — сонячна панель 620 W для дахових, наземних і промислових СЕС. Панель можна придбати окремо або разом із комплектом для підключення.",
+      "sourceUrl": "https://www.jinkosolar.com/uploads/JKM600-625N-66HL4M-BDV-F1-EN.pdf",
+      "images": [
+        "https://vencon.ua/uploads/goods/352689/main/jinko-solar-jkm-620n-66hl4m-bdv-bifacial-620vt.jpg"
+      ],
+      "status": "active",
+      "homeOrder": 10,
+      "createdAt": "2026-07-23T08:21:26.557Z",
+      "updatedAt": "2026-07-23T08:21:26.557Z"
+    },
+    {
+      "_id": "jetion-620-bf",
+      "brand": "Jetion Solar",
+      "model": "JT620SLt(B)",
+      "power": "620 W",
+      "technology": "TOPCon N-type · двостороння",
+      "phase": "TOPCon N-type · двостороння",
+      "voltage": "",
+      "purchasePrice": 97.34,
+      "purchaseCurrency": "USD",
+      "price": "4 790 грн",
+      "priceUsd": 108,
+      "description": "Jetion Solar JT620SLt(B) — сонячна панель 620 W для дахових, наземних і промислових СЕС. Панель можна придбати окремо або разом із комплектом для підключення.",
+      "sourceUrl": "https://www.jetion.com.cn/Upload/2026/05/dce85b0f45e44254a9f0616d0d50a8e5.pdf",
+      "images": [
+        "/assets/catalog/solar-panel.svg"
+      ],
+      "status": "active",
+      "homeOrder": 11,
+      "createdAt": "2026-07-23T08:21:26.557Z",
+      "updatedAt": "2026-07-23T08:21:26.557Z"
     }
   ],
   "greenProtect": [
@@ -1246,6 +1352,78 @@
       "purchasePrice": 5340,
       "purchaseCurrency": "UAH",
       "description": "LBS 250 2P DC1000 використовується для комутації та ізоляції високострумових DC-ліній сонячної станції. Компонент можна придбати окремо у потрібній кількості."
+    },
+    {
+      "_id": "mounting-profile-41x41",
+      "code": "MOUNT-4141",
+      "brand": "Монтажні системи",
+      "model": "Оцинкований профіль 41×41",
+      "name": "Оцинкований профіль 41×41",
+      "category": "Монтажні комплектуючі",
+      "spec": "41×41 мм · 1 м.п.",
+      "power": "41×41 мм",
+      "phase": "Профіль",
+      "voltage": "1 м.п.",
+      "purchasePrice": 2.6,
+      "purchaseCurrency": "USD",
+      "price": "149 грн/м.п.",
+      "priceUsd": 3.4,
+      "description": "Оцинкований монтажний профіль 41×41 мм для кріплення сонячних панелей, кабельних трас та обладнання СЕС. Відпускається погонними метрами.",
+      "sourceUrl": "",
+      "images": [
+        "/assets/catalog/green-protect.svg"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-23T08:21:26.557Z",
+      "updatedAt": "2026-07-23T08:21:26.557Z"
+    },
+    {
+      "_id": "mounting-screw-m10-1-5-200",
+      "code": "M10-1.5-200",
+      "brand": "Монтажні системи",
+      "model": "Гвинт-шуруп М10×1.5×200",
+      "name": "Гвинт-шуруп М10×1.5×200",
+      "category": "Монтажні комплектуючі",
+      "spec": "M10 · 200 мм · 1 шт.",
+      "power": "M10×200 мм",
+      "phase": "Кріплення",
+      "voltage": "1 шт.",
+      "purchasePrice": 1.3,
+      "purchaseCurrency": "USD",
+      "price": "79 грн/шт.",
+      "priceUsd": 1.8,
+      "description": "Гвинт-шуруп М10×1.5×200 мм для надійного монтажу профілю та конструкцій сонячної електростанції. Продається поштучно.",
+      "sourceUrl": "",
+      "images": [
+        "/assets/catalog/green-protect.svg"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-23T08:21:26.557Z",
+      "updatedAt": "2026-07-23T08:21:26.557Z"
+    },
+    {
+      "_id": "kbe-solar-cable-6mm",
+      "code": "KBE-PV-6MM",
+      "brand": "KBE",
+      "model": "Сонячний кабель KBE 6 мм²",
+      "name": "Сонячний кабель KBE 6 мм²",
+      "category": "Кабелі для СЕС",
+      "spec": "6 мм² · 1 м.п.",
+      "power": "6 мм²",
+      "phase": "PV-кабель",
+      "voltage": "DC · 1 м.п.",
+      "purchasePrice": 1.3,
+      "purchaseCurrency": "USD",
+      "price": "79 грн/м.п.",
+      "priceUsd": 1.8,
+      "description": "Спеціалізований кабель KBE перерізом 6 мм² для DC-ліній фотоелектричних систем. Стійкий до ультрафіолету та зовнішнього монтажу, відпускається погонними метрами.",
+      "sourceUrl": "",
+      "images": [
+        "/assets/catalog/green-protect.svg"
+      ],
+      "status": "active",
+      "createdAt": "2026-07-23T08:21:26.557Z",
+      "updatedAt": "2026-07-23T08:21:26.557Z"
     }
   ],
   "quotes": [],

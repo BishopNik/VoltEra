@@ -55,19 +55,22 @@ const PV_CATALOG_CLEANUP_ID = 'clean-pv-catalog-2026-07-20-v1';
 const GREEN_PROTECT_PURCHASE_MIGRATION_ID = 'set-green-protect-purchase-prices-2026-07-20-v1';
 const PV_CATALOG_MEDIA_MIGRATION_ID = 'set-pv-catalog-media-and-usage-2026-07-21-v2';
 const PUBLIC_PROPOSALS_MIGRATION_ID = 'public-commercial-proposals-2026-07-22-v1';
+const SUPPLIER_CATALOG_MIGRATION_ID = 'supplier-catalog-and-prices-2026-07-23-v1';
 const EQUIPMENT_RETAIL_PRICES = Object.freeze({
   'SE-G5.1 Pro-B':'38 900 грн',
   'SE-F5 Pro-C':'38 500 грн',
+  'RW-F16':'94 900 грн',
+  'FLA48314-EU':'89 900 грн',
   'SUN-6K-SG05LP1-AM2-P':'35 900 грн',
-  'SUN-8K-SG01LP1-EU':'55 900 грн',
-  'SUN-10K-SG02LP1-EU-AM3':'79 900 грн',
-  'SUN-12K-SG02LP1-EU-AM3':'82 900 грн',
-  'SUN-12K-SG05LP3-EU':'82 900 грн',
-  'SUN-15K-SG05LP3-EU-SM2':'99 900 грн',
-  'SUN-20K-SG05LP3-EU-SM2':'122 900 грн',
-  'SUN-30K-SG02HP3-EU-BM3':'139 900 грн',
-  'SUN-50K-SG01HP3-EU-BM4':'204 900 грн',
-  'SUN-80K-SG02HP3-EU-EM6':'289 900 грн',
+  'SUN-8K-SG01LP1-EU':'52 900 грн',
+  'SUN-10K-SG02LP1-EU-AM3':'74 900 грн',
+  'SUN-12K-SG02LP1-EU-AM3':'76 900 грн',
+  'SUN-12K-SG05LP3-EU':'78 900 грн',
+  'SUN-15K-SG05LP3-EU-SM2':'89 900 грн',
+  'SUN-20K-SG05LP3-EU-SM2':'119 900 грн',
+  'SUN-30K-SG02HP3-EU-BM3':'129 900 грн',
+  'SUN-50K-SG01HP3-EU-BM4':'202 900 грн',
+  'SUN-80K-SG02HP3-EU-EM6':'264 900 грн',
   'BOS-G PRO':'38 900 грн',
   'BOS-G-PDU-2 BMS':'38 900 грн',
   'Стійка BOS-G PRO на 12 АКБ':'18 900 грн',
@@ -77,19 +80,21 @@ const EQUIPMENT_RETAIL_PRICES = Object.freeze({
 });
 // Purchase values are deliberately kept in the authenticated CRM payload only.
 const EQUIPMENT_COMMERCE = Object.freeze({
-  'SE-G5.1 Pro-B':{priceUsd:880,purchasePrice:800,purchaseCurrency:'USD'},
-  'SE-F5 Pro-C':{priceUsd:870,purchasePrice:780,purchaseCurrency:'USD'},
+  'SE-G5.1 Pro-B':{priceUsd:880,purchasePrice:770,purchaseCurrency:'USD'},
+  'SE-F5 Pro-C':{priceUsd:870,purchasePrice:760,purchaseCurrency:'USD'},
+  'RW-F16':{priceUsd:2140,purchasePrice:1820,purchaseCurrency:'USD'},
+  'FLA48314-EU':{priceUsd:2030,purchasePrice:1770,purchaseCurrency:'USD'},
   'SUN-6K-SG05LP1-AM2-P':{priceUsd:815,purchasePrice:770,purchaseCurrency:'USD'},
-  'SUN-8K-SG01LP1-EU':{priceUsd:1265,purchasePrice:1100,purchaseCurrency:'USD'},
-  'SUN-10K-SG02LP1-EU-AM3':{priceUsd:1810,purchasePrice:1600,purchaseCurrency:'USD'},
-  'SUN-12K-SG02LP1-EU-AM3':{priceUsd:1875,purchasePrice:1650,purchaseCurrency:'USD'},
-  'SUN-12K-SG05LP3-EU':{priceUsd:1875,purchasePrice:1720,purchaseCurrency:'USD'},
-  'SUN-15K-SG05LP3-EU-SM2':{priceUsd:2260,purchasePrice:1960,purchaseCurrency:'USD'},
-  'SUN-20K-SG05LP3-EU-SM2':{priceUsd:2780,purchasePrice:2550,purchaseCurrency:'USD'},
-  'SUN-30K-SG02HP3-EU-BM3':{priceUsd:3165,purchasePrice:2850,purchaseCurrency:'USD'},
-  'SUN-50K-SG01HP3-EU-BM4':{priceUsd:4640,purchasePrice:4150,purchaseCurrency:'USD'},
-  'SUN-80K-SG02HP3-EU-EM6':{priceUsd:6560,purchasePrice:5950,purchaseCurrency:'USD'},
-  'BOS-G PRO':{priceUsd:880,purchasePrice:770,purchaseCurrency:'USD'},
+  'SUN-8K-SG01LP1-EU':{priceUsd:1195,purchasePrice:1080,purchaseCurrency:'USD'},
+  'SUN-10K-SG02LP1-EU-AM3':{priceUsd:1695,purchasePrice:1530,purchaseCurrency:'USD'},
+  'SUN-12K-SG02LP1-EU-AM3':{priceUsd:1740,purchasePrice:1570,purchaseCurrency:'USD'},
+  'SUN-12K-SG05LP3-EU':{priceUsd:1785,purchasePrice:1600,purchaseCurrency:'USD'},
+  'SUN-15K-SG05LP3-EU-SM2':{priceUsd:2035,purchasePrice:1800,purchaseCurrency:'USD'},
+  'SUN-20K-SG05LP3-EU-SM2':{priceUsd:2710,purchasePrice:2370,purchaseCurrency:'USD'},
+  'SUN-30K-SG02HP3-EU-BM3':{priceUsd:2940,purchasePrice:2620,purchaseCurrency:'USD'},
+  'SUN-50K-SG01HP3-EU-BM4':{priceUsd:4590,purchasePrice:4120,purchaseCurrency:'USD'},
+  'SUN-80K-SG02HP3-EU-EM6':{priceUsd:5990,purchasePrice:5520,purchaseCurrency:'USD'},
+  'BOS-G PRO':{priceUsd:880,purchasePrice:760,purchaseCurrency:'USD'},
   'BOS-G-PDU-2 BMS':{priceUsd:880,purchasePrice:780,purchaseCurrency:'USD'},
   'Стійка BOS-G PRO на 12 АКБ':{priceUsd:430,purchasePrice:360,purchaseCurrency:'USD'},
   'ANJ-LP04-24V-100A-PX':{priceUsd:360,purchasePrice:290,purchaseCurrency:'USD'},
@@ -111,6 +116,16 @@ const REQUESTED_EQUIPMENT = [
     _id:'deye-se-f5-pro-c', brand:'DEYE', model:'SE-F5 Pro-C', power:'5.12 kWh', phase:'LiFePO₄', voltage:'51.2 V', price:EQUIPMENT_RETAIL_PRICES['SE-F5 Pro-C'], status:'active',
     images:['/assets/equipment/deye-se-f5-pro-c.webp'],
     description:'DEYE SE-F5 Pro-C — сучасна акумуляторна батарея LiFePO₄ 51.2 В, 100 А·год для систем накопичення енергії. Відзначається високою ефективністю, довговічністю та підтримкою паралельного підключення.\n\n## Основні переваги\n\n- LiFePO₄ 51.2 В / 100 А·год\n- Ємність 5.12 кВт·год\n- 6000+ циклів\n- Інтелектуальна BMS\n- Масштабування системи\n- Швидке заряджання\n- Простий монтаж\n- Для домашніх СЕС'
+  },
+  {
+    _id:'deye-rw-f16', brand:'DEYE', model:'RW-F16', power:'16 kWh', phase:'LiFePO₄', voltage:'51.2 V', price:EQUIPMENT_RETAIL_PRICES['RW-F16'], status:'active',
+    images:['https://deye.com/wp-content/uploads/2025/01/rw-f16-768x768.jpg'],
+    description:'DEYE RW-F16 — низьковольтний акумулятор LiFePO₄ 51.2 В, 314 А·год із номінальною ємністю 16 кВт·год для резервного та автономного живлення будинку або бізнесу.\n\n## Основні переваги\n\n- Ємність 16 кВт·год\n- Корисна енергія 14.4 кВт·год\n- Потужність до 8 кВт\n- Понад 6000 циклів\n- Струм заряду та розряду до 160 А\n- До 32 батарей паралельно\n- Віддалений моніторинг через інвертор Deye\n- Настінний або підлоговий монтаж'
+  },
+  {
+    _id:'felicity-fla48314-eu', brand:'FELICITY SOLAR', model:'FLA48314-EU', power:'16 kWh', phase:'LiFePO₄', voltage:'51.2 V', price:EQUIPMENT_RETAIL_PRICES['FLA48314-EU'], status:'active',
+    images:['https://eu.felicitysolar.com/wp-content/uploads/2025/06/FLA48314-EU.82.png'],
+    description:'Felicity Solar FLA48314-EU — низьковольтний акумулятор LiFePO₄ 51.2 В на 16 кВт·год для домашніх і комерційних систем накопичення енергії. Модель адаптована до роботи за низьких температур і підтримує віддалений моніторинг.\n\n## Основні переваги\n\n- Ємність 16 кВт·год\n- LiFePO₄ 51.2 В\n- Понад 8000 циклів\n- Вбудована BMS\n- Wi-Fi та Bluetooth\n- RS485 / CAN\n- Масштабування до 240 кВт·год\n- Підігрів для роботи в холодний період'
   },
   {
     _id:'deye-sun-6k-sg05lp1-am2-p', brand:'DEYE', model:'SUN-6K-SG05LP1-AM2-P', power:'6 kW', phase:'1 фаза', voltage:'48 V', price:EQUIPMENT_RETAIL_PRICES['SUN-6K-SG05LP1-AM2-P'], status:'active',
@@ -187,7 +202,10 @@ const REQUESTED_SOLAR_PANELS = [
   ['longi-615-bf','LONGi','Hi-MO X10 615W BF','615 W','N-type · двостороння',106.5,5290,120,'https://static.longi.com/Images_412x612_11869e6bbf.png','https://www.longi.com/en/products/modules/hi-mo-7/','великих дахових, наземних і комерційних СЕС'],
   ['longi-630','LONGi','Hi-MO 7 630W','630 W','N-type',105.8,5290,120,'https://static.longi.com/Images_412x612_11869e6bbf.png','https://www.longi.com/en/products/modules/hi-mo-7/','наземних і промислових СЕС'],
   ['tw-solar-640-bf','TW Solar','TWMNH-66HD640W BF','640 W','N-type · двостороння',107.4,5390,122,'https://vinur.com.ua/image/catalog/product/7063/sonyachna-batareya-640vt-n-type-dual-glass-bifacial-twmnh-66hd640-cable-400-200-mm-tongwei-jpg-1.jpg','https://vinur.com.ua/ua/products/solnechnie-batarei/komplektuyushie/solnechnye-paneli/twmnh-66hd640','наземних і промислових СЕС'],
-  ['aiko-645-bf','AIKO','A645-MAH78Db BF','645 W','ABC N-type · двостороння',114.65,6290,142,'https://aikosolar.com/wp-content/uploads/2024/11/Polaris-1N-Plus-66-Dual-Glass-635W-665W-detail.jpg','https://aikosolar.com/en/products/stellar-1nplus66-dual-glass/','наземних, комерційних і промислових СЕС']
+  ['aiko-645-bf','AIKO','A645-MAH78Db BF','645 W','ABC N-type · двостороння',106.43,5490,124,'https://aikosolar.com/wp-content/uploads/2024/11/Polaris-1N-Plus-66-Dual-Glass-635W-665W-detail.jpg','https://aikosolar.com/en/products/stellar-1nplus66-dual-glass/','наземних, комерційних і промислових СЕС'],
+  ['longi-620-bf','LONGi','LR8-66HGD-620M BF','620 W','N-type · двостороння',102.3,4790,108,'https://static.longi.com/Images_412x612_11869e6bbf.png','https://www.longi.com/en/products/modules/hi-mo-7/','великих дахових, наземних і комерційних СЕС'],
+  ['jinko-620-bf','Jinko Solar','JKM620N-66HL4M-BDV','620 W','TOPCon N-type · двостороння',102.3,5190,117,'https://vencon.ua/uploads/goods/352689/main/jinko-solar-jkm-620n-66hl4m-bdv-bifacial-620vt.jpg','https://www.jinkosolar.com/uploads/JKM600-625N-66HL4M-BDV-F1-EN.pdf','дахових, наземних і промислових СЕС'],
+  ['jetion-620-bf','Jetion Solar','JT620SLt(B)','620 W','TOPCon N-type · двостороння',97.34,4790,108,'/assets/catalog/solar-panel.svg','https://www.jetion.com.cn/Upload/2026/05/dce85b0f45e44254a9f0616d0d50a8e5.pdf','дахових, наземних і промислових СЕС']
 ].map(([_id,brand,model,power,technology,purchasePrice,price,priceUsd,image,sourceUrl,usage],homeOrder)=>({_id,brand,model,power,technology,phase:technology,voltage:'',purchasePrice,purchaseCurrency:'USD',price:`${price.toLocaleString('uk-UA')} грн`,priceUsd,description:`${brand} ${model} — сонячна панель ${power} для ${usage}. Панель можна придбати окремо або разом із комплектом для підключення.`,sourceUrl,images:[image],status:'active',homeOrder:homeOrder+1}));
 
 const etiProductId=code=>String(code).padStart(9,'0');
@@ -237,6 +255,29 @@ const REQUESTED_GREEN_PROTECT = [
   etiProduct('4660065','LS 32 SMA A4 4P 32A DC','DC роз’єднувачі',3276,'4P · 32A DC'),
   etiProduct('4661854','LBS 160 2P DC1000','Рубильники навантаження',6760,'2P · 160A · 1000V DC'),
   etiProduct('4661855','LBS 250 2P DC1000','Рубильники навантаження',8216,'2P · 250A · 1000V DC')
+];
+const REQUESTED_INSTALLATION_COMPONENTS = [
+  {
+    _id:'mounting-profile-41x41',code:'MOUNT-4141',brand:'Монтажні системи',model:'Оцинкований профіль 41×41',name:'Оцинкований профіль 41×41',
+    category:'Монтажні комплектуючі',spec:'41×41 мм · 1 м.п.',power:'41×41 мм',phase:'Профіль',voltage:'1 м.п.',
+    purchasePrice:2.6,purchaseCurrency:'USD',price:'149 грн/м.п.',priceUsd:3.4,
+    description:'Оцинкований монтажний профіль 41×41 мм для кріплення сонячних панелей, кабельних трас та обладнання СЕС. Відпускається погонними метрами.',
+    sourceUrl:'',images:['/assets/catalog/green-protect.svg'],status:'active'
+  },
+  {
+    _id:'mounting-screw-m10-1-5-200',code:'M10-1.5-200',brand:'Монтажні системи',model:'Гвинт-шуруп М10×1.5×200',name:'Гвинт-шуруп М10×1.5×200',
+    category:'Монтажні комплектуючі',spec:'M10 · 200 мм · 1 шт.',power:'M10×200 мм',phase:'Кріплення',voltage:'1 шт.',
+    purchasePrice:1.3,purchaseCurrency:'USD',price:'79 грн/шт.',priceUsd:1.8,
+    description:'Гвинт-шуруп М10×1.5×200 мм для надійного монтажу профілю та конструкцій сонячної електростанції. Продається поштучно.',
+    sourceUrl:'',images:['/assets/catalog/green-protect.svg'],status:'active'
+  },
+  {
+    _id:'kbe-solar-cable-6mm',code:'KBE-PV-6MM',brand:'KBE',model:'Сонячний кабель KBE 6 мм²',name:'Сонячний кабель KBE 6 мм²',
+    category:'Кабелі для СЕС',spec:'6 мм² · 1 м.п.',power:'6 мм²',phase:'PV-кабель',voltage:'DC · 1 м.п.',
+    purchasePrice:1.3,purchaseCurrency:'USD',price:'79 грн/м.п.',priceUsd:1.8,
+    description:'Спеціалізований кабель KBE перерізом 6 мм² для DC-ліній фотоелектричних систем. Стійкий до ультрафіолету та зовнішнього монтажу, відпускається погонними метрами.',
+    sourceUrl:'',images:['/assets/catalog/green-protect.svg'],status:'active'
+  }
 ];
 
 const mime = { '.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.svg':'image/svg+xml','.xml':'application/xml; charset=utf-8','.txt':'text/plain; charset=utf-8','.csv':'text/csv; charset=utf-8','.pdf':'application/pdf','.xlsx':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','.xls':'application/vnd.ms-excel','.webmanifest':'application/manifest+json' };
@@ -330,6 +371,27 @@ class FileStore {
         }
       }
       this.data._migrations.push(PV_CATALOG_MEDIA_MIGRATION_ID); changed=true;
+    }
+    if(!this.data._migrations.includes(SUPPLIER_CATALOG_MIGRATION_ID)){
+      const now=new Date().toISOString();
+      for(const source of REQUESTED_EQUIPMENT){
+        const commerce=EQUIPMENT_COMMERCE[source.model]||{};
+        const item=this.data.equipment.find(entry=>String(entry.model)===String(source.model));
+        if(item)Object.assign(item,{price:source.price,...commerce,updatedAt:now});
+        else this.data.equipment.push({...source,...commerce,createdAt:now,updatedAt:now});
+      }
+      for(const source of REQUESTED_SOLAR_PANELS){
+        const item=this.data.solarPanels.find(entry=>String(entry.model)===String(source.model));
+        const commerce={purchasePrice:source.purchasePrice,purchaseCurrency:source.purchaseCurrency,price:source.price,priceUsd:source.priceUsd};
+        if(item)Object.assign(item,commerce,{updatedAt:now});
+        else this.data.solarPanels.push({...source,createdAt:now,updatedAt:now});
+      }
+      for(const source of REQUESTED_INSTALLATION_COMPONENTS){
+        const item=this.data.greenProtect.find(entry=>String(entry.code)===String(source.code));
+        if(item)Object.assign(item,{...source,_id:item._id,updatedAt:now});
+        else this.data.greenProtect.push({...source,createdAt:now,updatedAt:now});
+      }
+      this.data._migrations.push(SUPPLIER_CATALOG_MIGRATION_ID); changed=true;
     }
     for(const review of this.data.reviews||[]){ if(review.verified===undefined){ review.verified=false; review.verifiedBy=''; review.verifiedAt=null; review.audit=[]; changed=true; } if(!Array.isArray(review.audit)){ review.audit=[]; changed=true; } }
     if(!this.data._migrations.includes(PUBLIC_PROPOSALS_MIGRATION_ID)){
@@ -475,6 +537,36 @@ class MongoStore {
         }
       }
       try{await migrations.updateOne({_id:PV_CATALOG_MEDIA_MIGRATION_ID},{$setOnInsert:{completedAt:now}},{upsert:true});}
+      catch(error){if(error?.code!==11000)throw error;}
+    }
+    if(!await migrations.findOne({_id:SUPPLIER_CATALOG_MIGRATION_ID})){
+      const now=new Date().toISOString();
+      for(const source of REQUESTED_EQUIPMENT){
+        const {_id,price,...catalogue}=source;
+        const commerce=EQUIPMENT_COMMERCE[source.model]||{};
+        await this.db.collection('equipment').updateOne(
+          {model:source.model},
+          {$set:{price,...commerce,updatedAt:now},$setOnInsert:{...catalogue,createdAt:now}},
+          {upsert:true}
+        );
+      }
+      for(const source of REQUESTED_SOLAR_PANELS){
+        const {_id,purchasePrice,purchaseCurrency,price,priceUsd,...catalogue}=source;
+        await this.db.collection('solarPanels').updateOne(
+          {model:source.model},
+          {$set:{purchasePrice,purchaseCurrency,price,priceUsd,updatedAt:now},$setOnInsert:{...catalogue,createdAt:now}},
+          {upsert:true}
+        );
+      }
+      for(const source of REQUESTED_INSTALLATION_COMPONENTS){
+        const {_id,...catalogue}=source;
+        await this.db.collection('greenProtect').updateOne(
+          {code:source.code},
+          {$set:{...catalogue,updatedAt:now},$setOnInsert:{createdAt:now}},
+          {upsert:true}
+        );
+      }
+      try{await migrations.updateOne({_id:SUPPLIER_CATALOG_MIGRATION_ID},{$setOnInsert:{completedAt:now}},{upsert:true});}
       catch(error){if(error?.code!==11000)throw error;}
     }
     await this.db.collection('reviews').updateMany({verified:{$exists:false}},{$set:{verified:false,verifiedBy:'',verifiedAt:null,audit:[]}});
