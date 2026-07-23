@@ -1369,13 +1369,9 @@ async function serve(req,res,url){
     return res.end();
   }
   if(url.pathname==='/sitemap.xml'){
-    const fixed=['/','/catalog.html','/faq.html','/calculators.html','/categories/inverters','/categories/batteries','/categories/solar','/rishennia/invertor-dlia-domu.html','/rishennia/rezervne-zhyvlennia-dlia-biznesu.html','/rishennia/soniachni-paneli.html','/obladnannia/deye.html','/obladnannia/anenji.html','/obladnannia/easun.html','/obladnannia/lifepo4.html','/articles/5-pryladiv-iaki-zidaiut-avtonomnist.html','/gallery.html','/community.html'];
-    const dynamic=(await store.list('articles')).filter(item=>item.status==='published'&&item.slug).map(item=>({path:`/articles/${encodeURIComponent(item.slug)}.html`,updated:item.updatedAt||item.createdAt}));
-    const products=(await Promise.all(['equipment','solarPanels','greenProtect'].map(type=>store.list(type)))).flat().filter(item=>item.status==='active'&&item._id).map(item=>({path:equipmentUrl(item),updated:item.updatedAt||item.createdAt}));
-    const fixedEntries=await Promise.all(fixed.map(async pathname=>{if(pathname.startsWith('/categories/'))return{path:pathname};const file=path.join(ROOT,pathname==='/'?'index.html':pathname.slice(1));try{return{path:pathname,updated:(await fs.stat(file)).mtime.toISOString()}}catch{return{path:pathname}}}));
-    const entries=[...fixedEntries,...dynamic,...products].filter((item,index,array)=>array.findIndex(other=>other.path===item.path)===index);
-    const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${entries.map(item=>`\n  <url><loc>${PUBLIC_SITE_URL}${htmlEscape(item.path)}</loc>${item.updated?`<lastmod>${htmlEscape(String(item.updated).slice(0,10))}</lastmod>`:''}</url>`).join('')}\n</urlset>`;
-    res.writeHead(200,{'Content-Type':'application/xml; charset=utf-8','Cache-Control':'public, max-age=300'});return res.end(xml);
+    const xml=await fs.readFile(path.join(ROOT,'sitemap.xml'));
+    res.writeHead(200,{'Content-Type':'application/xml; charset=utf-8','Content-Length':String(xml.length),'Cache-Control':'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800'});
+    return res.end(xml);
   }
   const categoryMatch=url.pathname.match(/^\/categories\/([a-z-]+)\/?$/);
   if(categoryMatch){

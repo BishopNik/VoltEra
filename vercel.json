@@ -18,7 +18,6 @@
     { "source": "/products/:slug", "destination": "/api/product-page?slug=:slug" },
     { "source": "/articles/:slug.html", "destination": "/api/article-page?slug=:slug" },
     { "source": "/proposal/:token", "destination": "/proposal.html" },
-    { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/api/:path*", "destination": "/api/router?path=:path*" }
   ],
   "headers": [
@@ -44,6 +43,12 @@
       "source": "/analytics-config.js",
       "headers": [
         { "key": "Cache-Control", "value": "no-store" }
+      ]
+    },
+    {
+      "source": "/sitemap.xml",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800" }
       ]
     },
     {
