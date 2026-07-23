@@ -365,13 +365,19 @@ const reviewForm = $('#review-form');
 const reviewTrack = $('.review-track');
 const reviews = [];
 let reviewIndex = 0;
+function reviewPageSize() {
+  if (window.matchMedia('(min-width: 1180px)').matches) return 3;
+  if (window.matchMedia('(min-width: 801px)').matches) return 2;
+  return 1;
+}
 function showReview(index) {
   if (!reviews.length) return;
   reviewIndex = (index + reviews.length) % reviews.length;
-  const desktop = window.matchMedia('(min-width: 801px)').matches;
+  const visibleCount = Math.min(reviewPageSize(), reviews.length);
   reviews.forEach((review, i) => {
     review.classList.toggle('is-current', i === reviewIndex);
-    review.classList.toggle('is-companion', desktop && i === (reviewIndex + 1) % reviews.length);
+    review.classList.toggle('is-companion', visibleCount > 1 && i === (reviewIndex + 1) % reviews.length);
+    review.classList.toggle('is-tertiary', visibleCount > 2 && i === (reviewIndex + 2) % reviews.length);
   });
 }
 function createReview(data) {
@@ -398,8 +404,9 @@ async function loadReviews() {
   showReview(0);
   enhanceClickableHints(reviewTrack);
 }
-$('.review-prev').addEventListener('click', () => showReview(reviewIndex - (window.innerWidth > 800 ? 2 : 1)));
-$('.review-next').addEventListener('click', () => showReview(reviewIndex + (window.innerWidth > 800 ? 2 : 1)));
+$('.review-prev').addEventListener('click', () => showReview(reviewIndex - Math.min(reviewPageSize(), reviews.length || 1)));
+$('.review-next').addEventListener('click', () => showReview(reviewIndex + Math.min(reviewPageSize(), reviews.length || 1)));
+window.addEventListener('resize', () => showReview(reviewIndex));
 $('.review-add').addEventListener('click', () => {
   reviewForm.hidden = false;
   reviewForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
