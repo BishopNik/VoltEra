@@ -56,9 +56,13 @@ const GREEN_PROTECT_PURCHASE_MIGRATION_ID = 'set-green-protect-purchase-prices-2
 const PV_CATALOG_MEDIA_MIGRATION_ID = 'set-pv-catalog-media-and-usage-2026-07-21-v2';
 const PUBLIC_PROPOSALS_MIGRATION_ID = 'public-commercial-proposals-2026-07-22-v1';
 const SUPPLIER_CATALOG_MIGRATION_ID = 'supplier-catalog-and-prices-2026-07-23-v1';
+const PRODUCT_SUPPLIER_MIGRATION_ID = 'select-best-product-supplier-2026-07-23-v1';
+const SUPPLIER_OLEKSANDR = 'Олександр Городоцька';
+const SUPPLIER_PRAVYLNE = 'Правильне електроживлення';
+const SUPPLIER_ETI = 'ETI Україна';
 const EQUIPMENT_RETAIL_PRICES = Object.freeze({
-  'SE-G5.1 Pro-B':'38 900 грн',
-  'SE-F5 Pro-C':'38 500 грн',
+  'SE-G5.1 Pro-B':'38 500 грн',
+  'SE-F5 Pro-C':'37 900 грн',
   'RW-F16':'94 900 грн',
   'FLA48314-EU':'89 900 грн',
   'SUN-6K-SG05LP1-AM2-P':'35 900 грн',
@@ -69,37 +73,37 @@ const EQUIPMENT_RETAIL_PRICES = Object.freeze({
   'SUN-15K-SG05LP3-EU-SM2':'89 900 грн',
   'SUN-20K-SG05LP3-EU-SM2':'119 900 грн',
   'SUN-30K-SG02HP3-EU-BM3':'129 900 грн',
-  'SUN-50K-SG01HP3-EU-BM4':'202 900 грн',
+  'SUN-50K-SG01HP3-EU-BM4':'201 900 грн',
   'SUN-80K-SG02HP3-EU-EM6':'264 900 грн',
-  'BOS-G PRO':'38 900 грн',
-  'BOS-G-PDU-2 BMS':'38 900 грн',
-  'Стійка BOS-G PRO на 12 АКБ':'18 900 грн',
+  'BOS-G PRO':'38 500 грн',
+  'BOS-G-PDU-2 BMS':'37 500 грн',
+  'Стійка BOS-G PRO на 12 АКБ':'17 900 грн',
   'ANJ-LP04-24V-100A-PX':'15 900 грн',
   'ANJ-6200W-48V-W':'13 900 грн',
   'ANJ-4000W-24V-W':'10 900 грн'
 });
 // Purchase values are deliberately kept in the authenticated CRM payload only.
 const EQUIPMENT_COMMERCE = Object.freeze({
-  'SE-G5.1 Pro-B':{priceUsd:880,purchasePrice:770,purchaseCurrency:'USD'},
-  'SE-F5 Pro-C':{priceUsd:870,purchasePrice:760,purchaseCurrency:'USD'},
-  'RW-F16':{priceUsd:2140,purchasePrice:1820,purchaseCurrency:'USD'},
-  'FLA48314-EU':{priceUsd:2030,purchasePrice:1770,purchaseCurrency:'USD'},
-  'SUN-6K-SG05LP1-AM2-P':{priceUsd:815,purchasePrice:770,purchaseCurrency:'USD'},
-  'SUN-8K-SG01LP1-EU':{priceUsd:1195,purchasePrice:1080,purchaseCurrency:'USD'},
-  'SUN-10K-SG02LP1-EU-AM3':{priceUsd:1695,purchasePrice:1530,purchaseCurrency:'USD'},
-  'SUN-12K-SG02LP1-EU-AM3':{priceUsd:1740,purchasePrice:1570,purchaseCurrency:'USD'},
-  'SUN-12K-SG05LP3-EU':{priceUsd:1785,purchasePrice:1600,purchaseCurrency:'USD'},
-  'SUN-15K-SG05LP3-EU-SM2':{priceUsd:2035,purchasePrice:1800,purchaseCurrency:'USD'},
-  'SUN-20K-SG05LP3-EU-SM2':{priceUsd:2710,purchasePrice:2370,purchaseCurrency:'USD'},
-  'SUN-30K-SG02HP3-EU-BM3':{priceUsd:2940,purchasePrice:2620,purchaseCurrency:'USD'},
-  'SUN-50K-SG01HP3-EU-BM4':{priceUsd:4590,purchasePrice:4120,purchaseCurrency:'USD'},
-  'SUN-80K-SG02HP3-EU-EM6':{priceUsd:5990,purchasePrice:5520,purchaseCurrency:'USD'},
-  'BOS-G PRO':{priceUsd:880,purchasePrice:760,purchaseCurrency:'USD'},
-  'BOS-G-PDU-2 BMS':{priceUsd:880,purchasePrice:780,purchaseCurrency:'USD'},
-  'Стійка BOS-G PRO на 12 АКБ':{priceUsd:430,purchasePrice:360,purchaseCurrency:'USD'},
-  'ANJ-LP04-24V-100A-PX':{priceUsd:360,purchasePrice:290,purchaseCurrency:'USD'},
-  'ANJ-6200W-48V-W':{priceUsd:315,purchasePrice:240,purchaseCurrency:'USD'},
-  'ANJ-4000W-24V-W':{priceUsd:250,purchasePrice:190,purchaseCurrency:'USD'}
+  'SE-G5.1 Pro-B':{priceUsd:870,purchasePrice:760,purchaseCurrency:'USD',supplier:SUPPLIER_PRAVYLNE},
+  'SE-F5 Pro-C':{priceUsd:860,purchasePrice:750,purchaseCurrency:'USD',supplier:SUPPLIER_PRAVYLNE},
+  'RW-F16':{priceUsd:2140,purchasePrice:1820,purchaseCurrency:'USD',supplier:SUPPLIER_OLEKSANDR},
+  'FLA48314-EU':{priceUsd:2030,purchasePrice:1770,purchaseCurrency:'USD',supplier:SUPPLIER_OLEKSANDR},
+  'SUN-6K-SG05LP1-AM2-P':{priceUsd:815,purchasePrice:770,purchaseCurrency:'USD',supplier:SUPPLIER_OLEKSANDR},
+  'SUN-8K-SG01LP1-EU':{priceUsd:1195,purchasePrice:1080,purchaseCurrency:'USD',supplier:SUPPLIER_OLEKSANDR},
+  'SUN-10K-SG02LP1-EU-AM3':{priceUsd:1695,purchasePrice:1530,purchaseCurrency:'USD',supplier:SUPPLIER_OLEKSANDR},
+  'SUN-12K-SG02LP1-EU-AM3':{priceUsd:1740,purchasePrice:1570,purchaseCurrency:'USD',supplier:SUPPLIER_OLEKSANDR},
+  'SUN-12K-SG05LP3-EU':{priceUsd:1785,purchasePrice:1600,purchaseCurrency:'USD',supplier:SUPPLIER_OLEKSANDR},
+  'SUN-15K-SG05LP3-EU-SM2':{priceUsd:2035,purchasePrice:1800,purchaseCurrency:'USD',supplier:SUPPLIER_OLEKSANDR},
+  'SUN-20K-SG05LP3-EU-SM2':{priceUsd:2710,purchasePrice:2370,purchaseCurrency:'USD',supplier:SUPPLIER_OLEKSANDR},
+  'SUN-30K-SG02HP3-EU-BM3':{priceUsd:2940,purchasePrice:2620,purchaseCurrency:'USD',supplier:SUPPLIER_OLEKSANDR},
+  'SUN-50K-SG01HP3-EU-BM4':{priceUsd:4570,purchasePrice:4100,purchaseCurrency:'USD',supplier:SUPPLIER_PRAVYLNE},
+  'SUN-80K-SG02HP3-EU-EM6':{priceUsd:5990,purchasePrice:5520,purchaseCurrency:'USD',supplier:SUPPLIER_OLEKSANDR},
+  'BOS-G PRO':{priceUsd:870,purchasePrice:750,purchaseCurrency:'USD',supplier:SUPPLIER_PRAVYLNE},
+  'BOS-G-PDU-2 BMS':{priceUsd:850,purchasePrice:750,purchaseCurrency:'USD',supplier:SUPPLIER_PRAVYLNE},
+  'Стійка BOS-G PRO на 12 АКБ':{priceUsd:410,purchasePrice:340,purchaseCurrency:'USD',supplier:SUPPLIER_PRAVYLNE},
+  'ANJ-LP04-24V-100A-PX':{priceUsd:360,purchasePrice:290,purchaseCurrency:'USD',supplier:SUPPLIER_OLEKSANDR},
+  'ANJ-6200W-48V-W':{priceUsd:315,purchasePrice:240,purchaseCurrency:'USD',supplier:SUPPLIER_OLEKSANDR},
+  'ANJ-4000W-24V-W':{priceUsd:250,purchasePrice:190,purchaseCurrency:'USD',supplier:SUPPLIER_OLEKSANDR}
 });
 const LEGACY_EQUIPMENT_IMAGE_PATHS = new Map([
   ['ANJ-LP04-24V-100A-PX','/assets/equipment/anenji-anj-lp04-24v-100a-px.webp'],
@@ -206,7 +210,7 @@ const REQUESTED_SOLAR_PANELS = [
   ['longi-620-bf','LONGi','LR8-66HGD-620M BF','620 W','N-type · двостороння',102.3,4790,108,'https://static.longi.com/Images_412x612_11869e6bbf.png','https://www.longi.com/en/products/modules/hi-mo-7/','великих дахових, наземних і комерційних СЕС'],
   ['jinko-620-bf','Jinko Solar','JKM620N-66HL4M-BDV','620 W','TOPCon N-type · двостороння',102.3,5190,117,'https://vencon.ua/uploads/goods/352689/main/jinko-solar-jkm-620n-66hl4m-bdv-bifacial-620vt.jpg','https://www.jinkosolar.com/uploads/JKM600-625N-66HL4M-BDV-F1-EN.pdf','дахових, наземних і промислових СЕС'],
   ['jetion-620-bf','Jetion Solar','JT620SLt(B)','620 W','TOPCon N-type · двостороння',97.34,4790,108,'/assets/catalog/solar-panel.svg','https://www.jetion.com.cn/Upload/2026/05/dce85b0f45e44254a9f0616d0d50a8e5.pdf','дахових, наземних і промислових СЕС']
-].map(([_id,brand,model,power,technology,purchasePrice,price,priceUsd,image,sourceUrl,usage],homeOrder)=>({_id,brand,model,power,technology,phase:technology,voltage:'',purchasePrice,purchaseCurrency:'USD',price:`${price.toLocaleString('uk-UA')} грн`,priceUsd,description:`${brand} ${model} — сонячна панель ${power} для ${usage}. Панель можна придбати окремо або разом із комплектом для підключення.`,sourceUrl,images:[image],status:'active',homeOrder:homeOrder+1}));
+].map(([_id,brand,model,power,technology,purchasePrice,price,priceUsd,image,sourceUrl,usage],homeOrder)=>({_id,brand,model,power,technology,phase:technology,voltage:'',purchasePrice,purchaseCurrency:'USD',supplier:SUPPLIER_OLEKSANDR,price:`${price.toLocaleString('uk-UA')} грн`,priceUsd,description:`${brand} ${model} — сонячна панель ${power} для ${usage}. Панель можна придбати окремо або разом із комплектом для підключення.`,sourceUrl,images:[image],status:'active',homeOrder:homeOrder+1}));
 
 const etiProductId=code=>String(code).padStart(9,'0');
 const etiUsage=category=>({
@@ -219,7 +223,7 @@ const etiUsage=category=>({
 }[category]||'побудови та захисту електричних кіл сонячної станції');
 const etiProduct=(code,name,category,listPrice,spec='')=>({
   _id:`eti-${code}`,code,brand:'ETI',model:name,name,category,listPrice,
-  purchasePrice:Math.round(listPrice*0.65),purchaseCurrency:'UAH',
+  purchasePrice:Math.round(listPrice*0.65),purchaseCurrency:'UAH',supplier:SUPPLIER_ETI,
   price:`${Math.round(listPrice*0.85).toLocaleString('uk-UA')} грн`,priceUsd:0,
   power:spec,phase:category,voltage:'DC',spec,
   description:`${name} використовується для ${etiUsage(category)}. Компонент можна придбати окремо у потрібній кількості.`,
@@ -260,21 +264,21 @@ const REQUESTED_INSTALLATION_COMPONENTS = [
   {
     _id:'mounting-profile-41x41',code:'MOUNT-4141',brand:'Монтажні системи',model:'Оцинкований профіль 41×41',name:'Оцинкований профіль 41×41',
     category:'Монтажні комплектуючі',spec:'41×41 мм · 1 м.п.',power:'41×41 мм',phase:'Профіль',voltage:'1 м.п.',
-    purchasePrice:2.6,purchaseCurrency:'USD',price:'149 грн/м.п.',priceUsd:3.4,
+    purchasePrice:2.6,purchaseCurrency:'USD',supplier:SUPPLIER_OLEKSANDR,price:'149 грн/м.п.',priceUsd:3.4,
     description:'Оцинкований монтажний профіль 41×41 мм для кріплення сонячних панелей, кабельних трас та обладнання СЕС. Відпускається погонними метрами.',
     sourceUrl:'',images:['/assets/catalog/green-protect.svg'],status:'active'
   },
   {
     _id:'mounting-screw-m10-1-5-200',code:'M10-1.5-200',brand:'Монтажні системи',model:'Гвинт-шуруп М10×1.5×200',name:'Гвинт-шуруп М10×1.5×200',
     category:'Монтажні комплектуючі',spec:'M10 · 200 мм · 1 шт.',power:'M10×200 мм',phase:'Кріплення',voltage:'1 шт.',
-    purchasePrice:1.3,purchaseCurrency:'USD',price:'79 грн/шт.',priceUsd:1.8,
+    purchasePrice:1.3,purchaseCurrency:'USD',supplier:SUPPLIER_OLEKSANDR,price:'79 грн/шт.',priceUsd:1.8,
     description:'Гвинт-шуруп М10×1.5×200 мм для надійного монтажу профілю та конструкцій сонячної електростанції. Продається поштучно.',
     sourceUrl:'',images:['/assets/catalog/green-protect.svg'],status:'active'
   },
   {
     _id:'kbe-solar-cable-6mm',code:'KBE-PV-6MM',brand:'KBE',model:'Сонячний кабель KBE 6 мм²',name:'Сонячний кабель KBE 6 мм²',
     category:'Кабелі для СЕС',spec:'6 мм² · 1 м.п.',power:'6 мм²',phase:'PV-кабель',voltage:'DC · 1 м.п.',
-    purchasePrice:1.3,purchaseCurrency:'USD',price:'79 грн/м.п.',priceUsd:1.8,
+    purchasePrice:1.3,purchaseCurrency:'USD',supplier:SUPPLIER_OLEKSANDR,price:'79 грн/м.п.',priceUsd:1.8,
     description:'Спеціалізований кабель KBE перерізом 6 мм² для DC-ліній фотоелектричних систем. Стійкий до ультрафіолету та зовнішнього монтажу, відпускається погонними метрами.',
     sourceUrl:'',images:['/assets/catalog/green-protect.svg'],status:'active'
   }
@@ -392,6 +396,23 @@ class FileStore {
         else this.data.greenProtect.push({...source,createdAt:now,updatedAt:now});
       }
       this.data._migrations.push(SUPPLIER_CATALOG_MIGRATION_ID); changed=true;
+    }
+    if(!this.data._migrations.includes(PRODUCT_SUPPLIER_MIGRATION_ID)){
+      const now=new Date().toISOString();
+      for(const item of this.data.equipment){
+        const commerce=EQUIPMENT_COMMERCE[String(item.model||'').trim()];
+        const price=EQUIPMENT_RETAIL_PRICES[String(item.model||'').trim()];
+        if(commerce)Object.assign(item,{...commerce,...(price?{price}:{}),updatedAt:now});
+      }
+      for(const source of REQUESTED_SOLAR_PANELS){
+        const item=this.data.solarPanels.find(entry=>String(entry.model)===String(source.model));
+        if(item)Object.assign(item,{supplier:source.supplier,updatedAt:now});
+      }
+      for(const source of [...REQUESTED_GREEN_PROTECT,...REQUESTED_INSTALLATION_COMPONENTS]){
+        const item=this.data.greenProtect.find(entry=>String(entry.code)===String(source.code));
+        if(item)Object.assign(item,{supplier:source.supplier,updatedAt:now});
+      }
+      this.data._migrations.push(PRODUCT_SUPPLIER_MIGRATION_ID); changed=true;
     }
     for(const review of this.data.reviews||[]){ if(review.verified===undefined){ review.verified=false; review.verifiedBy=''; review.verifiedAt=null; review.audit=[]; changed=true; } if(!Array.isArray(review.audit)){ review.audit=[]; changed=true; } }
     if(!this.data._migrations.includes(PUBLIC_PROPOSALS_MIGRATION_ID)){
@@ -567,6 +588,21 @@ class MongoStore {
         );
       }
       try{await migrations.updateOne({_id:SUPPLIER_CATALOG_MIGRATION_ID},{$setOnInsert:{completedAt:now}},{upsert:true});}
+      catch(error){if(error?.code!==11000)throw error;}
+    }
+    if(!await migrations.findOne({_id:PRODUCT_SUPPLIER_MIGRATION_ID})){
+      const now=new Date().toISOString();
+      for(const [model,commerce] of Object.entries(EQUIPMENT_COMMERCE)){
+        const price=EQUIPMENT_RETAIL_PRICES[model];
+        await this.db.collection('equipment').updateMany({model},{$set:{...commerce,...(price?{price}:{}),updatedAt:now}});
+      }
+      for(const source of REQUESTED_SOLAR_PANELS){
+        await this.db.collection('solarPanels').updateMany({model:source.model},{$set:{supplier:source.supplier,updatedAt:now}});
+      }
+      for(const source of [...REQUESTED_GREEN_PROTECT,...REQUESTED_INSTALLATION_COMPONENTS]){
+        await this.db.collection('greenProtect').updateMany({code:source.code},{$set:{supplier:source.supplier,updatedAt:now}});
+      }
+      try{await migrations.updateOne({_id:PRODUCT_SUPPLIER_MIGRATION_ID},{$setOnInsert:{completedAt:now}},{upsert:true});}
       catch(error){if(error?.code!==11000)throw error;}
     }
     await this.db.collection('reviews').updateMany({verified:{$exists:false}},{$set:{verified:false,verifiedBy:'',verifiedAt:null,audit:[]}});
@@ -764,7 +800,7 @@ async function body(req,limit=2_500_000){
   throw new Error('UNSUPPORTED_CONTENT_TYPE');
 }
 function compareSafe(a='',b=''){ const left=Buffer.from(String(a)); const right=Buffer.from(String(b)); if(left.length!==right.length)return false; return crypto.timingSafeEqual(left,right); }
-function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','items','status','manager','checkedBy','viewedAt','attribution','emailCopySent','emailCopyId','emailCopyError'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','status','images','homeMode','homeOrder'],solarPanels:['brand','model','power','technology','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','description','sourceUrl','status','images','homeOrder'],greenProtect:['code','brand','model','name','category','spec','power','phase','voltage','listPrice','purchasePrice','purchaseCurrency','price','priceUsd','description','sourceUrl','status','images'],quotes:['number','customerName','company','email','phone','city','validUntil','note','items','currency','subtotal','status','sharedWith','sourceLeadId','sentAt','emailStatus','emailId','emailError'],purchases:['supplier','date','amount','currency','customer','list','comment','status','attachments','createdBy']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
+function sanitize(type,input){ const allowed={leads:['name','phone','email','city','object','need','comment','items','status','manager','checkedBy','viewedAt','attribution','emailCopySent','emailCopyId','emailCopyError'],reviews:['name','city','rating','text','reply','status','verified','viewedAt'],questions:['author','city','title','status','likes','answers','viewedAt'],faqs:['question','answer','status','order'],projects:['title','city','type','description','image','images','status'],articles:['title','slug','excerpt','body','category','status','image','images'],equipment:['brand','model','power','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','supplier','description','status','images','homeMode','homeOrder'],solarPanels:['brand','model','power','technology','phase','voltage','price','priceUsd','purchasePrice','purchaseCurrency','supplier','description','sourceUrl','status','images','homeOrder'],greenProtect:['code','brand','model','name','category','spec','power','phase','voltage','listPrice','purchasePrice','purchaseCurrency','supplier','price','priceUsd','description','sourceUrl','status','images'],quotes:['number','customerName','company','email','phone','city','validUntil','note','items','currency','subtotal','status','sharedWith','sourceLeadId','sentAt','emailStatus','emailId','emailError'],purchases:['supplier','date','amount','currency','customer','list','comment','status','attachments','createdBy']}[type]||[]; return Object.fromEntries(allowed.filter(k=>input[k]!==undefined).map(k=>[k,input[k]])); }
 
 function cleanText(value='',limit=500){return String(value??'').trim().slice(0,limit)}
 function validEmail(value=''){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).trim())}
@@ -837,21 +873,21 @@ function sanitizeAttribution(value={}){
 }
 function publicReview(item){ const {audit,viewedAt,verifiedBy,verifiedAt,...safe}=item; return safe; }
 function publicEquipmentSummary(item={}){
-  const {image,images,description,descriptionEn,translations,audit,viewedAt,purchasePrice,purchaseCurrency,...summary}=item;
+  const {image,images,description,descriptionEn,translations,audit,viewedAt,purchasePrice,purchaseCurrency,supplier,...summary}=item;
   const normalized=normalizedEquipmentImages(item);
   return {...summary,imageCount:normalized.length,thumbnail:normalized[0]||''};
 }
 function publicEquipmentDetail(item={}){
-  const {image,audit,viewedAt,purchasePrice,purchaseCurrency,...detail}=item;
+  const {image,audit,viewedAt,purchasePrice,purchaseCurrency,supplier,...detail}=item;
   return {...detail,images:normalizedEquipmentImages(item)};
 }
 function publicCatalogSummary(item={}){
-  const {image,audit,viewedAt,purchasePrice,purchaseCurrency,listPrice,...summary}=item;
+  const {image,audit,viewedAt,purchasePrice,purchaseCurrency,supplier,listPrice,...summary}=item;
   const normalized=[...(Array.isArray(item.images)?item.images:[]),image].filter(Boolean);
   return {...summary,images:normalized,imageCount:normalized.length,thumbnail:normalized[0]||''};
 }
 function publicCatalogDetail(item={}){
-  const {audit,viewedAt,purchasePrice,purchaseCurrency,listPrice,...detail}=item;
+  const {audit,viewedAt,purchasePrice,purchaseCurrency,supplier,listPrice,...detail}=item;
   return detail;
 }
 function clientAddress(req){return String(req.headers['x-forwarded-for']||req.socket?.remoteAddress||'unknown').split(',')[0].trim().slice(0,80)}
