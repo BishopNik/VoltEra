@@ -449,6 +449,24 @@ const projectDialog = $('#project-dialog');
 const projectGrid = $('.project-grid');
 const projectData = new Map();
 let projectReturnY = 0;
+const projectVisualizationNote = $('.project-visualization-note');
+const isPublishedProject = project => ['published', 'active'].includes(String(project?.status || '').trim().toLowerCase());
+function projectImages(project = {}) {
+  const primary = project.primaryImage || project.image || '';
+  return [...new Set([primary, ...(Array.isArray(project.images) ? project.images : []), project.image].filter(Boolean))];
+}
+function projectPlainText(value = '') {
+  return String(value)
+    .replace(/#{1,4}\s+/g, '')
+    .replace(/\*\*|__/g, '')
+    .replace(/^\s*(?:[-*•]|\d+[.)])\s+/gm, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+function projectCardGallery(images, title) {
+  const visible = images.slice(0, 3);
+  return `<span class="project-card-gallery project-card-gallery-${visible.length || 1}">${visible.map((src, imageIndex) => `<img src="${escapeHtml(src || '/assets/projects/home-backup.jpg')}" alt="${escapeHtml(imageIndex ? `${title}, фото ${imageIndex + 1}` : title)}" loading="lazy">`).join('')}${images.length > 3 ? `<b class="project-photo-count">+${images.length - 3}</b>` : ''}</span>`;
+}
 function projectFromButton(button) {
   const card = button.closest('.project-card');
   const image = button.querySelector('img');
@@ -459,19 +477,28 @@ function projectFromButton(button) {
   const stats = label.split('·').map(item => item.trim()).filter(Boolean);
   return {
     image: image?.getAttribute('src') || '/assets/projects/home-backup.jpg',
+    images: [image?.getAttribute('src') || '/assets/projects/home-backup.jpg'],
     title,
     copy,
-    stats: [stats[0] || 'обʼєкт', stats[1] || 'Україна', stats[2] || 'опубліковано']
+    stats: [stats[0] || 'обʼєкт', stats[1] || 'Україна', stats[2] || 'Реалізований']
   };
 }
 function openProject(button) {
   if (!projectDialog || !button) return;
   projectReturnY = window.scrollY;
   const data = projectData.get(button.dataset.project) || projectFromButton(button);
-  $('img', projectDialog).src = data.image;
-  $('img', projectDialog).alt = button.querySelector('img')?.alt || data.title;
+  const images = Array.isArray(data.images) && data.images.length ? data.images : [data.image];
+  const mainImage = $('.project-dialog-media>img', projectDialog);
+  mainImage.src = images[0];
+  mainImage.alt = button.querySelector('img')?.alt || data.title;
+  const thumbs = $('.project-dialog-thumbs', projectDialog);
+  thumbs.innerHTML = images.length > 1 ? images.map((src, index) => `<button type="button" class="${index === 0 ? 'is-active' : ''}" data-project-image="${escapeHtml(src)}" aria-label="${escapeHtml(uiText('Показати фото', 'Show photo'))} ${index + 1}"><img src="${escapeHtml(src)}" alt=""></button>`).join('') : '';
+  $$('[data-project-image]', thumbs).forEach(thumb => thumb.addEventListener('click', () => {
+    mainImage.src = thumb.dataset.projectImage;
+    $$('button', thumbs).forEach(item => item.classList.toggle('is-active', item === thumb));
+  }));
   $('h2', projectDialog).textContent = data.title;
-  $('.project-dialog-copy', projectDialog).textContent = data.copy;
+  $('.project-dialog-copy', projectDialog).innerHTML = renderSimpleMarkdown(data.copy);
   $$('#project-dialog dd').forEach((item, index) => { item.textContent = data.stats[index] || '—'; });
   projectDialog.setAttribute('open', '');
   projectDialog.setAttribute('aria-modal', 'true');
@@ -501,21 +528,25 @@ function bindProjectButtons() {
 }
 function renderProjectCard(project, index) {
   const id = String(project._id || index);
-  const large = index === 0 ? ' project-large' : '';
   const title = localizedContent(project, 'title', uiText('Обʼєкт ІНК', 'INK project'));
   const description = localizedContent(project, 'description');
   const type = localizedContent(project, 'type', uiText('об’єкт', 'project'));
   const city = localizedContent(project, 'city', uiText('Україна', 'Ukraine'));
-  const status = project.status === 'published' ? uiText('Опубліковано', 'Published') : uiText('Активний', 'Active');
-  projectData.set(id, { image:project.image || '/assets/projects/home-backup.jpg', title:`${title} / ${city}`, copy:description || uiText('Паспорт системи редагується в адмінці.', 'Project details are maintained in CRM.'), stats:[type, city, status] });
-  return `<article class="project-card${large} reveal visible"><button type="button" class="project-open" data-project="${escapeHtml(id)}" aria-label="${escapeHtml(uiText('Відкрити обʼєкт', 'Open project'))} ${escapeHtml(title)}"><img src="${escapeHtml(project.image || '/assets/projects/home-backup.jpg')}" alt="${escapeHtml(title)}" loading="lazy"><span class="project-arrow">↗</span></button><div class="project-meta"><div><span>${escapeHtml(city)} · ${escapeHtml(type)} · ${escapeHtml(status)}</span><h3>${escapeHtml(title)}</h3></div><p>${escapeHtml(description)}</p></div></article>`;
+  const status = uiText('Реалізований', 'Completed');
+  const images = projectImages(project);
+  const safeImages = images.length ? images : ['/assets/projects/home-backup.jpg'];
+  const copy = description || uiText('Паспорт системи редагується в адмінці.', 'Project details are maintained in CRM.');
+  projectData.set(id, { image:safeImages[0], images:safeImages, title, copy, stats:[type, city, status] });
+  return `<article class="project-card reveal visible"><div class="project-meta"><span>${escapeHtml(city)} · ${escapeHtml(type)} · ${escapeHtml(status)}</span><h3>${escapeHtml(title)}</h3></div><button type="button" class="project-open" data-project="${escapeHtml(id)}" aria-label="${escapeHtml(uiText('Відкрити обʼєкт', 'Open project'))} ${escapeHtml(title)}">${projectCardGallery(safeImages, title)}<span class="project-arrow">↗</span></button><p class="project-summary">${escapeHtml(projectPlainText(copy))}</p></article>`;
 }
 async function loadProjects() {
   projectGrid.innerHTML = loadingMarkup(uiText('Завантажуємо об’єкти…', 'Loading projects…'));
-  const data = await apiList('projects');
-  if (!Array.isArray(data) || !data.length) { projectGrid.innerHTML = emptyMarkup(uiText('Географія оновлюється', 'Projects are being updated'), uiText('Нові об’єкти з’являться після перевірки та схвалення технічним відділом.', 'New projects will appear after review and approval by our technical team.')); return; }
+  const data = await apiList('projects', { fresh:true });
+  const publishedProjects = Array.isArray(data) ? data.filter(isPublishedProject) : [];
+  if (projectVisualizationNote) projectVisualizationNote.hidden = true;
+  if (!publishedProjects.length) { projectGrid.innerHTML = emptyMarkup(uiText('Географія оновлюється', 'Projects are being updated'), uiText('Нові об’єкти з’являться після перевірки та схвалення технічним відділом.', 'New projects will appear after review and approval by our technical team.')); return; }
   projectData.clear();
-  projectGrid.innerHTML = data.slice(0, 6).map(renderProjectCard).join('');
+  projectGrid.innerHTML = publishedProjects.slice(0, 6).map(renderProjectCard).join('');
   bindProjectButtons();
   enhanceClickableHints(projectGrid);
 }

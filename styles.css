@@ -585,3 +585,153 @@ a,button{transition:transform .18s,border-color .18s,background .18s,color .18s,
   .reviews .review-controls{gap:6px}
   .reviews .review-controls button{flex-basis:42px;width:42px;height:42px}
 }
+
+/* Projects: compact passport cards with a three-image preview. */
+.projects .project-grid{
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,480px),1fr));
+  align-items:start;
+}
+.projects .project-card{
+  display:grid;
+  grid-template-rows:auto auto auto;
+  min-width:0;
+}
+.projects .project-meta{
+  display:block;
+  padding:22px 24px 17px;
+}
+.projects .project-meta span{
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:9px;
+}
+.projects .project-meta h3{
+  margin:8px 0 0;
+  font-size:clamp(21px,2vw,29px);
+  line-height:1.08;
+}
+.projects .project-open,
+.projects .project-large .project-open{
+  height:clamp(220px,25vw,330px);
+}
+.project-card-gallery{
+  display:grid;
+  width:100%;
+  height:100%;
+  gap:3px;
+  background:#07110f;
+}
+.project-card-gallery img{
+  min-width:0;
+  min-height:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+.project-card-gallery-1{grid-template-columns:1fr}
+.project-card-gallery-2{grid-template-columns:1.45fr 1fr}
+.project-card-gallery-3{grid-template-columns:1.55fr 1fr;grid-template-rows:1fr 1fr}
+.project-card-gallery-3 img:first-child{grid-row:1/-1}
+.project-photo-count{
+  position:absolute;
+  right:18px;
+  bottom:17px;
+  z-index:2;
+  padding:7px 10px;
+  border-radius:999px;
+  background:#07110fd9;
+  color:#f7f8ed;
+  font-size:12px;
+}
+.projects .project-summary{
+  display:-webkit-box;
+  min-height:78px;
+  margin:0;
+  padding:18px 24px 21px;
+  overflow:hidden;
+  border-top:1px solid var(--line);
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.55;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:3;
+}
+.project-dialog{
+  grid-template-columns:minmax(0,1.08fr) minmax(360px,.92fr);
+  width:min(980px,calc(100vw - 36px));
+  height:min(700px,calc(100dvh - 36px));
+  max-height:calc(100dvh - 36px);
+  overflow:hidden;
+}
+.project-dialog[open],
+.project-dialog.is-open{display:grid}
+.project-dialog>.project-dialog-media{
+  display:grid;
+  grid-template-rows:minmax(0,1fr) auto;
+  min-width:0;
+  min-height:0;
+  padding:0;
+  overflow:hidden;
+  background:#050c0a;
+}
+.project-dialog-media>img{
+  display:block;
+  width:100%;
+  height:100%;
+  min-height:0;
+  object-fit:contain;
+}
+.project-dialog-thumbs{
+  display:flex;
+  gap:7px;
+  min-height:0;
+  padding:9px;
+  overflow-x:auto;
+  border-top:1px solid var(--line);
+}
+.project-dialog-thumbs:empty{display:none}
+.project-dialog-thumbs button{
+  flex:0 0 72px;
+  height:54px;
+  padding:2px;
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:transparent;
+  cursor:pointer;
+}
+.project-dialog-thumbs button.is-active{border-color:var(--acid)}
+.project-dialog-thumbs img{width:100%;height:100%;object-fit:cover;border-radius:6px}
+.project-dialog>.project-dialog-body{
+  min-width:0;
+  padding:31px 34px;
+  overflow:auto;
+}
+.project-dialog h2{
+  margin:12px 48px 18px 0;
+  font-size:clamp(28px,3vw,40px);
+  line-height:1.02;
+}
+.project-dialog-copy{max-width:none;color:var(--muted);font-size:13px;line-height:1.58}
+.project-dialog-copy p{margin:0 0 12px}
+.project-dialog-copy h3{margin:18px 0 8px;color:var(--ink);font-size:17px}
+.project-dialog-copy ul,.project-dialog-copy ol{margin:8px 0 14px;padding-left:20px}
+.project-dialog-copy strong{color:var(--ink)}
+.project-dialog dl{margin-top:20px}
+.project-dialog dl div{padding:13px}
+.project-dialog dd{font-size:15px}
+@media(max-width:800px){
+  .projects .project-open,.projects .project-large .project-open{height:280px}
+  .project-dialog{display:block;width:min(680px,calc(100vw - 24px));height:auto;max-height:calc(100dvh - 24px);overflow:auto}
+  .project-dialog[open],.project-dialog.is-open{display:block}
+  .project-dialog-media{height:min(390px,45vh)}
+  .project-dialog>.project-dialog-body{overflow:visible;padding:25px}
+}
+@media(max-width:430px){
+  .projects .project-meta{padding:18px 18px 14px}
+  .projects .project-summary{padding:15px 18px 18px}
+  .projects .project-open,.projects .project-large .project-open{height:235px}
+  .project-dialog-media{height:310px}
+}

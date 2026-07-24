@@ -169,6 +169,10 @@ async function api(path, options = {}) {
   }
 }
 
+function invalidatePublicCollectionCache(type) {
+  try { localStorage.removeItem(`voltares-public-api-v1:${type}`); } catch {}
+}
+
 async function refreshDashboard() {
   state.dashboard = await api('/api/dashboard');
   renderBadges();
@@ -601,8 +605,11 @@ function renderProjects() {
   const list = $('#admin-projects');
   if (!list) return;
   if (!state.projects.length) { list.innerHTML = emptyState('Розділ порожній', 'Додайте перший об’єкт із фото.'); return; }
-  list.innerHTML = state.projects.map(item => `
-    <article data-id="${item._id}"><img src="${escapeHtml(item.image || '/assets/projects/home-backup.jpg')}" alt="${escapeHtml(item.title)}"><div><b class="${item.status === 'draft' ? 'draft' : ''}">Статус: ${escapeHtml(statusLabels[item.status]?.[0] || item.status || 'Опубліковано')}</b><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.city || '—')} · ${escapeHtml(item.type || 'об’єкт')}</p><label class="inline-status">Показ на сайті<select class="project-status"><option value="published">Опубліковано</option><option value="draft">Чернетка</option></select></label><div class="project-crm-actions"><button class="edit-project" type="button">Редагувати</button><button class="delete-project danger-link" type="button">Видалити</button></div></div></article>`).join('');
+  list.innerHTML = state.projects.map(item => {
+    const images = [...new Set([item.primaryImage, item.image, ...(Array.isArray(item.images) ? item.images : [])].filter(Boolean))];
+    return `
+    <article data-id="${item._id}"><div class="admin-project-cover"><img src="${escapeHtml(images[0] || '/assets/projects/home-backup.jpg')}" alt="${escapeHtml(item.title)}"><span>${images.length} фото</span></div><div><b class="${item.status === 'draft' ? 'draft' : ''}">Статус: ${escapeHtml(statusLabels[item.status]?.[0] || item.status || 'Опубліковано')}</b><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.city || '—')} · ${escapeHtml(item.type || 'об’єкт')}</p><label class="inline-status">Показ на сайті<select class="project-status"><option value="published">Опубліковано</option><option value="draft">Чернетка</option></select></label><div class="project-crm-actions"><button class="edit-project" type="button">Редагувати</button><button class="delete-project danger-link" type="button">Видалити</button></div></div></article>`;
+  }).join('');
   $$('.project-status', list).forEach(select => {
     const article = select.closest('article');
     const item = state.projects.find(project => String(project._id) === article.dataset.id);
@@ -611,6 +618,7 @@ function renderProjects() {
       select.disabled = true;
       try {
         await api(`/api/projects/${article.dataset.id}`, { method: 'PATCH', body: JSON.stringify({ status: select.value }) });
+        invalidatePublicCollectionCache('projects');
         await loadCollection('projects');
         renderProjects();
       } catch (error) {
@@ -1253,7 +1261,7 @@ const configs = {
   leads: { title: 'заявку', fields: [['name', 'Ваше ім’я', 'text', true], ['phone', 'Телефон', 'tel', true], ['email', 'Email', 'email'], ['city', 'Місто', 'text'], ['object', 'Тип об’єкта', 'text'], ['need', 'Що потрібно?', 'text'], ['comment', 'Коментар', 'textarea'], ['status', 'Статус', 'select', false, ['new', 'work', 'calc', 'done']], ['manager', 'Хто взяв у роботу', 'text'], ['checkedBy', 'Хто перевірив', 'text']] },
   questions: { title: 'питання та відповідь', fields: [['author', 'Автор питання', 'text'], ['city', 'Місто', 'text'], ['title', 'Питання', 'text', true], ['answer', 'Відповідь інженера', 'textarea']] },
   faqs: { title: 'короткий FAQ', fields: [['question', 'Питання', 'text', true], ['answer', 'Відповідь', 'textarea', true], ['status', 'Статус', 'select', false, ['active', 'draft']]] },
-  projects: { title: "об'єкт", fields: [['title', 'Назва', 'text', true], ['city', 'Локація', 'text'], ['type', 'Тип об’єкта', 'text'], ['description', 'Опис', 'textarea'], ['imageFile', 'Фото об’єкта', 'file'], ['status', 'Статус', 'select', false, ['published', 'draft']]] },
+  projects: { title: "об'єкт", fields: [['title', 'Назва', 'text', true], ['city', 'Локація', 'text'], ['type', 'Тип об’єкта', 'text'], ['description', 'Опис (підтримуються абзаци, списки та **жирний текст**)', 'textarea'], ['imageFiles', 'Додати фото об’єкта (можна кілька)', 'files'], ['status', 'Статус', 'select', false, ['published', 'draft']]] },
   articles: { title: 'статтю', fields: [['title', 'Назва', 'text', true], ['slug', 'Адреса сторінки (латиницею, без пробілів)', 'text'], ['category', 'Категорія', 'text'], ['excerpt', 'Короткий SEO-опис', 'textarea'], ['body', 'Повний текст статті', 'textarea'], ['imageFiles', 'Фото статті (можна кілька)', 'files'], ['status', 'Статус', 'select', false, ['published', 'draft']]] },
   equipment: { title: 'модель обладнання', fields: [['brand', 'Бренд', 'text', true], ['model', 'Модель', 'text', true], ['power', 'Потужність', 'text'], ['phase', 'Фази / Тип', 'choice', false, ['1 фаза', '3 фази', 'LiFePO₄', 'HV']], ['voltage', 'Напруга', 'text'], ['price', 'Роздрібна ціна, грн', 'text'], ['priceUsd', 'Роздрібна ціна, USD', 'number'], ['purchasePrice', 'Закупівельна ціна (лише CRM)', 'number'], ['purchaseCurrency', 'Валюта закупівлі', 'select', false, ['USD', 'EUR', 'UAH']], ['supplier', 'Постачальник (лише CRM)', 'text'], ['homeMode', 'Показ на головній', 'select', false, ['auto', 'featured', 'hidden']], ['description', 'Опис для сайту', 'textarea'], ['imageFiles', 'Фото моделі (можна кілька)', 'files'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] },
   solarPanels: { title: 'сонячну панель', fields: [['brand', 'Бренд', 'text', true], ['model', 'Модель', 'text', true], ['power', 'Потужність', 'text', true], ['technology', 'Технологія / тип', 'text'], ['price', 'Роздрібна ціна, грн', 'text'], ['priceUsd', 'Роздрібна ціна, USD', 'number'], ['purchasePrice', 'Закупівельна ціна (лише CRM)', 'number'], ['purchaseCurrency', 'Валюта закупівлі', 'select', false, ['USD', 'EUR', 'UAH']], ['supplier', 'Постачальник (лише CRM)', 'text'], ['description', 'Короткий опис', 'textarea'], ['imageFiles', 'Фото панелі', 'files'], ['status', 'Статус', 'select', false, ['active', 'review', 'draft']]] },
@@ -1277,6 +1285,30 @@ function fieldTemplate([name, label, type, required, options = []], item = {}) {
   return `<label>${label}<input name="${name}" type="${type}" value="${escapeHtml(item[name] ?? '')}" ${type === 'number' ? 'min="0" step="0.01" inputmode="decimal"' : ''} ${required ? 'required' : ''}></label>`;
 }
 
+function projectMediaTemplate(item = {}) {
+  const images = [...new Set([item.primaryImage, item.image, ...(Array.isArray(item.images) ? item.images : [])].filter(Boolean))];
+  const primary = item.primaryImage || item.image || images[0] || '';
+  return `<fieldset class="project-media-manager"><legend>Головне фото</legend><p>Оберіть обкладинку. На сайті буде показано до трьох фото, решта — у вікні об’єкта.</p><div class="project-media-options" data-project-media-options>${images.length ? images.map((src, index) => `<label><input type="radio" name="primaryImageChoice" value="${escapeHtml(src)}" ${src === primary || (!primary && index === 0) ? 'checked' : ''}><img src="${escapeHtml(src)}" alt="Фото об’єкта ${index + 1}"><span>${src === primary || (!primary && index === 0) ? 'Головне' : `Фото ${index + 1}`}</span></label>`).join('') : '<small data-project-media-empty>Збережених фото ще немає. Додайте файли вище.</small>'}</div></fieldset>`;
+}
+
+function setupProjectMediaChooser(item = {}) {
+  const fileInput = form.querySelector('input[name="imageFiles"]');
+  const options = form.querySelector('[data-project-media-options]');
+  if (!fileInput || !options) return;
+  fileInput.addEventListener('change', () => {
+    options.querySelectorAll('[data-new-project-photo]').forEach(node => node.remove());
+    const hasChecked = Boolean(options.querySelector('input[name="primaryImageChoice"]:checked'));
+    [...fileInput.files].forEach((file, index) => {
+      const preview = URL.createObjectURL(file);
+      const label = document.createElement('label');
+      label.dataset.newProjectPhoto = '';
+      label.innerHTML = `<input type="radio" name="primaryImageChoice" value="new:${index}" ${!hasChecked && index === 0 ? 'checked' : ''}><img src="${escapeHtml(preview)}" alt="${escapeHtml(file.name)}"><span>Нове фото ${index + 1}</span>`;
+      options.append(label);
+    });
+    options.querySelector('[data-project-media-empty]')?.remove();
+  });
+}
+
 function openContentDialog(type, item = null) {
   activeType = type;
   activeItem = item;
@@ -1285,7 +1317,7 @@ function openContentDialog(type, item = null) {
   const fields = ownPasswordOnly ? [['password', 'Новий пароль (мінімум 8 символів)', 'password', true]] : config.fields;
   dialog.dataset.type = type;
   dialogTitle.textContent = ownPasswordOnly ? 'Змінити власний пароль' : `${item ? 'Редагувати' : 'Створити'}: ${config.title}`;
-  const fieldsMarkup = fields.map(field => fieldTemplate(field, item || {})).join('');
+  const fieldsMarkup = fields.map(field => fieldTemplate(field, item || {})).join('') + (type === 'projects' ? projectMediaTemplate(item || {}) : '');
   const leadLayout = type === 'leads' ? `<div class="lead-dialog-grid"><div class="lead-dialog-fields">${fieldsMarkup}</div>${leadItemsPanel(item || {})}</div>` : fieldsMarkup;
   form.innerHTML = `${leadLayout}<div class="dialog-actions">${type === 'leads' && item ? '<button type="button" class="secondary-admin lead-dialog-print">Друк / PDF</button>' : ''}<button type="button" class="secondary-admin dialog-cancel">Скасувати</button><button type="submit" class="primary-admin">${ownPasswordOnly ? 'Змінити пароль' : item ? 'Зберегти зміни' : 'Створити'}</button></div>`;
   if (type === 'users') {
@@ -1293,6 +1325,7 @@ function openContentDialog(type, item = null) {
     password.required = ownPasswordOnly || !item;
     password.placeholder = ownPasswordOnly ? 'Щонайменше 8 символів' : item ? 'Залиште порожнім, щоб не змінювати' : 'Щонайменше 8 символів';
   }
+  if (type === 'projects') setupProjectMediaChooser(item || {});
   $$('[data-choice-name]', form).forEach(select => {
     const customInput = select.parentElement.querySelector('[data-choice-custom]');
     const setEditing = (editing, { focus = false } = {}) => {
@@ -1397,6 +1430,22 @@ form.addEventListener('submit', async event => {
         attachments.push({ url: upload.url, name: selectedFile.name, type: selectedFile.type, size: selectedFile.size });
       }
       data.attachments = attachments;
+    } else if (activeType === 'projects') {
+      const existingImages = [...new Set([activeItem?.primaryImage, activeItem?.image, ...(Array.isArray(activeItem?.images) ? activeItem.images : [])].filter(Boolean))];
+      const uploadedImages = [];
+      for (const selectedFile of files) {
+        const upload = await api('/api/uploads', { method: 'POST', body: JSON.stringify({ dataUrl: await fileToDataUrl(selectedFile) }) });
+        uploadedImages.push(upload.url);
+      }
+      const allImages = [...new Set([...existingImages, ...uploadedImages])];
+      const selectedPrimary = String(data.primaryImageChoice || '');
+      const newImageMatch = selectedPrimary.match(/^new:(\d+)$/);
+      const primaryImage = newImageMatch ? uploadedImages[Number(newImageMatch[1])] : selectedPrimary;
+      const resolvedPrimary = allImages.includes(primaryImage) ? primaryImage : (activeItem?.primaryImage || activeItem?.image || allImages[0] || '');
+      data.images = resolvedPrimary ? [resolvedPrimary, ...allImages.filter(src => src !== resolvedPrimary)] : allImages;
+      data.primaryImage = resolvedPrimary;
+      data.image = resolvedPrimary;
+      delete data.primaryImageChoice;
     } else if (files.length) {
       const images = [];
       for (const selectedFile of files) {
@@ -1415,6 +1464,7 @@ form.addEventListener('submit', async event => {
     if (['equipment','solarPanels','greenProtect'].includes(activeType)) delete data.image;
     const path = activeItem ? `/api/${activeType}/${activeItem._id}` : `/api/${activeType}`;
     await api(path, { method: activeItem ? 'PATCH' : 'POST', body: JSON.stringify(data) });
+    if (activeType === 'projects') invalidatePublicCollectionCache('projects');
     await loadCollection(activeType);
     await refreshDashboard();
     renderByType(activeType);
